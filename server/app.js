@@ -49,8 +49,38 @@ connectDB();
  */
 app.use(helmet());
 app.use(compression());
+/*
+ * CORS configuration
+ * Accept requests from:
+ *  - CLIENT_URL env var (production)
+ *  - Local dev server (http://localhost:3000)
+ *  - Vite dev server on common ports
+ *  - The current request origin if it's a known pattern
+ */
+/*
+ * Collect allowed origins, trimming trailing slashes from env vars
+ * because the browser Origin header never has a trailing slash.
+ */
+const allowedOrigins = [
+  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL.replace(/\/+$/, '')] : []),
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://thejobstarter.vercel.app'
+];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    /* Allow requests with no origin (server-to-server, curl, etc.) */
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    /* Also allow any Vercel preview deployment (*.vercel.app) */
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   credentials: true
 }));
 

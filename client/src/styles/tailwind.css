@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@custom-variant dark (&:where([data-theme="dark"] *));
+
+@theme {
+  --color-surface: var(--bg-secondary);
+  --color-surface-alt: var(--bg-primary);
+  --color-text-main: var(--text-primary);
+  --color-text-muted: var(--text-secondary);
+  --color-text-faint: var(--text-tertiary);
+  --color-border-main: var(--border-color);
+  --color-shadow-main: var(--shadow-color);
+  --color-accent-brand: var(--accent);
+  --color-inverse-bg: var(--bg-inverse);
+  --color-inverse-text: var(--text-inverse);
+}

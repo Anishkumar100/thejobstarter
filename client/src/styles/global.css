@@ -1,0 +1,446 @@
+/*
+ * THEWEBYTES DSA WEB — Global Styles
+ * Modern neo-brutalism with light/dark theme support
+ */
+
+* {
+ 
+  box-sizing: border-box;
+}
+
+/* ===== THEME VARIABLES ===== */
+
+:root,
+[data-theme="light"] {
+  /* Backgrounds */
+  --bg-primary: #f8f5f0;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #ece8e0;
+  --bg-surface: #ffffff;
+  --bg-inverse: #1c1917;
+
+  /* Text */
+  --text-primary: #1c1917;
+  --text-secondary: #78716c;
+  --text-tertiary: #a8a29e;
+  --text-inverse: #f8f5f0;
+
+  /* Accent */
+  --accent: #e11d48;
+  --accent-hover: #be123c;
+  --accent-light: #fff1f2;
+  --accent-ring: #e11d48;
+
+  /* Semantic */
+  --success: #059669;
+  --success-bg: #d1fae5;
+  --success-text: #065f46;
+  --error: #dc2626;
+  --error-bg: #fee2e2;
+  --error-text: #991b1b;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+  --warning-text: #92400e;
+
+  /* Difficulty badges */
+  --easy-bg: #d1fae5;
+  --easy-text: #065f46;
+  --medium-bg: #fef3c7;
+  --medium-text: #92400e;
+  --hard-bg: #fee2e2;
+  --hard-text: #991b1b;
+
+  /* Borders */
+  --border-color: #1c1917;
+  --border-subtle: #d6d3d1;
+
+  /* Shadows */
+  --shadow-color: #1c1917;
+  --shadow-sm: 4px 4px 0 var(--shadow-color);
+  --shadow: 6px 6px 0 var(--shadow-color);
+  --shadow-lg: 8px 8px 0 var(--shadow-color);
+  --shadow-hover: 10px 10px 0 var(--shadow-color);
+  --hover-glow: #3b82f6;
+
+  /* Code */
+  --code-bg: #1c1917;
+  --code-text: #f5f5f4;
+  --code-header-bg: #292524;
+  --code-tab-bg: #44403c;
+  --code-tab-active: #e11d48;
+
+  /* Misc */
+  --skeleton: #ece8e0;
+  --overlay: rgba(28, 25, 23, 0.6);
+}
+
+[data-theme="dark"] {
+  /* Backgrounds */
+  --bg-primary: #0c0a09;
+  --bg-secondary: #1c1917;
+  --bg-tertiary: #292524;
+  --bg-surface: #1c1917;
+  --bg-inverse: #f5f5f4;
+
+  /* Text */
+  --text-primary: #f5f5f4;
+  --text-secondary: #a8a29e;
+  --text-tertiary: #78716c;
+  --text-inverse: #0c0a09;
+
+  /* Accent */
+  --accent: #fb923c;
+  --accent-hover: #fdba74;
+  --accent-light: #431407;
+  --accent-ring: #fb923c;
+
+  /* Semantic */
+  --success: #34d399;
+  --success-bg: #064e3b;
+  --success-text: #6ee7b7;
+  --error: #f87171;
+  --error-bg: #7f1d1d;
+  --error-text: #fca5a5;
+  --warning: #fbbf24;
+  --warning-bg: #78350f;
+  --warning-text: #fcd34d;
+
+  /* Difficulty badges */
+  --easy-bg: #064e3b;
+  --easy-text: #6ee7b7;
+  --medium-bg: #78350f;
+  --medium-text: #fcd34d;
+  --hard-bg: #7f1d1d;
+  --hard-text: #fca5a5;
+
+  /* Borders */
+  --border-color: #44403c;
+  --border-subtle: #292524;
+
+  /* Shadows */
+  --shadow-color: #000000;
+  --shadow-sm: 4px 4px 0 var(--shadow-color);
+  --shadow: 6px 6px 0 var(--shadow-color);
+  --shadow-lg: 8px 8px 0 var(--shadow-color);
+  --shadow-hover: 10px 10px 0 var(--shadow-color);
+  --hover-glow: var(--accent);
+
+  /* Code */
+  --code-bg: #0a0a0a;
+  --code-text: #f5f5f4;
+  --code-header-bg: #171717;
+  --code-tab-bg: #262626;
+  --code-tab-active: #fb923c;
+
+  /* Misc */
+  --skeleton: #292524;
+  --overlay: rgba(0, 0, 0, 0.7);
+}
+
+/* Typography */
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Layout */
+  --max-width: 1200px;
+  --nav-height: 64px;
+
+  /* Border & Shadow tokens (referenced by theme) */
+  --border-width: 3px;
+  --border: 3px solid var(--border-color);
+  --border-thin: 2px solid var(--border-color);
+  --radius: 0;
+}
+
+/* Smooth theme transition */
+body {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Base */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  font-size: 1rem;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* TheWebytes banner hover — light = blue, dark = orange */
+.thewebytes-banner:hover {
+  box-shadow: 12px 12px 0 #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+[data-theme="dark"] .thewebytes-banner:hover {
+  box-shadow: 12px 12px 0 var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+a {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+h1 { font-size: 3rem; letter-spacing: -0.02em; }
+h2 { font-size: 2rem; letter-spacing: -0.01em; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; text-transform: uppercase; }
+h5 { font-size: 1.125rem; }
+h6 { font-size: 1rem; }
+
+p { margin-bottom: var(--space-md); }
+
+small { font-size: 0.875rem; color: var(--text-secondary); }
+
+label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: var(--space-xs);
+  color: var(--text-secondary);
+}
+
+/* Focus */
+:focus-visible {
+  outline: 4px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 0; }
+
+/* Container */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+.container-sm {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background: var(--bg-inverse);
+  color: var(--text-inverse);
+  padding: var(--space-sm) var(--space-md);
+  z-index: 1000;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Loading state */
+.loading-text {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-secondary);
+}
+
+/* Error state */
+.error-text {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: var(--space-lg);
+  color: var(--error-text);
+  background: var(--error-bg);
+  border: var(--border);
+  margin: var(--space-lg) 0;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: var(--space-3xl) var(--space-lg);
+  color: var(--text-secondary);
+}
+
+.empty-state__icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-md);
+  opacity: 0.5;
+}
+
+.empty-state__text {
+  font-size: 1rem;
+  font-family: var(--font-mono);
+}
+
+/* Tag (reusable) */
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 0.7rem;
+  background: var(--bg-tertiary);
+  border: var(--border-thin);
+  white-space: nowrap;
+  transition: background 0.15s ease;
+  color: var(--text-primary);
+}
+
+.tag:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Responsive typography */
+@media (max-width: 640px) {
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  .container { padding: 0 var(--space-md); }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  h1 { font-size: 2.5rem; }
+}
+
+/*
+ * WhyTheseThree CTA buttons — defined here so they ALWAYS render
+ * regardless of Tailwind JIT scanning. Uses theme CSS variables.
+ */
+
+/* ─── DSA button ────── */
+.why-btn-dsa {
+  background: #fff;
+  color: #e11d48;
+  border: 4px solid #e11d48;
+  box-shadow: 6px 6px 0px var(--shadow-color);
+  transition: all 0.15s ease;
+}
+.why-btn-dsa:hover {
+  background: #e11d48;
+  color: #fff;
+  box-shadow: 8px 8px 0px var(--shadow-color);
+  transform: translateY(-2px);
+}
+.why-btn-dsa:active {
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  transform: translateY(0);
+}
+[data-theme="dark"] .why-btn-dsa {
+  color: #000;
+}
+[data-theme="dark"] .why-btn-dsa:hover {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+/* ─── DBMS button ───── */
+.why-btn-dbms {
+  background: #fff;
+  color: #0066ff;
+  border: 4px solid #0066ff;
+  box-shadow: 6px 6px 0px var(--shadow-color);
+  transition: all 0.15s ease;
+}
+.why-btn-dbms:hover {
+  background: #0066ff;
+  color: #fff;
+  box-shadow: 8px 8px 0px var(--shadow-color);
+  transform: translateY(-2px);
+}
+.why-btn-dbms:active {
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  transform: translateY(0);
+}
+[data-theme="dark"] .why-btn-dbms {
+  color: #000;
+}
+[data-theme="dark"] .why-btn-dbms:hover {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+/* ─── OS button ─────── */
+.why-btn-os {
+  background: #ff4f00;
+  color: #fff;
+  border: 4px solid #ff4f00;
+  box-shadow: 6px 6px 0px var(--shadow-color);
+  transition: all 0.15s ease;
+}
+.why-btn-os:hover {
+  background: transparent;
+  color: #ff4f00;
+  box-shadow: 8px 8px 0px var(--shadow-color);
+  transform: translateY(-2px);
+}
+.why-btn-os:active {
+  box-shadow: 2px 2px 0px var(--shadow-color);
+  transform: translateY(0);
+}
+
+

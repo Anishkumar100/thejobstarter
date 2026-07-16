@@ -6,7 +6,7 @@
   "description": "TheWebytes DSA Web — Express + MongoDB API server",
   "scripts": {
     "dev": "node --import dotenv/config --watch app.js",
-    "start": "node --import dotenv/config app.js",
+    "start": "node --no-node-snapshot --import dotenv/config app.js",
     "seed": "node --import dotenv/config seeds/seed.js",
     "seed:dbms-meta": "node --import dotenv/config seeds/seedDbmsMeta.js"
   },

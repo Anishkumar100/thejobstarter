@@ -14,7 +14,7 @@ import Newsletter from '../models/Newsletter.js';
 import Topic from '../models/Topic.js';
 import Subtopic from '../models/Subtopic.js';
 import DbmsMeta from '../models/DbmsMeta.js';
-import { runSeed } from '../seeds/seed.js';
+
 
 /*
  * GET /api/admin/stats
@@ -109,6 +109,8 @@ export async function getAllUsers(req, res) {
  */
 export async function seedDatabase(req, res) {
   try {
+    /* Dynamic import — only loads seed.js + mock data when this endpoint is hit */
+    const { runSeed } = await import('../seeds/seed.js');
     console.log('[ADMIN] Starting database seed...');
     const summary = await runSeed();
     console.log('[ADMIN] Database seeded successfully');

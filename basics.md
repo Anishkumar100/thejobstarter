@@ -1,111 +1,124 @@
 # Deploying to cPanel — Full Beginner Guide
 
-## What is cPanel?
+## Your Setup
 
-cPanel is a **control panel** for your hosting. Think of it as a dashboard where you manage your website — upload files, create databases, set up emails, etc.
+| Part | Where it runs |
+|---|---|
+| **Frontend** (React app) | **cPanel** — uploaded to `public_html/` |
+| **Backend** (Express API) | **cPanel** — Node.js app |
+| **Database** (MongoDB) | **MongoDB Atlas** — free cloud database |
 
-You log into cPanel through a URL your hosting provider gives you (something like `https://yourdomain.com:2083` or `https://server-name.com/cpanel`).
+**Your server domain:** `anivoice.rhzsite.in` (this was given to you by RankHostZone)
 
 ---
 
-## How Does Hosting Work?
+## What is cPanel?
+
+cPanel is a **control panel** for your hosting. It's a webpage where you manage files, set up Node.js apps, check logs, etc.
+
+You're already logged in — everything happens inside this interface.
+
+---
+
+## How Does cPanel Work?
 
 Your hosting account has a **folder structure** on the server:
 
 ```
-Your hosting account's home directory
-├── public_html/        ← This is your website. Visitors see this.
-├── logs/               ← Error logs (don't touch)
+Your Home Directory
+├── public_html/          ← Your website lives here. Visitors see this.
+├── logs/                 ← Error logs
+├── ssl/                  ← SSL certificates
 └── ... other folders
 ```
 
-When someone visits `https://yourdomain.com`, the server looks inside `public_html/` and serves whatever files are there.
+When someone visits `https://anivoice.rhzsite.in`, the server looks inside `public_html/` and serves whatever files are there.
 
 Our job:
 1. Put the **frontend** (React app) into `public_html/`
-2. Put the **backend** (Express API) into a separate folder and tell cPanel to run it as a Node.js app
+2. Put the **backend** (Express API) into a separate folder and run it as a Node.js app
+
+**Both are on the same cPanel.** The frontend handles the visual pages, the backend handles API calls (fetching problems, users, etc.).
 
 ---
 
-## Step 1: Build the Frontend
+## Step 1: Understand What the dist/ Folder Is
 
-Do this on your **local computer** (the one you code on).
+You checked your `client/dist/` folder and saw `index.html` plus some `.js` and `.css` files. You might expect HTML files for every page (`dsa.html`, `about.html`, etc.) — but React doesn't work that way.
 
-Open a terminal in the `client/` folder:
+It's a **Single Page Application (SPA)**:
+
+- There's only **one** `index.html` file
+- When you visit `/dsa`, React reads the URL and **dynamically loads the DSA page** using JavaScript
+- No need for separate HTML files — it's all done in the browser
+
+So your `dist/` folder is exactly correct:
+```
+dist/
+├── index.html              ← The one and only page
+├── assets/
+│   ├── index-CZcPbcuz.js   ← All your React code (compressed)
+│   ├── index-CW4FOVeX.css  ← All your styles (compressed)
+│   ├── dbmsApi-B_BdKGvd.js ← DBMS API code
+│   └── osApi-DlTCOpAR.js   ← OS API code
+├── favicon.ico
+├── hero-video.mp4
+└── thewebytes.png
+```
+
+This is exactly what a React app looks like after building. It works.
+
+---
+
+## Step 2: Build the Frontend
+
+You already have `dist/` — done. If you ever change the code and need to rebuild:
 
 ```bash
 cd client
-npm install
 npm run build
 ```
 
-This creates a `dist/` folder inside `client/`. The `dist/` folder contains your completed website (HTML, JS, CSS).
-
-> If you get errors, make sure you have Node.js installed on your computer first. Check with `node --version`.
-
----
-
-## Step 2: Set Environment Variables for Production
-
-Before building, open `client/.env` and set:
-
-```
-VITE_API_URL=https://yourdomain.com/api
-```
-
-Replace `yourdomain.com` with your actual domain.
-
-**We'll find the correct URL later when the backend is running.**
+This refreshes the `dist/` folder.
 
 ---
 
 ## Step 3: Upload the Frontend
 
-Now go to **cPanel** in your browser.
+Now, inside cPanel:
 
 ### 3a. Open File Manager
 
-Look for the **File Manager** icon (under "Files" section). Click it.
+Click **File Manager** (under the "Files" section).
 
 ### 3b. Navigate to public_html
 
-You'll see a list of folders. Click on **public_html** (or `public_html/yourdomain.com` — depends on your host).
+The file tree opens on the left. Click on **public_html** to open it.
 
 ### 3c. Delete Default Files
 
-There might be default files like `index.html`, `cgi-bin/`, etc. Select them all and click **Delete** at the top. We'll replace them with our app.
+There will be default files (like `cgi-bin/`, a default `index.html`, etc.). Select them all and click **Delete** at the top.
 
-### 3d. Upload dist/
+### 3d. Upload dist/ contents
 
-Click **Upload** at the top. A new window opens.
+1. Click **Upload**
+2. Go to your local `client/dist/` folder
+3. Drag and drop **everything inside** `dist/` into the upload box:
+   - `index.html`
+   - `assets/` (the whole folder)
+   - `favicon.ico`
+   - `hero-video.mp4`
+   - `thewebytes.png`
+4. Wait for it to finish (100%)
 
-Go to your local `client/dist/` folder, select ALL files inside it, and drag them into the upload area.
+### 3e. Create .htaccess (routing fix)
 
-Files you should see uploading:
-- `index.html`
-- `assets/` (folder with JS/CSS files inside)
-- `robots.txt`
-- `favicon.ico`
-- (anything else that was inside `dist/`)
+React handles its own navigation. But if someone types `https://anivoice.rhzsite.in/dsa` directly in the browser, the server looks for a file called `dsa/` and gives a 404. We fix this:
 
-Wait for upload to finish (100%). Close the upload window.
-
-### 3e. Check the Result
-
-Go back to File Manager, inside `public_html/`. You should see the files you uploaded. If they're there, the frontend is uploaded.
-
----
-
-## Step 4: Fix 404 Errors on Other Pages (Create .htaccess)
-
-If you visit `https://yourdomain.com` it works, but `https://yourdomain.com/dsa` gives a 404 error — we need to fix this.
-
-React handles routing on the client side, so the server needs to send ALL requests to `index.html`.
-
-1. In File Manager (inside `public_html/`), click **+ File** (top bar)
-2. Type: `.htaccess` and click **Create**
-3. Right-click the new `.htaccess` file → **Edit**
-4. Paste this exactly:
+1. Back in File Manager inside `public_html/`, click **+ File**
+2. Name it `.htaccess` (with the dot)
+3. Right-click → **Edit**
+4. Paste:
 
 ```
 RewriteEngine On
@@ -115,199 +128,187 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ /index.html [L]
 ```
 
-5. Click **Save Changes**
+5. **Save**
 
-Now try visiting `https://yourdomain.com/dsa` — it should work.
+### 3f. Test
+
+Open a new tab and go to `https://anivoice.rhzsite.in`. You should see your app. Click around — `/dsa`, `/dbms`, `/os` should all work.
+
+If the page loads but looks weird (no styles), your `VITE_API_URL` might need fixing — we'll do that after the backend is set up.
 
 ---
 
-## Step 5: Set Up the Backend (Node.js App)
+## Step 4: Set Up the Backend (Node.js App)
 
-The frontend is just the visual part. The backend is the server that handles API requests (fetching problems, user data, etc.).
+The frontend is just the look. The backend is the server that talks to MongoDB and Clerk.
 
-### 5a. Find Node.js Setup in cPanel
+### 4a. Upload Backend Files
 
-Scroll through the cPanel icons and look for one of these:
-- **Setup Node.js App**
-- **Node.js**
-- **Node.js Selector**
+1. In File Manager, go **up one level** from `public_html` to your **home directory** (it's the top folder, named after your cPanel username)
+2. Click **+ Folder**, name it `server`, click **Create**
+3. Enter the `server/` folder
+4. Click **Upload** and upload everything from your local `server/` folder **except `node_modules/`**:
+   - `app.js`
+   - `package.json`
+   - `package-lock.json`
+   - `config/`
+   - `controllers/`
+   - `middleware/`
+   - `models/`
+   - `routes/`
+   - `seeds/`
+   - `utils/`
 
-If you can't find it, search "Node" in the cPanel search bar (top right). If it's not there at all, your plan doesn't support Node.js and you'll need to upgrade.
+### 4b. Find Node.js Setup
 
-### 5b. Upload Backend Files
+Scroll through cPanel icons for **Setup Node.js App**. Use the search bar at top-right and type "node" if you can't find it.
 
-First, let's upload the backend code:
+### 4c. Create the App
 
-1. Go to **File Manager**
-2. Click on your **home directory** (it's usually at the top, named your cPanel username — NOT `public_html`). It's the parent folder of `public_html`.
-3. Click **+ Folder** and name it `server`
-4. Open the new `server/` folder
-5. Click **Upload**, then upload ALL files and folders from your local `server/` folder (except `node_modules/` — we'll install those separately)
-
-Files to upload:
-```
-app.js
-package.json
-package-lock.json
-config/
-controllers/
-middleware/
-models/
-routes/
-seeds/
-utils/
-```
-
-### 5c. Create the Node.js App
-
-1. Go to **Setup Node.js App**
-2. Click **Create Application** or **+ Create**
-3. Fill in:
+Click **Create Application**. Fill:
 
 | Field | Value |
 |---|---|
-| Node.js version | **18** (or whatever is available — 16+ works) |
-| Application mode | **Production** |
-| Application root | `server` (type this — it's the folder we created) |
-| Application URL | Select your domain from the dropdown |
-| Application startup file | `app.js` |
+| **Node.js version** | **18** or **20** |
+| **Application mode** | **Production** |
+| **Application root** | `server` |
+| **Application URL** | Select `anivoice.rhzsite.in` from the dropdown |
+| **Application startup file** | `app.js` |
 
-4. Click **Create**
+Click **Create**.
 
-### 5d. Add Environment Variables
+### 4d. Add Environment Variables
 
-Now you'll see your app listed. Click on the **application name** or the **edit** button.
-
-Scroll down to **Environment Variables**. Add each of these one by one:
+Click **Edit** on your app. Scroll down to **Environment Variables**. Add these one by one:
 
 | Variable | Value |
 |---|---|
-| `MONGODB_URI` | Your MongoDB connection string (from MongoDB Atlas) |
-| `CLERK_SECRET_KEY` | `sk_test_xxx` from Clerk |
-| `CLERK_PUBLISHABLE_KEY` | `pk_test_xxx` from Clerk |
-| `CLERK_WEBHOOK_SECRET` | `whsec_xxx` from Clerk |
-| `IMAGEKIT_PUBLIC_KEY` | From ImageKit |
-| `IMAGEKIT_PRIVATE_KEY` | From ImageKit |
+| `MONGODB_URI` | Your MongoDB Atlas connection string |
+| `CLERK_SECRET_KEY` | From Clerk Dashboard → API Keys |
+| `CLERK_PUBLISHABLE_KEY` | From Clerk Dashboard → API Keys |
+| `CLERK_WEBHOOK_SECRET` | From Clerk Dashboard → Webhooks |
+| `IMAGEKIT_PUBLIC_KEY` | From ImageKit Dashboard |
+| `IMAGEKIT_PRIVATE_KEY` | From ImageKit Dashboard |
 | `IMAGEKIT_URL_ENDPOINT` | `https://ik.imagekit.io/your_account` |
 
-Click **Add** after each one. When done, scroll up and click **Save** or **Update**.
+Click **Add** for each one. Then **Save**.
 
-### 5e. Install Dependencies
+### 4e. Install & Start
 
-Back on the Node.js app page, look for a button that says **Run npm install** or **Install npm dependencies**. Click it.
+1. Click **Run npm install** — wait for completion
+2. Click **Start App** or **Run**
 
-Wait for it to finish (you'll see a log/output). This downloads all the packages the backend needs.
+### 4f. Get Backend URL
 
-### 5f. Start the App
+After starting, the app page shows the URL. It will look like:
 
-Click **Run** or **Start App**. The app should start.
+```
+https://anivoice.rhzsite.in:PORTNUMBER
+```
 
-You'll see the application URL appear (something like `https://yourdomain.com:3000`). This is your backend URL. **Write this down.**
+or it may show with the port already displayed. **Write this down.**
+
+Test it by visiting:
+
+```
+https://anivoice.rhzsite.in:PORT/api/dsa?limit=1
+```
+
+If you see JSON data, the backend is live.
 
 ---
 
-## Step 6: Find Your Backend URL
+## Step 5: Seed the Database
 
-After starting, the Node.js app page shows something like:
-
-```
-https://yourdomain.com:3000
-```
-
-or
+Visit:
 
 ```
-https://server1234.yourhost.com/~
+https://anivoice.rhzsite.in:PORT/api/admin/seed
 ```
 
-Test it:
-1. Visit `https://yourdomain.com:3000/api/dsa?limit=1` in your browser
-2. If you see JSON data (or `{}`), it's working
-3. If you get an error, the app isn't fully running yet — check the logs
+This fills MongoDB with all the DSA problems, DBMS articles, etc.
+
+If it fails, check that `MONGODB_URI` is correct in the environment variables.
 
 ---
 
-## Step 7: Rebuild Frontend with Correct API URL
+## Step 6: Connect Frontend to Backend
 
-Now that we know the backend URL, we need to rebuild the frontend to point to it.
+The frontend needs to know where the backend API is.
 
-On your local computer, edit `client/.env`:
+On your local computer, open `client/.env` and set:
 
 ```
-VITE_API_URL=https://yourdomain.com:3000/api
+VITE_API_URL=https://anivoice.rhzsite.in:PORT/api
 ```
 
-(Replace with your actual backend URL + `/api`)
+Replace `PORT` with your actual port number.
 
-Then rebuild and re-upload:
+Then rebuild the frontend:
 
 ```bash
 cd client
 npm run build
 ```
 
-Delete everything in `public_html/` again (except `.htaccess`), upload the new `dist/` contents, and the frontend will now talk to your live backend.
+### Re-upload the frontend
+
+1. In cPanel File Manager, delete everything inside `public_html/` (except `.htaccess`)
+2. Upload the new `dist/` files again
+3. Done
+
+Now your app at `https://anivoice.rhzsite.in` talks to the API at `https://anivoice.rhzsite.in:PORT/api`.
 
 ---
 
-## Step 8: Seed the Database
-
-Visit this URL in your browser:
-
-```
-https://yourdomain.com:3000/api/admin/seed
-```
-
-This loads the initial data (DSA problems, DBMS articles, etc.) into MongoDB. You'll see "Database seeded successfully" or a summary JSON.
-
----
-
-## Step 9: Update Clerk Webhook
+## Step 7: Update Clerk Webhook
 
 1. Go to [Clerk Dashboard](https://dashboard.clerk.com) → **Webhooks**
-2. Click on your existing webhook endpoint
-3. Change the URL from `http://localhost:3001/api/users/webhook` to:
-   ```
-   https://yourdomain.com:3000/api/users/webhook
-   ```
-   (Use your actual backend URL)
-4. Click **Save**
+2. Edit your endpoint
+3. Change URL to: `https://anivoice.rhzsite.in:PORT/api/users/webhook`
+4. Save
 
-Now when users sign up, their profile gets created in MongoDB automatically.
+Now when users sign up, a profile is created in MongoDB.
 
 ---
 
-## Final Checklist
+## Step 8: Set Yourself as Admin
 
-- [ ] Frontend loads at `https://yourdomain.com`
-- [ ] Navigating to `/dsa`, `/dbms`, `/os` works (no 404)
-- [ ] Backend responds at `https://yourdomain.com:3000/api/dsa`
-- [ ] Sign up works (Clerk → redirects back)
-- [ ] Admin access works (set `publicMetadata.role = "admin"` in Clerk Dashboard)
+1. Go to **Clerk Dashboard** → **Users**
+2. Click on your user
+3. Under **Public Metadata**, click **Edit**
+4. Type: `{"role": "admin"}`
+5. Save
+
+Now you can access `/admin` routes.
+
+---
+
+## Final URLs
+
+| Thing | URL |
+|---|---|
+| Your website | `https://anivoice.rhzsite.in` |
+| Backend API | `https://anivoice.rhzsite.in:PORT` |
+| Backend API test | `https://anivoice.rhzsite.in:PORT/api/dsa?limit=1` |
+| MongoDB | Your Atlas connection string |
 
 ---
 
 ## Troubleshooting
 
-**"The page isn't working" or blank screen**
-- Open browser DevTools (F12) → Console tab → see error messages
-- Common: wrong `VITE_API_URL`, or backend not running
-
-**"503 Service Unavailable"**
-- Node.js app stopped. Go to Setup Node.js App and click Start
-
-**"Cannot POST /api/something"**
-- Backend is running but env variables missing. Check MongoDB URI is correct
-
-**"MongooseError: Cannot connect"**
-- MongoDB Atlas connection string wrong, or your IP isn't whitelisted
-- In MongoDB Atlas → Network Access → Add your server's IP
-
-**"npm install fails"**
-- Go to Setup Node.js App → see if the logs show an error. Might be a memory limit
+| Problem | Likely Fix |
+|---|---|
+| **Blank page / no styles** | Wrong `VITE_API_URL`. Rebuild and re-upload |
+| **404 on /dsa, /dbms** | `.htaccess` missing. Check Step 3e |
+| **Backend not responding** | Node.js app not started. Check Setup Node.js App → Start |
+| **"Cannot connect to MongoDB"** | `MONGODB_URI` wrong, or IP not whitelisted in Atlas → Network Access → Add `0.0.0.0/0` |
+| **npm install fails** | Low memory? Check logs in Setup Node.js App |
+| **Can't see my app after upload** | Wait 2-3 minutes — cPanel sometimes caches. Or clear your browser cache |
+| **Port number changes** | If you restart the Node.js app, the port may change. Check the URL again in Setup Node.js App |
 
 ---
 
-## What's Next?
+## Keeping the Backend Running
 
-After everything works, you can point your domain to the backend (remove the port number) using a subdomain — but that's advanced. For now, having `:3000` in the URL is fine for testing.
+Once started in Setup Node.js App, it runs **on the server** — you don't need to keep the cPanel tab open. It keeps running even after you close your browser.

@@ -15,7 +15,6 @@ export const useToastStore = create((set, get) => ({
    */
   addToast: (message, type = 'info') => {
     const id = Date.now() + Math.random();
-    console.log(`[TOAST] ${type}: ${message}`);
     set(state => ({ toasts: [...state.toasts, { id, message, type }] }));
     /* Auto-dismiss after 4 seconds */
     setTimeout(() => {

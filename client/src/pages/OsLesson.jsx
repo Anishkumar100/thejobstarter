@@ -20,9 +20,7 @@ export default function OsLesson() {
 
   /* Fetch lesson details and subtopics on mount or when slug changes */
   useEffect(() => {
-    console.log('[OS] Fetching lesson by slug:', lessonSlug);
     fetchLessonBySlug(lessonSlug);
-    console.log('[OS] Fetching subtopics for lesson:', lessonSlug);
     fetchSubtopics({ lesson: lessonSlug });
   }, [lessonSlug]);
 

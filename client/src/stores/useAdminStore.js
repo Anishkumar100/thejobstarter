@@ -10,7 +10,6 @@ export const useAdminStore = create((set, get) => ({
   error: null,
 
   fetchStats: async () => {
-    console.log('[ADMIN] Fetching dashboard stats');
     set({ loading: true, error: null });
     try {
       const res = await apiRequest('/admin/stats');
@@ -22,7 +21,6 @@ export const useAdminStore = create((set, get) => ({
   },
 
   fetchUsers: async () => {
-    console.log('[ADMIN] Fetching all users');
     set({ loading: true, error: null });
     try {
       const res = await apiRequest('/admin/users');
@@ -34,10 +32,8 @@ export const useAdminStore = create((set, get) => ({
   },
 
   seedDatabase: async () => {
-    console.log('[ADMIN] Seeding database...');
     try {
       await apiRequest('/admin/seed', { method: 'POST' });
-      console.log('[ADMIN] Database seeded successfully');
       return true;
     } catch (error) {
       console.error('[ADMIN] Seed error:', error.message);
@@ -47,7 +43,6 @@ export const useAdminStore = create((set, get) => ({
   },
 
   fetchMedia: async () => {
-    console.log('[ADMIN] Fetching media library');
     set({ loading: true, error: null });
     try {
       const res = await listMedia();
@@ -58,19 +53,16 @@ export const useAdminStore = create((set, get) => ({
     }
   },
 
-  uploadMedia: async (file) => {
-    console.log('[ADMIN] Uploading media...');
-    await uploadMediaApi(file, file.name);
+  uploadMedia: async ({ file, fileName }) => {
+    await uploadMediaApi(file, fileName);
   },
 
   deleteMedia: async (fileId) => {
-    console.log('[ADMIN] Deleting media:', fileId);
     await deleteMediaApi(fileId);
     set(state => ({ media: state.media.filter(m => m.fileId !== fileId) }));
   },
 
   deleteUser: async (id) => {
-    console.log('[ADMIN] Deleting user:', id);
     await apiRequest(`/admin/users/${id}`, { method: 'DELETE' });
     set(state => ({ users: state.users.filter(u => u._id !== id) }));
   }

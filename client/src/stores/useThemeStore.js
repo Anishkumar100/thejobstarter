@@ -15,7 +15,6 @@ export const useThemeStore = create((set) => ({
       const next = state.theme === 'light' ? 'dark' : 'light';
       localStorage.setItem('thejobstarter-theme', next);
       document.documentElement.setAttribute('data-theme', next);
-      console.log('[THEME] Switched to:', next);
       return { theme: next };
     });
   },
@@ -23,7 +22,6 @@ export const useThemeStore = create((set) => ({
   initTheme: () => {
     const theme = getInitialTheme();
     document.documentElement.setAttribute('data-theme', theme);
-    console.log('[THEME] Initialized:', theme);
     return theme;
   }
 }));

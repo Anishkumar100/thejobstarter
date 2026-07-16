@@ -259,7 +259,6 @@ export async function approveQuestion(req, res) {
         });
         notifResult.created = true;
         notifResult.notifId = newNotif._id.toString();
-        console.log('[NOTIFICATION] Created:', newNotif._id, 'for user:', question.author._id);
       }
     } catch (notifErr) {
       notifResult.created = false;
@@ -300,7 +299,6 @@ export async function rejectQuestion(req, res) {
           questionId: question._id,
           questionTitle: question.title
         });
-        console.log('[NOTIFICATION] Question rejected notification for:', question.author._id);
       }
     } catch (notifErr) {
       console.error('[NOTIFICATION] Failed to create rejection notification:', notifErr.message);

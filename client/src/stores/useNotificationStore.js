@@ -25,7 +25,6 @@ export const useNotificationStore = create((set, get) => ({
    * Fetch notifications for the current user
    */
   fetchNotifications: async () => {
-    console.log('[NOTIFICATION] Fetching...');
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {
@@ -36,7 +35,6 @@ export const useNotificationStore = create((set, get) => ({
       const dismissed = getDismissed();
       /* Filter out dismissed synthetic notifications */
       const filtered = (res.data || []).filter(n => !(n._directQuery && dismissed.has(n._id)));
-      console.log('[NOTIFICATION] Fetched:', res.data?.length, 'Filtered:', filtered.length);
       set({ notifications: filtered, unreadCount: res.unreadCount || 0, loading: false });
     } catch (error) {
       console.error('[NOTIFICATION] Error:', error.message);
@@ -49,7 +47,6 @@ export const useNotificationStore = create((set, get) => ({
    */
   markRead: async (id) => {
     if (USE_MOCK) return;
-    console.log('[NOTIFICATION] Marking read:', id);
 
     /* For synthetic notifications, just mark read locally and dismiss permanently */
     if (typeof id === 'string' && id.startsWith('q_')) {
@@ -83,7 +80,6 @@ export const useNotificationStore = create((set, get) => ({
    */
   markAllRead: async () => {
     if (USE_MOCK) return;
-    console.log('[NOTIFICATION] Marking all as read');
     try {
       await markAllNotificationsRead();
     } catch (error) {
@@ -111,7 +107,6 @@ export const useNotificationStore = create((set, get) => ({
    */
   removeNotification: async (id) => {
     if (USE_MOCK) return;
-    console.log('[NOTIFICATION] Deleting:', id);
 
     /* For synthetic notifications, dismiss permanently via localStorage */
     if (typeof id === 'string' && id.startsWith('q_')) {

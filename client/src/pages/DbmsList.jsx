@@ -19,7 +19,6 @@ export default function DbmsList() {
 
   /* Fetch all DBMS lessons on mount */
   useEffect(() => {
-    console.log('[DBMS] Fetching lessons on mount...');
     fetchLessons();
   }, []);
 
@@ -30,12 +29,10 @@ export default function DbmsList() {
 
   /* Fetch hero image from homepage topic with category badge "DBMS" */
   useEffect(() => {
-    console.log('[DBMS] Fetching hero image from topics...');
     apiRequest('/topics')
       .then(res => {
         const dbmsTopic = (res.data || []).find(t => t.category === 'DBMS');
         if (dbmsTopic?.image) {
-          console.log('[DBMS] Hero image found from DBMS topic');
           setHeroImage(dbmsTopic.image);
         }
       })

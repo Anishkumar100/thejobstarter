@@ -22,13 +22,11 @@ export default function AdminOsMeta() {
   const [msg, setMsg] = useState({ text: '', type: '' });
 
   const fetchItems = async () => {
-    console.log('[OS-META] Fetching all OS meta...');
     setLoading(true);
     setError(null);
     try {
       const res = await apiRequest('/os-meta');
       setItems(res.data || []);
-      console.log('[OS-META] Items fetched:', res.data?.length);
     } catch (err) {
       console.error('[OS-META] Fetch failed:', err.message);
       setError(err.message);

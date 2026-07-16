@@ -22,7 +22,6 @@ export default function AdminDbmsAllSubtopics() {
    */
   const handleDelete = async (id) => {
     if (!confirm('Delete this subtopic?')) return;
-    console.log('[DBMS] Deleting subtopic:', id);
     await deleteSubtopic(id);
     setRefresh(n => n + 1);
   };

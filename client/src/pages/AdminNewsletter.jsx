@@ -10,7 +10,6 @@ export default function AdminNewsletter() {
   const [error, setError] = useState(null);
 
   const fetchSubscribers = async () => {
-    console.log('[ADMIN] Fetching newsletter subscribers');
     setLoading(true);
     try {
       const res = await apiRequest('/newsletter');
@@ -27,7 +26,6 @@ export default function AdminNewsletter() {
 
   const handleRemove = async (id) => {
     if (!confirm('Remove this subscriber?')) return;
-    console.log('[ADMIN] Removing subscriber:', id);
     try {
       await apiRequest(`/newsletter/${id}`, { method: 'DELETE' });
       setSubscribers(prev => prev.filter(s => s._id !== id));

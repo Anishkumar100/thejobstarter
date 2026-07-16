@@ -16,7 +16,6 @@ export default function AdminTopics() {
   const [msg, setMsg] = useState('');
 
   const fetchTopics = async () => {
-    console.log('[ADMIN] Fetching topics...');
     setLoading(true);
     try {
       const res = await apiRequest('/topics');
@@ -44,7 +43,6 @@ export default function AdminTopics() {
   };
 
   const handleSave = async () => {
-    console.log('[ADMIN] Saving topics...');
     setSaving(true);
     setMsg('');
     try {
@@ -59,7 +57,6 @@ export default function AdminTopics() {
         await apiRequest('/topics', { method: 'POST', body: JSON.stringify(t) });
       }
       setMsg('SAVED');
-      console.log('[ADMIN] Topics saved');
     } catch (err) {
       console.error('[ADMIN] Save failed:', err.message);
       setMsg('FAILED');
@@ -148,7 +145,6 @@ export default function AdminTopics() {
                                   body: JSON.stringify({ file: reader.result, fileName: `topic-${i + 1}-${Date.now()}` })
                                 });
                                 handleField(i, 'image', res.url);
-                                console.log('[ADMIN] Topic image uploaded:', res.url);
                               } catch (err) {
                                 console.error('[ADMIN] Upload failed:', err.message);
                               }

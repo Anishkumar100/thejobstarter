@@ -20,9 +20,7 @@ export default function DbmsLesson() {
 
   /* Fetch lesson details and subtopics on mount or when slug changes */
   useEffect(() => {
-    console.log('[DBMS] Fetching lesson by slug:', lessonSlug);
     fetchLessonBySlug(lessonSlug);
-    console.log('[DBMS] Fetching subtopics for lesson:', lessonSlug);
     fetchSubtopics({ lesson: lessonSlug });
   }, [lessonSlug]);
 

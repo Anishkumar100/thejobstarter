@@ -40,18 +40,15 @@ export default function AdminHowItWorks() {
 
   /* Load existing config on mount */
   useEffect(() => {
-    console.log('[ADMIN] Loading HowItWorks section config...');
     setLoading(true);
     setFetchError(null);
     apiRequest('/site-config/public')
       .then(res => {
         const section = res.data?.homepageHowItWorks;
         if (!section || !section.steps || !Array.isArray(section.steps) || section.steps.length === 0) {
-          console.log('[ADMIN] No HowItWorks section data, using defaults');
           setLoading(false);
           return;
         }
-        console.log('[ADMIN] HowItWorks section loaded');
         const merged = DEFAULT_STEPS.map(def => {
           const saved = section.steps.find(s => s.id === def.id);
           if (!saved) return { ...def };
@@ -81,12 +78,10 @@ export default function AdminHowItWorks() {
     setSaveError(null);
     setSaved(false);
     try {
-      console.log('[ADMIN] Saving HowItWorks section...');
       await apiRequest('/site-config/how-it-works', {
         method: 'PUT',
         body: JSON.stringify({ homepageHowItWorks: { steps } })
       });
-      console.log('[ADMIN] HowItWorks section saved');
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -133,12 +128,10 @@ export default function AdminHowItWorks() {
         reader.readAsDataURL(file);
       });
 
-      console.log('[ADMIN] Uploading image for step:', steps[index].id);
 
       /* Upload to ImageKit via media API */
       const res = await uploadMedia(base64, `how-it-works-${steps[index].id}-${Date.now()}.${file.name.split('.').pop()}`);
 
-      console.log('[ADMIN] Image uploaded:', res.url);
 
       /* Store the URL in the step */
       updateStepField(index, 'image', res.url);

@@ -98,7 +98,6 @@ export default function AdminAboutPage() {
 
   /* ── Load existing config ── */
   useEffect(() => {
-    console.log('[ADMIN] Loading About Page config...');
     setLoading(true);
     setFetchError(null);
     apiRequest('/site-config/public')
@@ -106,11 +105,9 @@ export default function AdminAboutPage() {
         const data = res.data || {};
         const about = data.aboutPage;
         if (about && typeof about === 'object' && Object.keys(about).length > 0) {
-          console.log('[ADMIN] About Page config loaded from DB');
           /* Merge so missing fields fall back to defaults */
           setAboutData(mergeDeep(structuredClone(DEFAULT_ABOUT), about));
         } else {
-          console.log('[ADMIN] No aboutPage in DB, using defaults');
           setAboutData(structuredClone(DEFAULT_ABOUT));
         }
         setLoading(false);
@@ -173,12 +170,10 @@ export default function AdminAboutPage() {
     setSaveError(null);
     setSaved(false);
     try {
-      console.log('[ADMIN] Saving About Page config...');
       await apiRequest('/site-config/about-page', {
         method: 'PUT',
         body: JSON.stringify({ aboutPage: aboutData }),
       });
-      console.log('[ADMIN] About Page config saved');
       useToastStore.getState().success('About page content saved successfully!');
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);

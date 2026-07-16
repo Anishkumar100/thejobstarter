@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Button from '../components/ui/Button.jsx';
@@ -7,13 +6,10 @@ import Loader from '../components/ui/Loader.jsx';
 
 /**
  * AdminHomepageConfig — Homepage Landing Page Editor
- * Manages the homepage stats (problems, articles, users, questions)
- * and the DSA hero image from SiteConfig.
+ * Manages the homepage stats (problems, articles, users, questions).
  * Route: /admin/homepage
  */
 export default function AdminHomepageConfig() {
-  const [heroImage, setHeroImage] = useState('');
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -30,14 +26,11 @@ export default function AdminHomepageConfig() {
 
   /* Load existing site config on mount */
   useEffect(() => {
-    console.log('[ADMIN] Loading homepage config...');
     setLoading(true);
     setFetchError(null);
     apiRequest('/site-config/public')
       .then(res => {
         const data = res.data || {};
-        console.log('[ADMIN] Config loaded:', data);
-        setHeroImage(data.dsaHeroImage || '');
         if (data.homepageStats) {
           setStats({
             problems: data.homepageStats.problems?.toString() || '',
@@ -55,35 +48,6 @@ export default function AdminHomepageConfig() {
       });
   }, []);
 
-  /* Open file picker and upload to ImageKit */
-  const handleHeroUpload = async () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      setUploading(true);
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          console.log('[ADMIN] Uploading hero image...');
-          const res = await apiRequest('/media/upload', {
-            method: 'POST',
-            body: JSON.stringify({ file: reader.result, fileName: `hero-${Date.now()}` })
-          });
-          console.log('[ADMIN] Hero image uploaded:', res.url);
-          setHeroImage(res.url);
-        } catch (err) {
-          console.error('[ADMIN] Hero upload failed:', err.message);
-        }
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
-    };
-    input.click();
-  };
-
   /* Save the homepage config */
   const handleSave = async (e) => {
     e.preventDefault();
@@ -91,11 +55,9 @@ export default function AdminHomepageConfig() {
     setSaveError(null);
     setSaved(false);
     try {
-      console.log('[ADMIN] Saving homepage config...');
       await apiRequest('/site-config', {
         method: 'PUT',
         body: JSON.stringify({
-          dsaHeroImage: heroImage,
           homepageStats: {
             problems: Number(stats.problems) || 0,
             articles: Number(stats.articles) || 0,
@@ -104,7 +66,6 @@ export default function AdminHomepageConfig() {
           }
         })
       });
-      console.log('[ADMIN] Homepage config saved');
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -137,7 +98,7 @@ export default function AdminHomepageConfig() {
 
       <div className="listing-header">
         <h1 className="listing-header__title">Homepage Configuration</h1>
-        <span className="listing-header__count">Stats &amp; DSA hero image</span>
+        <span className="listing-header__count">Homepage statistics</span>
       </div>
 
       {saved && <div className="success-text" style={{ marginBottom: 'var(--space-md)' }}>Homepage config saved!</div>}
@@ -145,33 +106,6 @@ export default function AdminHomepageConfig() {
 
       <form onSubmit={handleSave} className="admin-form">
         <div className="admin-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
-          {/* Hero image */}
-          <div className="input-group" style={{ gridColumn: 'span 2' }}>
-            <label>DSA Hero Image</label>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-sm)' }}>
-              Background image for the DSA listing page hero section
-            </p>
-            <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-              <input
-                className="input"
-                style={{ flex: 1 }}
-                value={heroImage}
-                onChange={e => setHeroImage(e.target.value)}
-                placeholder="ImageKit URL"
-              />
-              <button type="button" className="btn btn--sm" onClick={handleHeroUpload} disabled={uploading}>
-                {uploading ? 'Uploading...' : 'Upload'}
-              </button>
-            </div>
-            {heroImage && (
-              <img
-                src={heroImage}
-                alt="DSA hero preview"
-                style={{ width: 240, marginTop: 'var(--space-sm)', border: '3px solid var(--border-color)' }}
-              />
-            )}
-          </div>
-
           {/* Homepage Stats */}
           <div className="input-group" style={{ gridColumn: 'span 2' }}>
             <p style={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 'var(--space-sm)' }}>

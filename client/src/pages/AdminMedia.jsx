@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useAdminStore } from '../stores/useAdminStore.js';
+import { useToastStore } from '../stores/useToastStore.js';
 import MediaUploader from '../components/admin/MediaUploader.jsx';
 import MediaLibrary from '../components/admin/MediaLibrary.jsx';
 import Loader from '../components/ui/Loader.jsx';
@@ -13,9 +14,10 @@ export default function AdminMedia() {
   const handleUpload = async (file) => {
     try {
       await uploadMedia(file);
+      useToastStore.getState().success('File uploaded successfully');
       await fetchMedia();
     } catch (err) {
-      console.error('[ADMIN] Error uploading media:', err);
+      useToastStore.getState().error('Upload failed: ' + err.message);
     }
   };
 
@@ -23,9 +25,10 @@ export default function AdminMedia() {
     if (!confirm('Delete this file?')) return;
     try {
       await deleteMedia(fileId);
+      useToastStore.getState().success('File deleted');
       await fetchMedia();
     } catch (err) {
-      console.error('[ADMIN] Error deleting media:', err);
+      useToastStore.getState().error('Delete failed: ' + err.message);
     }
   };
 

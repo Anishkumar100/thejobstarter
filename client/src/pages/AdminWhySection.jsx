@@ -58,18 +58,15 @@ export default function AdminWhySection() {
 
   /* Load existing config on mount */
   useEffect(() => {
-    console.log('[ADMIN] Loading WhyTheseThree section config...');
     setLoading(true);
     setFetchError(null);
     apiRequest('/site-config/public')
       .then(res => {
         const section = res.data?.homepageWhySection;
         if (!section) {
-          console.log('[ADMIN] No WhyTheseThree section found, using defaults');
           setLoading(false);
           return;
         }
-        console.log('[ADMIN] WhyTheseThree section loaded');
         if (section.header) setHeader(section.header);
         if (section.dsaCard) setDsaCard(section.dsaCard);
         if (section.confessionCard) setConfessionCard(section.confessionCard);
@@ -92,14 +89,12 @@ export default function AdminWhySection() {
     setSaveError(null);
     setSaved(false);
     try {
-      console.log('[ADMIN] Saving WhyTheseThree section...');
       await apiRequest('/site-config/why-section', {
         method: 'PUT',
         body: JSON.stringify({
           homepageWhySection: { header, dsaCard, confessionCard, dbmsCard, osCard, statsFooter }
         })
       });
-      console.log('[ADMIN] WhyTheseThree section saved');
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {

@@ -57,7 +57,6 @@ router.post('/test', requireAuth, async (req, res) => {
       questionTitle: 'Test notification — delete me'
     });
 
-    console.log('[NOTIF ROUTE] Test notification created:', notif._id, 'for user:', currentUser._id);
     res.json({
       data: notif,
       user: { _id: currentUser._id, name: currentUser.displayName || currentUser.username, clerkId: currentUser.clerkId },

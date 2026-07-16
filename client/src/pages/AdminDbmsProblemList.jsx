@@ -18,7 +18,6 @@ export default function AdminDbmsProblemList() {
    */
   const handleDelete = async (id) => {
     if (!confirm('Delete this problem?')) return;
-    console.log('[DBMS] Deleting problem:', id);
     await deleteProblem(id);
   };
 

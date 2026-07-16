@@ -59,7 +59,6 @@ export default function OsSubtopic() {
 
   /* Fetch subtopic by slug on mount */
   useEffect(() => {
-    console.log('[OS] Fetching subtopic by slug:', subtopicSlug);
     fetchSubtopicBySlug(subtopicSlug);
   }, [subtopicSlug]);
 

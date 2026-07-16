@@ -23,13 +23,11 @@ export default function Footer() {
   const handleNewsletter = async (e) => {
     e.preventDefault();
     if (!newsletterEmail) return;
-    console.log('[FOOTER] Subscribing newsletter:', newsletterEmail);
     setNewsletterStatus('loading');
     try {
       await subscribeToNewsletter(newsletterEmail);
       setNewsletterStatus('success');
       setNewsletterEmail('');
-      console.log('[FOOTER] Subscribed successfully');
     } catch (err) {
       console.error('[FOOTER] Newsletter error:', err.message);
       setNewsletterStatus('error');
@@ -142,7 +140,7 @@ export default function Footer() {
                 <Link to="/dbms" className="text-sm text-text-main hover:text-accent-brand transition-colors">DBMS Articles</Link>
                 <Link to="/os" className="text-sm text-text-main hover:text-accent-brand transition-colors">OS Articles</Link>
                 <Link to="/blog" className="text-sm text-text-main hover:text-accent-brand transition-colors">Blog</Link>
-                <Link to="/cheatsheets" className="text-sm text-text-main hover:text-accent-brand transition-colors">Cheatsheets</Link>
+                
               </div>
             </div>
 

@@ -18,7 +18,6 @@ export default function AdminOsAllSubtopics() {
   /* Handle subtopic deletion */
   const handleDelete = async (id) => {
     if (!confirm('Delete this subtopic?')) return;
-    console.log('[OS] Deleting subtopic:', id);
     await deleteSubtopic(id);
     setRefresh(n => n + 1);
   };

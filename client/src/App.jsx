@@ -137,20 +137,18 @@ function AuthSync() {
         email: clerkUser.primaryEmailAddress?.emailAddress,
         publicMetadata: clerkUser.publicMetadata
       });
-      console.log('[AUTH] Clerk user set:', { username, displayName: clerkUser.fullName, avatar: clerkUser.imageUrl?.slice(0, 50) });
       /* Fetch server profile to get custom avatar and displayName */
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
       (async () => {
         try {
           const token = await window.Clerk?.session?.getToken();
-          if (!token) { console.log('[AUTH] No Clerk token yet, skipping server profile fetch'); return; }
+          if (!token) { return; }
           const res = await fetch(`${apiUrl}/users/${username}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const json = await res.json();
           if (json.data) {
-            console.log('[AUTH] Server profile fetched:', { _id: json.data._id, displayName: json.data.displayName, avatar: json.data.avatar?.slice(0, 50) });
-            const serverUpdates = {};
+            const serverUpdates = {}; 
             /* Store the MongoDB _id for author comparisons (e.g. Accept button) */
             if (json.data._id) {
               serverUpdates._id = json.data._id;
@@ -162,10 +160,7 @@ function AuthSync() {
               serverUpdates.displayName = json.data.displayName;
             }
             if (Object.keys(serverUpdates).length > 0) {
-              console.log('[AUTH] Updating auth store with server data:', serverUpdates);
               updateUser(serverUpdates);
-            } else {
-              console.log('[AUTH] Server data matches Clerk, no update needed');
             }
           }
         } catch (err) {

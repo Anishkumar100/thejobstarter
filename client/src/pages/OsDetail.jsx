@@ -19,7 +19,6 @@ export default function OsDetail() {
 
   /* Fetch problem by slug on mount */
   useEffect(() => {
-    console.log('[OS] Fetching problem by slug:', slug);
     fetchProblemBySlug(slug);
   }, [slug]);
 

@@ -21,7 +21,6 @@ export const useMetaStore = create((set, get) => ({
    * Companies → [label strings]
    */
   fetchAllMeta: async () => {
-    console.log('[META] Fetching all DSA meta...');
     set({ loading: true, error: null });
     try {
       const res = await fetchDsaMeta();
@@ -42,7 +41,6 @@ export const useMetaStore = create((set, get) => ({
         .sort((a, b) => a.order - b.order)
         .map(i => i.label);
 
-      console.log('[META] Meta fetched — categories:', categories.length, 'topics:', topics.length, 'companies:', companies.length);
       set({ categories, topics, companies, loading: false });
     } catch (error) {
       console.error('[META] Error fetching meta, using constants fallback:', error.message);
@@ -52,9 +50,7 @@ export const useMetaStore = create((set, get) => ({
 
   /* Admin: create a new meta entry */
   createMeta: async (data) => {
-    console.log('[META] Creating meta:', data.label);
     const res = await createDsaMeta(data);
-    console.log('[META] Meta created:', res.data?._id);
     /* Refresh the relevant list */
     await get().fetchAllMeta();
     return res.data;
@@ -62,26 +58,20 @@ export const useMetaStore = create((set, get) => ({
 
   /* Admin: update a meta entry */
   updateMeta: async (id, data) => {
-    console.log('[META] Updating meta:', id);
     const res = await updateDsaMeta(id, data);
-    console.log('[META] Meta updated:', res.data?._id);
     await get().fetchAllMeta();
     return res.data;
   },
 
   /* Admin: delete a meta entry */
   deleteMeta: async (id) => {
-    console.log('[META] Deleting meta:', id);
     await deleteDsaMeta(id);
-    console.log('[META] Meta deleted:', id);
     await get().fetchAllMeta();
   },
 
   /* Admin: seed defaults */
   seedMeta: async () => {
-    console.log('[META] Seeding default meta...');
     await seedDsaMeta();
-    console.log('[META] Seed complete');
     await get().fetchAllMeta();
   }
 }));

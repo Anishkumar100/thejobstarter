@@ -22,7 +22,6 @@ export const useQaStore = create((set, get) => ({
   fetchQuestions: async (filters = {}) => {
     const pl = usePageLoadingStore.getState();
     pl.start('Q&A');
-    console.log('[QA] Fetching questions');
     set({ loading: true, error: null });
     try {
       const res = await fetchQuestions(filters);
@@ -42,7 +41,6 @@ export const useQaStore = create((set, get) => ({
   fetchQuestionById: async (id) => {
     const pl = usePageLoadingStore.getState();
     pl.start('Q&A');
-    console.log('[QA] Fetching question:', id);
     set({ loading: true, error: null });
     try {
       const res = await fetchQuestionById(id);
@@ -59,7 +57,6 @@ export const useQaStore = create((set, get) => ({
    * Ask a new question
    */
   askQuestion: async (data) => {
-    console.log('[QA] Asking question...');
     const res = await askQuestion(data);
     set(state => ({ questions: [res.data, ...state.questions] }));
     return res.data;
@@ -69,7 +66,6 @@ export const useQaStore = create((set, get) => ({
    * Post an answer to a question
    */
   postAnswer: async (questionId, data) => {
-    console.log('[QA] Posting answer...');
     const res = await postAnswer(questionId, data);
     set(state => ({ answers: [...state.answers, res.data] }));
     return res.data;
@@ -79,7 +75,6 @@ export const useQaStore = create((set, get) => ({
    * Vote on a question (upvote/downvote)
    */
   voteOnQuestion: async (questionId, vote) => {
-    console.log('[QA] Voting on question:', questionId, vote);
     await voteQuestion(questionId, vote);
   },
 
@@ -87,7 +82,6 @@ export const useQaStore = create((set, get) => ({
    * Vote on an answer
    */
   voteOnAnswer: async (questionId, answerId, vote) => {
-    console.log('[QA] Voting on answer:', answerId);
     await voteAnswer(questionId, answerId, vote);
   },
 
@@ -95,7 +89,6 @@ export const useQaStore = create((set, get) => ({
    * Accept an answer as correct (question author only)
    */
   acceptAnswerAction: async (questionId, answerId) => {
-    console.log('[QA] Accepting answer:', answerId);
     await acceptAnswer(questionId, answerId);
     set(state => ({
       answers: state.answers.map(a => ({ ...a, accepted: a._id === answerId }))
@@ -106,7 +99,6 @@ export const useQaStore = create((set, get) => ({
    * Delete an answer (admin or answer author)
    */
   deleteAnswerAction: async (questionId, answerId) => {
-    console.log('[QA] Deleting answer:', answerId);
     await deleteAnswerApi(questionId, answerId);
     set(state => ({
       answers: state.answers.filter(a => a._id !== answerId)
@@ -117,7 +109,6 @@ export const useQaStore = create((set, get) => ({
    * Delete a question and all its answers
    */
   deleteQuestion: async (id) => {
-    console.log('[QA] Deleting question:', id);
     await deleteQuestionApi(id);
     set(state => ({
       questions: state.questions.filter(q => q._id !== id)
@@ -128,7 +119,6 @@ export const useQaStore = create((set, get) => ({
    * Admin: Approve a pending question
    */
   approveQuestion: async (id) => {
-    console.log('[QA] Approving question:', id);
     const res = await approveQuestionApi(id);
     set(state => ({
       questions: state.questions.map(q => q._id === id ? res.data : q)
@@ -140,7 +130,6 @@ export const useQaStore = create((set, get) => ({
    * Admin: Reject a question
    */
   rejectQuestion: async (id) => {
-    console.log('[QA] Rejecting question:', id);
     const res = await rejectQuestionApi(id);
     set(state => ({
       questions: state.questions.map(q => q._id === id ? res.data : q)
@@ -152,7 +141,6 @@ export const useQaStore = create((set, get) => ({
    * Question author: Approve a pending answer
    */
   approveAnswerAction: async (questionId, answerId) => {
-    console.log('[QA] Approving answer:', answerId);
     const res = await approveAnswerApi(questionId, answerId);
     set(state => ({
       answers: state.answers.map(a => a._id === answerId ? res.data : a)
@@ -164,7 +152,6 @@ export const useQaStore = create((set, get) => ({
    * Question author: Reject a pending answer
    */
   rejectAnswerAction: async (questionId, answerId) => {
-    console.log('[QA] Rejecting answer:', answerId);
     const res = await rejectAnswerApi(questionId, answerId);
     set(state => ({
       answers: state.answers.map(a => a._id === answerId ? res.data : a)

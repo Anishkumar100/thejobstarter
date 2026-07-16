@@ -22,13 +22,11 @@ export default function AdminDbmsMeta() {
   const [msg, setMsg] = useState({ text: '', type: '' });
 
   const fetchItems = async () => {
-    console.log('[DBMS-META] Fetching all DBMS meta...');
     setLoading(true);
     setError(null);
     try {
       const res = await apiRequest('/dbms-meta');
       setItems(res.data || []);
-      console.log('[DBMS-META] Items fetched:', res.data?.length);
     } catch (err) {
       console.error('[DBMS-META] Fetch failed:', err.message);
       setError(err.message);

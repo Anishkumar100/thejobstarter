@@ -52,18 +52,15 @@ export default function AdminWhyTheJobStarter() {
 
   /* Load existing config on mount */
   useEffect(() => {
-    console.log('[ADMIN] Loading WhyTheJobStarter section config...');
     setLoading(true);
     setFetchError(null);
     apiRequest('/site-config/public')
       .then(res => {
         const section = res.data?.homepageWhyTheJobStarter;
         if (!section || !section.pillars || !section.comparison) {
-          console.log('[ADMIN] No WhyTheJobStarter section found, using defaults');
           setLoading(false);
           return;
         }
-        console.log('[ADMIN] WhyTheJobStarter section loaded');
         if (section.subtitle) setSubtitle(section.subtitle);
         if (section.pillars && Array.isArray(section.pillars)) setPillars(section.pillars.map(p => ({ title: p.title || '', body: p.body || '' })));
         if (section.comparison && Array.isArray(section.comparison)) setComparison(section.comparison.map(c => ({ feat: c.feat || '', ours: c.ours || '', gfg: c.gfg || '', lc: c.lc || '', hr: c.hr || '' })));
@@ -83,14 +80,12 @@ export default function AdminWhyTheJobStarter() {
     setSaveError(null);
     setSaved(false);
     try {
-      console.log('[ADMIN] Saving WhyTheJobStarter section...');
       await apiRequest('/site-config/why-the-job-starter', {
         method: 'PUT',
         body: JSON.stringify({
           homepageWhyTheJobStarter: { subtitle, pillars, comparison }
         })
       });
-      console.log('[ADMIN] WhyTheJobStarter section saved');
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {

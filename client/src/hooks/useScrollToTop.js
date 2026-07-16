@@ -19,7 +19,6 @@ export function useScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    console.log('[SCROLL] Navigating to:', pathname);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname]);
 }

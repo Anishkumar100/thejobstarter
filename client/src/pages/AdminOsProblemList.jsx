@@ -14,7 +14,6 @@ export default function AdminOsProblemList() {
   /* Handle problem deletion */
   const handleDelete = async (id) => {
     if (!confirm('Delete this problem?')) return;
-    console.log('[OS] Deleting problem:', id);
     await deleteProblem(id);
   };
 

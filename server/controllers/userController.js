@@ -27,7 +27,6 @@ export async function handleClerkWebhook(req, res) {
         },
         { upsert: true, new: true }
       );
-      console.log('[USER] User synced from Clerk:', id);
     }
 
     res.json({ success: true });
@@ -71,7 +70,6 @@ export async function getUsers(req, res) {
  */
 export async function getUserByUsername(req, res) {
   try {
-    console.log('[USER] Fetching user by username:', req.params.username);
     let user = await User.findOne({ username: req.params.username });
     /* Auto-create if the authenticated user is requesting their own profile */
     if (!user && req.userId) {
@@ -85,11 +83,9 @@ export async function getUserByUsername(req, res) {
           avatar: clerkUser.imageUrl || '',
           email: clerkUser.primaryEmailAddress?.emailAddress || ''
         });
-        console.log('[USER] Auto-created user from Clerk:', user.username);
       }
     }
     if (!user) {
-      console.log('[USER] User not found:', req.params.username);
       return res.status(404).json({ error: 'User not found' });
     }
     /* Determine if the authenticated user follows this profile */
@@ -110,7 +106,6 @@ export async function getUserByUsername(req, res) {
       if (userObj.links.website) linkArray.push({ platform: 'website', url: userObj.links.website, label: 'Website' });
       userObj.externalLinks = linkArray;
     }
-    console.log('[USER] User fetched:', user.displayName, 'isFollowing:', isFollowing);
     res.json({ data: { ...userObj, isFollowing } });
   } catch (error) {
     console.error('[USER] Error fetching user:', error.message);
@@ -126,7 +121,6 @@ export async function getUserByUsername(req, res) {
  */
 export async function updateProfile(req, res) {
   try {
-    console.log('[USER] Updating profile for username:', req.params.username);
     let user = await User.findOne({ username: req.params.username });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -169,7 +163,6 @@ export async function updateProfile(req, res) {
     if (skills) user.skills = skills;
     await user.save();
 
-    console.log('[USER] Profile updated:', user.displayName);
     res.json({ data: user });
   } catch (error) {
     console.error('[USER] Error updating profile:', error.message);

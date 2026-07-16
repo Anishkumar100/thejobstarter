@@ -24,7 +24,6 @@ export const useOsMetaStore = create((set, get) => ({
    * Fetch all OS meta from backend and split by type
    */
   fetchAllMeta: async () => {
-    console.log('[OS-META] Fetching all OS meta...');
     set({ loading: true, error: null });
     try {
       const res = await fetchOsMeta();
@@ -45,7 +44,6 @@ export const useOsMetaStore = create((set, get) => ({
         .sort((a, b) => a.order - b.order)
         .map(i => i.label);
 
-      console.log('[OS-META] Meta fetched — categories:', categories.length, 'topics:', topics.length, 'companies:', companies.length);
 
       /* Preserve fallbacks when server has no data yet */
       const finalCategories = categories.length > 0 ? categories : get().categories;
@@ -61,35 +59,27 @@ export const useOsMetaStore = create((set, get) => ({
 
   /* Admin: create a new meta entry */
   createMeta: async (data) => {
-    console.log('[OS-META] Creating meta:', data.label);
     const res = await createOsMeta(data);
-    console.log('[OS-META] Meta created:', res.data?._id);
     await get().fetchAllMeta();
     return res.data;
   },
 
   /* Admin: update a meta entry */
   updateMeta: async (id, data) => {
-    console.log('[OS-META] Updating meta:', id);
     const res = await updateOsMeta(id, data);
-    console.log('[OS-META] Meta updated:', res.data?._id);
     await get().fetchAllMeta();
     return res.data;
   },
 
   /* Admin: delete a meta entry */
   deleteMeta: async (id) => {
-    console.log('[OS-META] Deleting meta:', id);
     await deleteOsMeta(id);
-    console.log('[OS-META] Meta deleted:', id);
     await get().fetchAllMeta();
   },
 
   /* Admin: seed defaults */
   seedMeta: async () => {
-    console.log('[OS-META] Seeding default meta...');
     await seedOsMeta();
-    console.log('[OS-META] Seed complete');
     await get().fetchAllMeta();
   }
 }));

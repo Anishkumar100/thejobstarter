@@ -356,7 +356,7 @@ function StepCard({ step, index, liftIn, liftOut }) {
                 color: '#fff'
               }}
             >
-              <Icon size="clamp(12, 2.5vw, 18)" style={{ width: 'clamp(12px, 2.5vw, 18px)', height: 'clamp(12px, 2.5vw, 18px)' }} />
+              <Icon style={{ width: 'clamp(12px, 2.5vw, 18px)', height: 'clamp(12px, 2.5vw, 18px)' }} />
             </span>
           </div>
 

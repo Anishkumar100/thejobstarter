@@ -25,7 +25,6 @@ export const usePageLoadingStore = create((set, get) => ({
    * @param {string} [label] — optional label shown on the loader (e.g. 'DSA', 'Blog')
    */
   start: (label) => {
-    console.log(`[LOADER] start — ${label || 'anonymous'}`);
     set((state) => ({
       count: state.count + 1,
       activeLabels: label
@@ -39,7 +38,6 @@ export const usePageLoadingStore = create((set, get) => ({
    * @param {string} [label] — optional label to remove from the status stack
    */
   stop: (label) => {
-    console.log(`[LOADER] stop — ${label || 'anonymous'}`);
     set((state) => ({
       count: Math.max(0, state.count - 1),
       activeLabels: label
@@ -52,7 +50,6 @@ export const usePageLoadingStore = create((set, get) => ({
    * Force reset loading state (safety net).
    */
   reset: () => {
-    console.log('[LOADER] reset');
     set({ count: 0, activeLabels: [] });
   }
 }));

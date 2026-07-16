@@ -24,7 +24,6 @@ export default function AdminDbmsList() {
    */
   const handleDelete = async (id) => {
     if (!confirm('Delete this lesson? All associated subtopics and problems will remain in the database.')) return;
-    console.log('[DBMS] Deleting lesson:', id);
     await deleteLesson(id);
     setRefresh(n => n + 1);
   };

@@ -22,15 +22,12 @@ export async function apiRequest(endpoint, options = {}) {
   };
 
   const token = await getClerkToken();
-  console.log('[API] Request:', endpoint, 'Token present:', !!token, 'Token prefix:', token ? token.substring(0, 20) : 'none');
   if (token) config.headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(url, config);
-  console.log('[API] Response status:', res.status);
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'Request failed' }));
-    console.log('[API] Error body:', error);
     throw new Error(error.message || error.error || 'Request failed');
   }
 

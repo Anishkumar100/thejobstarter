@@ -17,7 +17,6 @@ export const useUserStore = create((set, get) => ({
   fetchUsers: async (query = {}) => {
     const pl = usePageLoadingStore.getState();
     pl.start('Users');
-    console.log('[USER] Searching users:', query);
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {
@@ -57,7 +56,6 @@ export const useUserStore = create((set, get) => ({
   fetchProfile: async (username) => {
     const pl = usePageLoadingStore.getState();
     pl.start('Users');
-    console.log('[USER] Fetching profile:', username);
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {
@@ -80,11 +78,9 @@ export const useUserStore = create((set, get) => ({
               following: [],
               joinDate: new Date().toISOString().split('T')[0]
             };
-            console.log('[USER] Built profile from auth store:', username);
           }
         }
         set({ currentProfile: user || null, loading: false });
-        console.log('[USER] Profile found:', !!user);
       } else {
         const res = await fetchUserByUsername(username);
         set({ currentProfile: res.data, loading: false });
@@ -98,7 +94,6 @@ export const useUserStore = create((set, get) => ({
   },
 
   updateProfile: async (username, data) => {
-    console.log('[USER] Updating profile:', username, data);
     if (USE_MOCK) {
       /* Merge data into currentProfile in memory */
       const current = get().currentProfile;
@@ -115,7 +110,6 @@ export const useUserStore = create((set, get) => ({
   },
 
   follow: async (userId) => {
-    console.log('[USER] Following:', userId);
     if (USE_MOCK) return;
     try {
       await followUser(userId);
@@ -126,7 +120,6 @@ export const useUserStore = create((set, get) => ({
   },
 
   unfollow: async (userId) => {
-    console.log('[USER] Unfollowing:', userId);
     if (USE_MOCK) return;
     try {
       await unfollowUser(userId);

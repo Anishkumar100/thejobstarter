@@ -9,18 +9,15 @@ export async function subscribe(req, res) {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    console.log('[NEWSLETTER] Subscribing email:', email);
     const existing = await Newsletter.findOne({ email });
     if (existing) {
       if (!existing.active) {
         existing.active = true;
         await existing.save();
-        console.log('[NEWSLETTER] Reactivated subscription:', email);
       }
       return res.json({ success: true, message: 'Already subscribed' });
     }
     await Newsletter.create({ email });
-    console.log('[NEWSLETTER] Email subscribed:', email);
     res.status(201).json({ success: true });
   } catch (error) {
     console.error('[NEWSLETTER] Error subscribing:', error.message);

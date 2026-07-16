@@ -25,7 +25,6 @@ export const useDbmsMetaStore = create((set, get) => ({
    * Fetch all DBMS meta from backend and split by type
    */
   fetchAllMeta: async () => {
-    console.log('[DBMS-META] Fetching all DBMS meta...');
     set({ loading: true, error: null });
     try {
       const res = await fetchDbmsMeta();
@@ -46,7 +45,6 @@ export const useDbmsMetaStore = create((set, get) => ({
         .sort((a, b) => a.order - b.order)
         .map(i => i.label);
 
-      console.log('[DBMS-META] Meta fetched — categories:', categories.length, 'topics:', topics.length, 'companies:', companies.length);
 
       /* Preserve fallbacks when server has no data yet */
       const finalCategories = categories.length > 0 ? categories : get().categories;
@@ -62,35 +60,27 @@ export const useDbmsMetaStore = create((set, get) => ({
 
   /* Admin: create a new meta entry */
   createMeta: async (data) => {
-    console.log('[DBMS-META] Creating meta:', data.label);
     const res = await createDbmsMeta(data);
-    console.log('[DBMS-META] Meta created:', res.data?._id);
     await get().fetchAllMeta();
     return res.data;
   },
 
   /* Admin: update a meta entry */
   updateMeta: async (id, data) => {
-    console.log('[DBMS-META] Updating meta:', id);
     const res = await updateDbmsMeta(id, data);
-    console.log('[DBMS-META] Meta updated:', res.data?._id);
     await get().fetchAllMeta();
     return res.data;
   },
 
   /* Admin: delete a meta entry */
   deleteMeta: async (id) => {
-    console.log('[DBMS-META] Deleting meta:', id);
     await deleteDbmsMeta(id);
-    console.log('[DBMS-META] Meta deleted:', id);
     await get().fetchAllMeta();
   },
 
   /* Admin: seed defaults */
   seedMeta: async () => {
-    console.log('[DBMS-META] Seeding default meta...');
     await seedDbmsMeta();
-    console.log('[DBMS-META] Seed complete');
     await get().fetchAllMeta();
   }
 }));

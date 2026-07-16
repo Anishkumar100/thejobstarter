@@ -11,7 +11,6 @@ export const useMessageStore = create((set, get) => ({
   error: null,
 
   fetchConversations: async () => {
-    console.log('[MESSAGE] Fetching inbox');
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {
@@ -28,7 +27,6 @@ export const useMessageStore = create((set, get) => ({
   },
 
   fetchMessages: async (userId) => {
-    console.log('[MESSAGE] Fetching thread for:', userId);
     set({ loading: true, error: null, activeUserId: userId });
     try {
       if (USE_MOCK) {
@@ -46,7 +44,6 @@ export const useMessageStore = create((set, get) => ({
   },
 
   sendMessage: async (userId, content) => {
-    console.log('[MESSAGE] Sending message to:', userId);
     try {
       if (USE_MOCK) {
         const msg = { _id: Date.now().toString(), sender: 'me', receiver: userId, content, read: false, createdAt: new Date().toISOString() };
@@ -68,7 +65,6 @@ export const useMessageStore = create((set, get) => ({
   },
 
   removeMessage: async (messageId) => {
-    console.log('[MESSAGE] Deleting message:', messageId);
     if (USE_MOCK) {
       set(state => ({ messages: state.messages.filter(m => m._id !== messageId) }));
       return;

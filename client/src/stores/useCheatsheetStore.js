@@ -10,7 +10,6 @@ export const useCheatsheetStore = create((set, get) => ({
   error: null,
 
   fetchCheatsheets: async (filters = {}) => {
-    console.log('[CHEATSHEET] Fetching cheatsheets');
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {
@@ -28,7 +27,6 @@ export const useCheatsheetStore = create((set, get) => ({
   },
 
   downloadCheatsheet: async (slug) => {
-    console.log('[CHEATSHEET] Downloading:', slug);
     if (USE_MOCK) {
       const cs = mockCheatsheets.find(c => c.slug === slug);
       if (cs?.pdfUrl) window.open(cs.pdfUrl, '_blank');

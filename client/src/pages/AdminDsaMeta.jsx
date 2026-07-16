@@ -23,13 +23,11 @@ export default function AdminDsaMeta() {
 
   /* Fetch all DSA meta from the server */
   const fetchItems = async () => {
-    console.log('[META] Fetching all DSA meta...');
     setLoading(true);
     setError(null);
     try {
       const res = await apiRequest('/dsa-meta');
       setItems(res.data || []);
-      console.log('[META] Items fetched:', res.data?.length);
     } catch (err) {
       console.error('[META] Fetch failed:', err.message);
       setError(err.message);
@@ -48,7 +46,6 @@ export default function AdminDsaMeta() {
   /* Auto-seed if the database is empty after fetching */
   useEffect(() => {
     if (!loading && items.length === 0 && !error && !seeding) {
-      console.log('[META] No items found, auto-seeding defaults...');
       seedNow();
     }
   }, [loading]);

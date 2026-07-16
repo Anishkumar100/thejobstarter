@@ -19,7 +19,6 @@ export default function OsList() {
 
   /* Fetch all OS lessons on mount */
   useEffect(() => {
-    console.log('[OS] Fetching lessons on mount...');
     fetchLessons();
   }, []);
 
@@ -30,22 +29,15 @@ export default function OsList() {
 
   /* Fetch hero image from homepage topic with category badge "OS" */
   useEffect(() => {
-    console.log('[OS] Fetching hero image from topics...');
     apiRequest('/topics')
       .then(res => {
         const osTopic = (res.data || []).find(t => t.category === 'OS');
         if (osTopic?.image) {
-          console.log('[OS] Hero image found from OS topic');
           setHeroImage(osTopic.image);
         }
       })
       .catch(err => console.error('[OS] Topics fetch failed:', err.message));
   }, []);
-
-  /* Debug: log state */
-  console.log('[OS-DEBUG] lessons:', lessons?.length, 'categories:', categories?.length, 'lessonsLoading:', lessonsLoading, 'lessonsError:', lessonsError);
-  if (lessons?.length > 0) console.log('[OS-DEBUG] lesson categories:', lessons.map(l => l.category));
-  if (categories?.length > 0) console.log('[OS-DEBUG] category values:', categories.map(c => c.value));
 
   /* Filter lessons by search query */
   const filtered = useMemo(() => {
@@ -64,15 +56,12 @@ export default function OsList() {
       if (!map[l.category]) map[l.category] = [];
       map[l.category].push(l);
     });
-    console.log('[OS-DEBUG] category map keys:', Object.keys(map));
     const result = categories
       .filter(c => {
         const match = map[c.value];
-        if (!match) console.log('[OS-DEBUG] category not matched:', c.value, 'key in map:', c.value in map);
         return match;
       })
       .map(c => ({ value: c.value, label: c.label, lessons: map[c.value] }));
-    console.log('[OS-DEBUG] grouped sections:', result.length);
     return result;
   }, [filtered, categories]);
 

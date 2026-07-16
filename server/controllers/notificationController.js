@@ -19,7 +19,6 @@ console.log('[NOTIF CTRL] Notification controller loaded');
 async function findOrCreateUser(clerkId) {
   let user = await User.findOne({ clerkId });
   if (!user) {
-    console.log('[NOTIFICATION] User doc not found — creating from Clerk:', clerkId);
     try {
       const clerkUser = await clerk.users.getUser(clerkId);
       user = await User.create({
@@ -40,7 +39,6 @@ async function findOrCreateUser(clerkId) {
 
 export async function getNotifications(req, res) {
   try {
-    console.log('[NOTIFICATION] Fetching notifications for user:', req.userId);
     const currentUser = await findOrCreateUser(req.userId);
     if (!currentUser) return res.status(404).json({ error: 'User not found in DB: ' + req.userId });
 
@@ -147,7 +145,6 @@ export async function markNotificationRead(req, res) {
  */
 export async function markAllRead(req, res) {
   try {
-    console.log('[NOTIFICATION] Marking all as read for user:', req.userId);
     const currentUser = await findOrCreateUser(req.userId);
     if (!currentUser) return res.status(404).json({ error: 'User not found' });
     const result = await Notification.updateMany(

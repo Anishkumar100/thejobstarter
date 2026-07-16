@@ -20,14 +20,14 @@ export default function DsaList() {
     fetchAllMeta();
   }, []);
 
-  /* Fetch DSA hero image from public site config */
+  /* Fetch DSA hero image from homepage topic with category badge "DSA" */
   useEffect(() => {
-    console.log('[DSA] Fetching hero image...');
-    apiRequest('/site-config/public')
+    apiRequest('/topics')
       .then(res => {
-        if (res.data?.dsaHeroImage) setHeroImage(res.data.dsaHeroImage);
+        const dsaTopic = (res.data || []).find(t => t.category === 'DSA');
+        if (dsaTopic?.image) setHeroImage(dsaTopic.image);
       })
-      .catch(err => console.error('[DSA] Hero image fetch failed:', err.message));
+      .catch(err => console.error('[DSA] Topics fetch failed:', err.message));
   }, []);
 
   /* Filter lessons by search */

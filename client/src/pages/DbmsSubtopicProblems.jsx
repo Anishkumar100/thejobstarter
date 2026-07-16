@@ -21,9 +21,7 @@ export default function DbmsSubtopicProblems() {
 
   /* Fetch subtopic details and its problems on mount */
   useEffect(() => {
-    console.log('[DBMS] Fetching subtopic by slug:', subtopicSlug);
     fetchSubtopicBySlug(subtopicSlug);
-    console.log('[DBMS] Fetching problems for subtopic:', subtopicSlug);
     fetchSubtopicProblems(subtopicSlug);
   }, [subtopicSlug]);
 

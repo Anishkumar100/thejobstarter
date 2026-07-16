@@ -16,7 +16,6 @@ export const useArticleStore = create((set, get) => ({
   fetchArticles: async (category, filters = {}) => {
     const pl = usePageLoadingStore.getState();
     pl.start('Articles');
-    console.log('[ARTICLES] Fetching articles:', category, filters);
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {
@@ -40,7 +39,6 @@ export const useArticleStore = create((set, get) => ({
   fetchArticleBySlug: async (slug) => {
     const pl = usePageLoadingStore.getState();
     pl.start('Articles');
-    console.log('[ARTICLES] Fetching article by slug:', slug);
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {

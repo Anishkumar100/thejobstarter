@@ -21,9 +21,7 @@ export default function OsSubtopicProblems() {
 
   /* Fetch subtopic details and its problems on mount */
   useEffect(() => {
-    console.log('[OS] Fetching subtopic by slug:', subtopicSlug);
     fetchSubtopicBySlug(subtopicSlug);
-    console.log('[OS] Fetching problems for subtopic:', subtopicSlug);
     fetchSubtopicProblems(subtopicSlug);
   }, [subtopicSlug]);
 

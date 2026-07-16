@@ -42,7 +42,6 @@ export async function createAnswer(req, res) {
         questionTitle: question.title,
         answerId: answer._id
       });
-      console.log('[NOTIFICATION] Created for question author:', question.author._id);
     }
 
     console.log('[QA] Answer created (pending):', answer._id);
@@ -192,7 +191,6 @@ export async function approveAnswer(req, res) {
           questionTitle: question.title,
           answerId: answer._id
         });
-        console.log('[NOTIFICATION] Answer approved notification for:', answer.author._id);
       }
     } catch (notifErr) {
       console.error('[NOTIFICATION] Failed to create answer approved notification:', notifErr.message);
@@ -239,7 +237,6 @@ export async function rejectAnswer(req, res) {
           questionTitle: question.title,
           answerId: answer._id
         });
-        console.log('[NOTIFICATION] Answer rejected notification for:', answer.author._id);
       }
     } catch (notifErr) {
       console.error('[NOTIFICATION] Failed to create answer rejected notification:', notifErr.message);

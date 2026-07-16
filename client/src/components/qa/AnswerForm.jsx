@@ -17,7 +17,6 @@ export default function AnswerForm({ questionId }) {
       await postAnswer(questionId, { body });
       setBody('');
       success('Your answer has been submitted! It will appear once the question author approves it.', 5000);
-      console.log('[QA] Answer posted for question:', questionId);
     } catch (err) {
       console.error('[QA] Error posting answer:', err);
       error('Failed to post your answer. Please try again.', 4000);

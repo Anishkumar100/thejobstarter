@@ -18,7 +18,6 @@ export default function AdminOsList() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this lesson? All associated subtopics and problems will remain in the database.')) return;
-    console.log('[OS] Deleting lesson:', id);
     await deleteLesson(id);
     setRefresh(n => n + 1);
   };

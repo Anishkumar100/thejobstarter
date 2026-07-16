@@ -20,7 +20,6 @@ export default function DbmsDetail() {
 
   /* Fetch problem by slug on mount */
   useEffect(() => {
-    console.log('[DBMS] Fetching problem by slug:', slug);
     fetchProblemBySlug(slug);
   }, [slug]);
 

@@ -30,21 +30,16 @@ export default function Home() {
 
   /* Fetch live stats + why section data from the public endpoint */
   useEffect(() => {
-    console.log('[HOME] Fetching live stats...');
     apiRequest('/site-config/public')
       .then(res => {
-        console.log('[HOME] Stats fetched:', res.data);
         setLiveStats(res.data);
         if (res.data?.homepageWhySection) {
-          console.log('[HOME] Why section data found');
           setWhySectionData(res.data.homepageWhySection);
         }
         if (res.data?.homepageWhyTheJobStarter) {
-          console.log('[HOME] WhyTheJobStarter section data found');
           setWhyTheJobStarterData(res.data.homepageWhyTheJobStarter);
         }
         if (res.data?.homepageHowItWorks) {
-          console.log('[HOME] HowItWorks section data found');
           setHowItWorksData(res.data.homepageHowItWorks);
         }
       })
@@ -57,10 +52,8 @@ export default function Home() {
 
   /* Fetch topics from API */
   useEffect(() => {
-    console.log('[HOME] Fetching topics...');
     apiRequest('/topics')
       .then(res => {
-        console.log('[HOME] Topics fetched:', res.data?.length);
         if (res.data && res.data.length > 0) setTopics(res.data);
       })
       .catch(err => {

@@ -59,7 +59,6 @@ export default function DbmsSubtopic() {
 
   /* Fetch subtopic by slug on mount */
   useEffect(() => {
-    console.log('[DBMS] Fetching subtopic by slug:', subtopicSlug);
     fetchSubtopicBySlug(subtopicSlug);
   }, [subtopicSlug]);
 

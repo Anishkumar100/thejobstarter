@@ -7,7 +7,6 @@ import User from '../models/User.js';
  */
 export async function getConversations(req, res) {
   try {
-    console.log('[MESSAGE] Fetching conversations for user:', req.userId);
     const clerkUser = await User.findOne({ clerkId: req.userId });
     if (!clerkUser) return res.status(404).json({ error: 'User not found' });
 
@@ -45,7 +44,6 @@ export async function getConversations(req, res) {
  */
 export async function getMessages(req, res) {
   try {
-    console.log('[MESSAGE] Fetching thread with user:', req.params.userId);
     const clerkUser = await User.findOne({ clerkId: req.userId });
     if (!clerkUser) return res.status(404).json({ error: 'User not found' });
 
@@ -70,7 +68,6 @@ export async function getMessages(req, res) {
  */
 export async function sendMessage(req, res) {
   try {
-    console.log('[MESSAGE] Sending message to user:', req.params.userId);
     const clerkUser = await User.findOne({ clerkId: req.userId });
     if (!clerkUser) return res.status(404).json({ error: 'User not found' });
 

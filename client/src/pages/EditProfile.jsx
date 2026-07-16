@@ -77,7 +77,6 @@ export default function EditProfile() {
         skills: skillsStr.split(',').map(s => s.trim()).filter(Boolean),
         links: { leetcode, github, linkedin, website }
       };
-      console.log('[EDIT] Profile save started. data:', { displayName, hasAvatarFile: !!avatarFile, hasPreview: !!avatarPreview });
       /* If a new avatar was selected, upload it */
       if (avatarFile) {
         const reader = new FileReader();
@@ -85,11 +84,9 @@ export default function EditProfile() {
           reader.onload = (ev) => resolve(ev.target.result);
           reader.readAsDataURL(avatarFile);
         });
-        console.log('[EDIT] Avatar read as base64, length:', data.avatar?.length);
       }
       /* Save to the store (updates currentProfile in memory for mock mode) */
       const updated = await updateProfile(username, data);
-      console.log('[EDIT] Store updateProfile returned:', updated ? { displayName: updated.displayName, avatar: updated.avatar?.slice(0, 60) } : 'undefined');
 
       /* Sync ALL updated fields to auth store so Navbar and all pages reflect changes immediately */
       const syncUpdates = {};
@@ -99,7 +96,6 @@ export default function EditProfile() {
       if (syncUpdates.avatar && syncUpdates.avatar.startsWith('data:')) {
         syncUpdates.avatar = '';
       }
-      console.log('[EDIT] Syncing to auth store:', syncUpdates);
       useAuthStore.getState().updateUser(syncUpdates);
       useToastStore.getState().success('Profile saved!');
       navigate(`/users/${username}`);

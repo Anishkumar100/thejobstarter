@@ -10,7 +10,6 @@ export const useLanguageStore = create((set, get) => ({
   error: null,
 
   fetchLanguages: async () => {
-    console.log('[LANG] Fetching languages');
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {

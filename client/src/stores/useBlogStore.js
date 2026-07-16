@@ -15,7 +15,6 @@ export const useBlogStore = create((set, get) => ({
   fetchPosts: async (filters = {}) => {
     const pl = usePageLoadingStore.getState();
     pl.start('Blog');
-    console.log('[BLOG] Fetching posts');
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {
@@ -35,7 +34,6 @@ export const useBlogStore = create((set, get) => ({
   fetchPostBySlug: async (slug) => {
     const pl = usePageLoadingStore.getState();
     pl.start('Blog');
-    console.log('[BLOG] Fetching post by slug:', slug);
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {

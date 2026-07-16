@@ -23,18 +23,14 @@ export default function UserProfile() {
   const [loadingQuestions, setLoadingQuestions] = useState(false);
 
   useEffect(() => {
-    console.log('[UserProfile] Username from URL:', username);
-    console.log('[UserProfile] Clerk user:', clerkUser?.username);
     fetchUserByUsername(username);
   }, [username]);
 
   /* Fetch activity once we have the profile */
   useEffect(() => {
     if (currentProfile?._id) {
-      console.log('[UserProfile] Fetching activity for profile id:', currentProfile._id);
       getUserActivity(currentProfile._id)
         .then(res => {
-          console.log('[UserProfile] Activity response:', res);
           setActivities(res.data || []);
         })
         .catch(err => console.error('[UserProfile] Error fetching activity:', err.message));
@@ -57,12 +53,10 @@ export default function UserProfile() {
   /* Retry if profile is null but auth user just loaded */
   useEffect(() => {
     if (!currentProfile && !loading && clerkUser?.username === username) {
-      console.log('[UserProfile] Retrying fetch after Clerk loaded');
       fetchUserByUsername(username);
     }
   }, [clerkUser?.username]);
 
-  console.log('[UserProfile] Render state:', { loading, error, hasProfile: !!currentProfile });
 
   const isOwnProfile = clerkUser?.username === username;
 

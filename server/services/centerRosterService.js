@@ -1,0 +1,53 @@
+/*
+ * Center Roster Service — Shared data access for Phase 5 (admin) and
+ * Phase 8 (coordinator). No Express req/res in this file — pure async
+ * functions that return data, called by controllers that layer auth on top.
+ *
+ * Phase 6 extended this to attach per-subject completion stats to each
+ * student via the shared progressService.
+ */
+import User from '../models/User.js';
+import CoachingCenter from '../models/CoachingCenter.js';
+import { getProgressSummariesForUsers } from './progressService.js';
+
+/*
+ * getCenterRoster(centerId)
+ * Returns { center, students, totalStudents } for a given coaching center.
+ * Each student includes a `progress` field with per-subject completion stats.
+ * Throws if the center doesn't exist — caller is responsible for
+ * authorization (checking the caller is admin or the center's coordinator).
+ */
+export async function getCenterRoster(centerId) {
+  console.log('[ROSTER] Fetching roster for center:', centerId);
+
+  const center = await CoachingCenter.findById(centerId).lean();
+  if (!center) {
+    console.log('[ROSTER] Center not found:', centerId);
+    const err = new Error('Coaching center not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const students = await User.find({ coachingCenter: centerId })
+    .select('displayName username avatar email college year coachingCenterJoinedAt joinDate')
+    .sort({ coachingCenterJoinedAt: -1 })
+    .lean();
+
+  const totalStudents = students.length;
+
+  /* Attach per-subject progress summaries for each student */
+  const userIds = students.map(s => s._id);
+  const summaries = await getProgressSummariesForUsers(userIds);
+  const studentsWithProgress = students.map(s => ({
+    ...s,
+    progress: summaries.get(s._id.toString()) || null
+  }));
+
+  console.log('[ROSTER] Center:', center.name, '| Students:', totalStudents);
+
+  return {
+    center,
+    students: studentsWithProgress,
+    totalStudents
+  };
+}

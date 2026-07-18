@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn, useUser } from '@clerk/clerk-react';
+import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn, useUser, useAuth } from '@clerk/clerk-react';
 import { HelmetProvider } from 'react-helmet-async';
 import { useEffect } from 'react';
+import { motion } from 'motion/react';
 import { useAuthStore } from './stores/useAuthStore.js';
 import { useLanguageStore } from './stores/useLanguageStore.js';
 import { useThemeStore } from './stores/useThemeStore.js';
@@ -36,6 +37,7 @@ import Cheatsheets from './pages/Cheatsheets.jsx';
 import Newsletter from './pages/Newsletter.jsx';
 
 /* Protected pages */
+import SubjectProgressDetail from './pages/SubjectProgressDetail.jsx';
 import QaList from './pages/QaList.jsx';
 import QaDetail from './pages/QaDetail.jsx';
 import AskQuestion from './pages/AskQuestion.jsx';
@@ -53,6 +55,7 @@ import SignUp from './pages/SignUp.jsx';
 /* Admin pages */
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminDsaList from './pages/AdminDsaList.jsx';
+import AdminHeroSection from './pages/AdminHeroSection.jsx';
 import AdminHomepageConfig from './pages/AdminHomepageConfig.jsx';
 import AdminDsaLessonEdit from './pages/AdminDsaLessonEdit.jsx';
 import AdminSubtopicList from './pages/AdminSubtopicList.jsx';
@@ -80,6 +83,7 @@ import AdminBlogList from './pages/AdminBlogList.jsx';
 import AdminBlogEdit from './pages/AdminBlogEdit.jsx';
 import AdminMedia from './pages/AdminMedia.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
+import AdminUserEdit from './pages/AdminUserEdit.jsx';
 import AdminQA from './pages/AdminQA.jsx';
 import AdminLanguagesList from './pages/AdminLanguagesList.jsx';
 import AdminLanguageEdit from './pages/AdminLanguageEdit.jsx';
@@ -91,8 +95,17 @@ import AdminWhyTheJobStarter from './pages/AdminWhyTheJobStarter.jsx';
 import AdminAboutPage from './pages/AdminAboutPage.jsx';
 import AdminHowItWorks from './pages/AdminHowItWorks.jsx';
 import AdminTestimonials from './pages/AdminTestimonials.jsx';
+import AdminProgressMessages from './pages/AdminProgressMessages.jsx';
+import AdminCoachingCenters from './pages/AdminCoachingCenters.jsx';
+import AdminCoachingCenterDetail from './pages/AdminCoachingCenterDetail.jsx';
+import AdminCoachingCenterStudentDetail from './pages/AdminCoachingCenterStudentDetail.jsx';
 import AdminLayout from './components/admin/AdminLayout.jsx';
 
+import CoordinatorDashboard from './pages/CoordinatorDashboard.jsx';
+import CoordinatorStudentsList from './pages/CoordinatorStudentsList.jsx';
+import CoordinatorStudentDetail from './pages/CoordinatorStudentDetail.jsx';
+import CoordinatorProfile from './pages/CoordinatorProfile.jsx';
+import CoordinatorLayout from './components/coordinator/CoordinatorLayout.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 import './styles/tailwind.css';
@@ -119,6 +132,14 @@ function AdminRoute({ children }) {
   const { user } = useUser();
   if (!user) return <RedirectToSignIn />;
   if (user?.publicMetadata?.role !== 'admin') return <Navigate to="/" />;
+  return children;
+}
+
+function CoordinatorRoute({ children }) {
+  if (!HAS_CLERK) return children;
+  const { user } = useUser();
+  if (!user) return <RedirectToSignIn />;
+  if (user?.publicMetadata?.role !== 'coordinator') return <Navigate to="/" />;
   return children;
 }
 
@@ -226,10 +247,8 @@ function AppRoutes() {
       <Route path="/blog/:slug" element={<ProtectedRoute><AppLayout><BlogDetail /></AppLayout></ProtectedRoute>} />
       <Route path="/cheatsheets" element={<AppLayout><Cheatsheets /></AppLayout>} />
       <Route path="/newsletter" element={<AppLayout><Newsletter /></AppLayout>} />
-      <Route path="/sign-in" element={<SignIn />} />
-      <Route path="/sign-in/sso-callback" element={<SignIn />} />
-      <Route path="/sign-up" element={<SignUp />} />
-      <Route path="/sign-up/sso-callback" element={<SignUp />} />
+      <Route path="/sign-in/*" element={<SignIn />} />
+      <Route path="/sign-up/*" element={<SignUp />} />
 
       <Route path="/qa" element={<ProtectedRoute><AppLayout><QaList /></AppLayout></ProtectedRoute>} />
       <Route path="/qa/:id" element={<ProtectedRoute><AppLayout><QaDetail /></AppLayout></ProtectedRoute>} />
@@ -238,6 +257,12 @@ function AppRoutes() {
       <Route path="/users/:username" element={<ProtectedRoute><AppLayout><UserProfile /></AppLayout></ProtectedRoute>} />
       <Route path="/users/:username/followers" element={<ProtectedRoute><AppLayout><FollowersPage /></AppLayout></ProtectedRoute>} />
       <Route path="/settings/profile" element={<ProtectedRoute><AppLayout><EditProfile /></AppLayout></ProtectedRoute>} />
+      <Route path="/settings/progress/:subject" element={<ProtectedRoute><AppLayout><SubjectProgressDetail /></AppLayout></ProtectedRoute>} />
+
+      <Route path="/coordinator" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorDashboard /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/students" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentsList /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/students/:userId" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentDetail /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/profile" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorProfile /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/messages" element={<ProtectedRoute><AppLayout><MessagesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/messages/:userId" element={<ProtectedRoute><AppLayout><MessageThreadPage /></AppLayout></ProtectedRoute>} />
 
@@ -254,6 +279,7 @@ function AppRoutes() {
       <Route path="/admin/dsa/problems/new" element={<AdminRoute><AdminLayout><AdminDsaProblemEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/dsa/problems/:id/edit" element={<AdminRoute><AdminLayout><AdminDsaProblemEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/homepage" element={<AdminRoute><AdminLayout><AdminHomepageConfig /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/hero-section" element={<AdminRoute><AdminLayout><AdminHeroSection /></AdminLayout></AdminRoute>} />
       <Route path="/admin/dbms" element={<AdminRoute><AdminLayout><AdminDbmsList /></AdminLayout></AdminRoute>} />
       <Route path="/admin/dbms/lessons" element={<AdminRoute><AdminLayout><AdminDbmsList /></AdminLayout></AdminRoute>} />
       <Route path="/admin/dbms/lessons/new" element={<AdminRoute><AdminLayout><AdminDbmsLessonEdit /></AdminLayout></AdminRoute>} />
@@ -283,6 +309,7 @@ function AppRoutes() {
       <Route path="/admin/blog/:id/edit" element={<AdminRoute><AdminLayout><AdminBlogEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/media" element={<AdminRoute><AdminLayout><AdminMedia /></AdminLayout></AdminRoute>} />
       <Route path="/admin/users" element={<AdminRoute><AdminLayout><AdminUsers /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/users/:id/edit" element={<AdminRoute><AdminLayout><AdminUserEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/qa" element={<AdminRoute><AdminLayout><AdminQA /></AdminLayout></AdminRoute>} />
       <Route path="/admin/languages" element={<AdminRoute><AdminLayout><AdminLanguagesList /></AdminLayout></AdminRoute>} />
       <Route path="/admin/languages/new" element={<AdminRoute><AdminLayout><AdminLanguageEdit /></AdminLayout></AdminRoute>} />
@@ -295,6 +322,10 @@ function AppRoutes() {
       <Route path="/admin/how-it-works" element={<AdminRoute><AdminLayout><AdminHowItWorks /></AdminLayout></AdminRoute>} />
       <Route path="/admin/about-page" element={<AdminRoute><AdminLayout><AdminAboutPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/testimonials" element={<AdminRoute><AdminLayout><AdminTestimonials /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/progress-messages" element={<AdminRoute><AdminLayout><AdminProgressMessages /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/coaching-centers" element={<AdminRoute><AdminLayout><AdminCoachingCenters /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/coaching-centers/:id" element={<AdminRoute><AdminLayout><AdminCoachingCenterDetail /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/coaching-centers/:centerId/students/:userId" element={<AdminRoute><AdminLayout><AdminCoachingCenterStudentDetail /></AdminLayout></AdminRoute>} />
 
       <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
     </Routes>
@@ -317,12 +348,49 @@ export default function App() {
     </HelmetProvider>
   );
 
+  /*
+   * ClerkGate — blocks rendering until Clerk is fully initialized.
+   * This ensures all pages have access to the auth token on first render,
+   * preventing a 401 race when pages fire API calls immediately on mount.
+   */
+  function ClerkGate({ children }) {
+    const { isLoaded } = useAuth();
+    if (!isLoaded) {
+      return (
+        <motion.div
+          className="pageloader"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.25 }}
+        >
+          <div className="pageloader__backdrop" />
+          <div className="pageloader__box">
+            <div className="pageloader__spinner">
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  className="pageloader__dot"
+                  animate={{ y: [0, -12, 0] }}
+                  transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.12, ease: 'easeInOut' }}
+                />
+              ))}
+            </div>
+            <p className="pageloader__status">INITIALIZING AUTH...</p>
+          </div>
+        </motion.div>
+      );
+    }
+    return children;
+  }
+
   /* ClerkProvider wraps the router so ALL routes have Clerk context */
   if (HAS_CLERK) {
     return (
       <ClerkProvider publishableKey={clerkPubKey}>
         <AuthSync />
-        {app}
+        <ClerkGate>
+          {app}
+        </ClerkGate>
       </ClerkProvider>
     );
   }

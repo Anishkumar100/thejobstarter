@@ -1103,6 +1103,7 @@
   justify-content: center;
   z-index: 200;
   padding: var(--space-md);
+  overflow-y: auto;
 }
 
 .modal {
@@ -1112,6 +1113,31 @@
   padding: var(--space-lg);
   width: 100%;
   max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal--wide {
+  max-width: 680px;
+}
+
+.modal--full {
+  max-width: 90vw;
+}
+
+@media (max-width: 599px) {
+  .modal {
+    max-width: 100%;
+    max-height: 85vh;
+    padding: var(--space-md);
+    margin: var(--space-sm);
+  }
+
+  .modal--wide,
+  .modal--full {
+    max-width: 100%;
+  }
 }
 
 .modal__header {
@@ -1119,6 +1145,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-lg);
+  flex-shrink: 0;
 }
 
 .modal__title {
@@ -1139,6 +1166,12 @@
   color: var(--text-primary);
 }
 
+.modal__body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .modal__footer {
   display: flex;
   justify-content: flex-end;
@@ -1146,6 +1179,7 @@
   margin-top: var(--space-lg);
   padding-top: var(--space-lg);
   border-top: var(--border-thin);
+  flex-shrink: 0;
 }
 
 /* ===== PAGINATION ===== */
@@ -1467,6 +1501,12 @@
   height: 4px;
   background: var(--accent);
   animation: pageloader-pulse 1.2s ease-in-out infinite;
+}
+
+/* Fade-in for celebration banners */
+@keyframes celebrationFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Pulse animation for the bottom accent bar */

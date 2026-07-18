@@ -109,7 +109,7 @@ function formatInline(text) {
  * Every block type is handled: code, tables, headings, blockquotes,
  * lists (grouped), task lists, definition lists, HRs, and paragraphs.
  */
-function renderMarkdown(text) {
+function renderMarkdown(text, noAutoBullet = false) {
   if (!text) {
     return (
       <div className="subtopic-empty">
@@ -119,8 +119,11 @@ function renderMarkdown(text) {
     );
   }
 
+  /* Normalise literal \n strings to actual newlines (pipe tables stored with escaped newlines) */
+  let cleaned = text.replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
+
   /* Normalise AI copy-paste artifacts before parsing */
-  let cleaned = text
+  cleaned = cleaned
     /* Replace unicode bullets with standard dash for list parser */
     .replace(/^[•▪▸◦●◆⁃‣⦿❖➢➤◇⊳⊳⋄⦁✧★]\s*/gm, '- ')
     /* Normalise arrow-starting lines to dash lists */
@@ -130,13 +133,8 @@ function renderMarkdown(text) {
     /* Strip leading/trailing whitespace per line */
     .split('\n').map(l => l.trimEnd()).join('\n');
 
-  /*
-   * Auto-bullet: detect groups of short consecutive lines that look like
-   * standalone points (start uppercase, end with ., !, or ?) and prepend
-   * "- " so they render with arrow markers instead of plain paragraphs.
-   * Only triggers on groups of 2+ such lines to avoid false positives.
-   */
-  {
+  /* Auto-bullet: skip for quiz content (questions/options) */
+  if (!noAutoBullet) {
     const autoLines = cleaned.split('\n');
     let i = 0;
     while (i < autoLines.length) {
@@ -145,11 +143,9 @@ function renderMarkdown(text) {
         i++;
         continue;
       }
-      /* Check if this line looks like a standalone point */
       const isPoint = /^[A-Z]/.test(line) && /[.?!]$/.test(line) && line.length < 150;
       if (!isPoint) { i++; continue; }
 
-      /* Count consecutive point-like lines */
       let count = 1;
       while (i + count < autoLines.length) {
         const next = autoLines[i + count].trimEnd();
@@ -161,7 +157,6 @@ function renderMarkdown(text) {
         }
       }
 
-      /* Auto-bullet if 2+ consecutive point lines */
       if (count >= 2) {
         for (let j = i; j < i + count; j++) {
           const trimmed = autoLines[j].trimStart();
@@ -498,11 +493,13 @@ function renderMarkdown(text) {
  * MarkdownRenderer — turn raw markdown text into beautiful book-like content.
  *
  * Props:
- *   content   — string of raw markdown text
- *   className — optional extra CSS class on the wrapper <div>
+ *   content       — string of raw markdown text
+ *   className     — optional extra CSS class on the wrapper <div>
+ *   noAutoBullet  — if true, skip the auto-bullet heuristic (use for quiz content)
  */
-export default function MarkdownRenderer({ content, className = '' }) {
-  const rendered = useMemo(() => renderMarkdown(content), [content]);
+export default function MarkdownRenderer({ content, className = '', noAutoBullet = false }) {
+  /* Wrap renderMarkdown to pass the flag via a closure param */
+  const rendered = useMemo(() => renderMarkdown(content, noAutoBullet), [content, noAutoBullet]);
 
   return (
     <div className={`subtopic-explanation ${className}`}>

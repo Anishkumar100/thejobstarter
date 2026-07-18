@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useOsStore } from '../stores/useOsStore.js';
 import DataTable from '../components/admin/DataTable.jsx';
@@ -7,6 +7,7 @@ import Loader from '../components/ui/Loader.jsx';
 
 export default function AdminOsSubtopicList() {
   const { lessonId } = useParams();
+  const navigate = useNavigate();
   const { lessons, fetchLessons, subtopics, subtopicsLoading, subtopicsError, fetchSubtopics, deleteSubtopic } = useOsStore();
   const [refresh, setRefresh] = useState(0);
 
@@ -19,8 +20,19 @@ export default function AdminOsSubtopicList() {
   useEffect(() => {
     if (lesson) {
       fetchSubtopics({ lesson: lesson.slug });
+    } else if (lessons.length > 0 && !lessonId) {
+      navigate(`/admin/os/lessons/${lessons[0]._id}/subtopics`, { replace: true });
     }
-  }, [lesson, refresh]);
+  }, [lesson, lessonId, lessons.length, refresh]);
+
+  const handleLessonChange = (e) => {
+    const val = e.target.value;
+    if (val) {
+      navigate('/admin/os/lessons/' + val + '/subtopics');
+    } else {
+      navigate('/admin/os/subtopics');
+    }
+  };
 
   /* Handle subtopic deletion */
   const handleDelete = async (id) => {
@@ -61,8 +73,28 @@ export default function AdminOsSubtopicList() {
 
       <div className="listing-header">
         <div>
-          <h1 className="listing-header__title">Subtopics: {lesson?.title || '...'}</h1>
-          <Link to={`/admin/os/lessons`} style={{ fontSize: '0.8rem', color: 'var(--accent)' }}>← Back to Lessons</Link>
+          <h1 className="listing-header__title">Subtopics</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Lesson:</label>
+            <select
+              value={lessonId || ''}
+              onChange={handleLessonChange}
+              style={{
+                padding: '4px 10px',
+                border: '2px solid var(--border-color)',
+                background: 'var(--bg-surface)',
+                fontSize: '0.85rem',
+                fontFamily: 'inherit',
+                minWidth: 200
+              }}
+            >
+              <option value="">All Subtopics</option>
+              {lessons.map(l => (
+                <option key={l._id} value={l._id}>{l.title}</option>
+              ))}
+            </select>
+            <Link to={`/admin/os/lessons`} style={{ fontSize: '0.8rem', color: 'var(--accent)' }}>← Manage Lessons</Link>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
           <Link to={`/admin/os/problems/new?lesson=${lesson?.slug || ''}`} className="btn">+ New Problem</Link>

@@ -40,6 +40,15 @@ export async function getPublicConfig(req, res) {
       console.log('[SITE_CONFIG] No config found, creating default...');
       config = await SiteConfig.create({
         homepageStats: { problems: 0, articles: 0, users: 0, questions: 0 },
+        homepageHero: {
+          title: 'Master Placements.<br />Crack the Code.<br />Land Your Dream Job.',
+          subtitle: '180+ curated DSA problems, in-depth DBMS & OS articles, and a thriving community \u2014 all in one brutalist package.',
+          ctaPrimary: 'Browse DSA',
+          ctaPrimaryLink: '/dsa',
+          ctaSecondary: 'Join Community',
+          ctaSecondaryLink: '/qa',
+          videoUrl: '/hero-video.mp4'
+        },
         dsaHeroImage: '',
         blogHeroImage: '',
         homepageWhySection: {
@@ -172,6 +181,24 @@ export async function getPublicConfig(req, res) {
       });
     }
     console.log('[SITE_CONFIG] Public config fetched');
+    /*
+     * If homepageHero is missing (legacy doc created before schema update),
+     * seed it with defaults so the admin form always has values to edit.
+     */
+    if (!config.homepageHero || !config.homepageHero.title) {
+      console.log('[SITE_CONFIG] Seeding homepageHero defaults...');
+      config.homepageHero = {
+        title: 'Master Placements.<br />Crack the Code.<br />Land Your Dream Job.',
+        subtitle: '180+ curated DSA problems, in-depth DBMS & OS articles, and a thriving community \u2014 all in one brutalist package.',
+        ctaPrimary: 'Browse DSA',
+        ctaPrimaryLink: '/dsa',
+        ctaSecondary: 'Join Community',
+        ctaSecondaryLink: '/qa',
+        videoUrl: '/hero-video.mp4'
+      };
+      /* Persist defaults so next load doesn't need to re-seed */
+      await SiteConfig.findOneAndUpdate({}, { $set: { homepageHero: config.homepageHero } });
+    }
     res.json({
       data: {
         homepageStats: config.homepageStats,
@@ -180,7 +207,8 @@ export async function getPublicConfig(req, res) {
         homepageWhySection: config.homepageWhySection,
         homepageWhyTheJobStarter: config.homepageWhyTheJobStarter,
         homepageHowItWorks: config.homepageHowItWorks,
-        aboutPage: config.aboutPage
+        aboutPage: config.aboutPage,
+        homepageHero: config.homepageHero
       }
     });
   } catch (error) {
@@ -192,12 +220,12 @@ export async function getPublicConfig(req, res) {
 /*
  * PUT /api/site-config
  * Admin: Update site config values
- * Supports: homepageStats, dsaHeroImage, blogHeroImage, homepageWhySection, homepageWhyTheJobStarter, homepageHowItWorks
+ * Supports: homepageStats, dsaHeroImage, blogHeroImage, homepageWhySection, homepageWhyTheJobStarter, homepageHowItWorks, aboutPage, homepageHero
  */
 export async function updateConfig(req, res) {
   try {
     console.log('[SITE_CONFIG] Updating config with:', req.body);
-    const { homepageStats, dsaHeroImage, blogHeroImage, homepageWhySection, homepageWhyTheJobStarter, homepageHowItWorks, aboutPage } = req.body;
+    const { homepageStats, dsaHeroImage, blogHeroImage, homepageWhySection, homepageWhyTheJobStarter, homepageHowItWorks, aboutPage, homepageHero } = req.body;
 
     const update = { $set: {} };
 
@@ -222,6 +250,9 @@ export async function updateConfig(req, res) {
     if (homepageHowItWorks && typeof homepageHowItWorks === 'object') {
       update.$set.homepageHowItWorks = homepageHowItWorks;
     }
+    if (homepageHero && typeof homepageHero === 'object') {
+      update.$set.homepageHero = homepageHero;
+    }
 
     const config = await SiteConfig.findOneAndUpdate(
       {},
@@ -236,7 +267,8 @@ export async function updateConfig(req, res) {
         blogHeroImage: config.blogHeroImage || '',
         homepageWhySection: config.homepageWhySection,
         homepageWhyTheJobStarter: config.homepageWhyTheJobStarter,
-        homepageHowItWorks: config.homepageHowItWorks
+        homepageHowItWorks: config.homepageHowItWorks,
+        homepageHero: config.homepageHero || {}
       }
     });
   } catch (error) {
@@ -342,6 +374,32 @@ export async function updateAboutPage(req, res) {
     res.json({ data: { aboutPage: config.aboutPage } });
   } catch (error) {
     console.error('[SITE_CONFIG] Error updating About Page:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * PUT /api/site-config/hero-section
+ * Admin: Update just the homepageHero field (title, subtitle, CTAs, video URL)
+ * Body: { homepageHero: { title, subtitle, ctaPrimary, ctaPrimaryLink, ctaSecondary, ctaSecondaryLink, videoUrl } }
+ */
+export async function updateHeroSection(req, res) {
+  try {
+    console.log('[SITE_CONFIG] Updating Hero section...');
+    const { homepageHero } = req.body;
+    if (!homepageHero || typeof homepageHero !== 'object') {
+      return res.status(400).json({ error: 'homepageHero object is required' });
+    }
+
+    const config = await SiteConfig.findOneAndUpdate(
+      {},
+      { $set: { homepageHero } },
+      { upsert: true, new: true }
+    );
+    console.log('[SITE_CONFIG] Hero section updated');
+    res.json({ data: { homepageHero: config.homepageHero } });
+  } catch (error) {
+    console.error('[SITE_CONFIG] Error updating Hero section:', error.message);
     res.status(500).json({ error: error.message });
   }
 }

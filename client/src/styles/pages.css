@@ -4750,6 +4750,134 @@
   letter-spacing: -0.03em;
 }
 
+/* Suppress drop-cap for problem examples and quiz content */
+.pview-example__sql-block .subtopic-paragraph--first::first-letter,
+.pview-example__rendered .subtopic-paragraph--first::first-letter,
+.quiz-content .subtopic-paragraph--first::first-letter {
+  all: unset;
+}
+
+/* ===== QUIZ CONTENT — compact, beautiful option cards ===== */
+.quiz-content {
+  /* Keep the outer box styling from inline styles */
+}
+
+/* Quiz question text — compact but readable */
+.quiz-content .subtopic-explanation {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: none;
+}
+
+/* Quiz option label — brutish card style */
+.quiz-content label {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px !important;
+  margin: 6px 0 !important;
+  border: 2px solid var(--border-color) !important;
+  border-radius: 0;
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-shadow: 2px 2px 0 var(--shadow-color);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.quiz-content label:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--shadow-color);
+  border-color: var(--accent);
+}
+
+.quiz-content label:active {
+  transform: translate(0, 0);
+  box-shadow: 1px 1px 0 var(--shadow-color);
+}
+
+/* Radio button inside the label */
+.quiz-content label input[type="radio"] {
+  margin-top: 4px !important;
+  margin-right: 0 !important;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+/* Selected option — accent background + border */
+.quiz-content label:has(input:checked) {
+  background: var(--accent-light);
+  border-color: var(--accent) !important;
+  box-shadow: 3px 3px 0 var(--accent);
+}
+
+/* Markdown content inside options — compact */
+.quiz-content label .subtopic-explanation {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  max-width: none;
+}
+
+.quiz-content label .subtopic-explanation p {
+  margin-bottom: 4px;
+  text-align: left;
+}
+
+.quiz-content label .subtopic-explanation p:last-child {
+  margin-bottom: 0;
+}
+
+/* Tables inside quiz options — compact */
+.quiz-content label .subtopic-table {
+  font-size: 0.78rem;
+  border-width: 2px;
+}
+
+.quiz-content label .subtopic-table th,
+.quiz-content label .subtopic-table td {
+  padding: 3px 8px;
+}
+
+/* Code blocks inside quiz options — compact */
+.quiz-content label .subtopic-code-block {
+  font-size: 0.78rem;
+  margin: 4px 0;
+}
+
+.quiz-content label .subtopic-code-block code {
+  padding: 6px 10px;
+  font-size: 0.78rem;
+}
+
+/* Inline code inside options */
+.quiz-content label .subtopic-inline-code {
+  font-size: 0.82rem;
+  padding: 1px 5px;
+}
+
+/* Images inside options */
+.quiz-content label .subtopic-image {
+  max-width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  margin: 4px 0;
+  border: 2px solid var(--border-subtle);
+}
+
+/* Quiz heading */
+.quiz-content h3 {
+  font-size: 1rem !important;
+  margin-bottom: 4px !important;
+}
+
+/* Submit button area */
+.quiz-content .btn {
+  margin-top: var(--space-sm);
+}
+
 .subtopic-paragraph {
   margin-bottom: var(--space-sm);
   text-align: justify;

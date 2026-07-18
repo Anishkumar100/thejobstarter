@@ -114,7 +114,7 @@ export default function JoinCommunityCta() {
             letterSpacing: '0.08em'
           }}
         >
-          Ask. Answer. Grow. Join 10,000+ students already here.
+          Ask. Answer. Grow. Join our students community.
         </motion.p>
 
         {/* CTA buttons */}

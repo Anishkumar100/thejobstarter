@@ -3,24 +3,32 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useUserStore } from '../stores/useUserStore.js';
 import { useQaStore } from '../stores/useQaStore.js';
+import { useProgressStore } from '../stores/useProgressStore.js';
+import { useProgressMessageStore } from '../stores/useProgressMessageStore.js';
+import { getMotivationalMessage, getOverallMessage, getStreakMessage } from '../utils/progressMessages.js';
 import { getUserActivity } from '../api/userApi.js';
 import { fetchQuestions } from '../api/qaApi.js';
 import ProfileHero from '../components/users/ProfileHero.jsx';
 import ExternalLinks from '../components/users/ExternalLinks.jsx';
 import SkillsTags from '../components/users/SkillsTags.jsx';
 import ActivityFeed from '../components/users/ActivityFeed.jsx';
+import FeedbackSection from '../components/users/FeedbackSection.jsx';
 import { useUser } from '@clerk/clerk-react';
 import Loader from '../components/ui/Loader.jsx';
-import { MessageQuestionIcon, Cancel01Icon, Clock01Icon } from 'hugeicons-react';
+import { MessageQuestionIcon, Cancel01Icon, Clock01Icon, Download01Icon } from 'hugeicons-react';
 
 export default function UserProfile() {
   const { username } = useParams();
   const navigate = useNavigate();
   const { user: clerkUser } = useUser();
   const { currentProfile, loading, error, fetchProfile: fetchUserByUsername, follow, unfollow } = useUserStore();
+  const { summary: progressSummary, dailyCount, loading: progressLoading, fetchSummary: fetchProgressSummary, fetchDailyCount: fetchDailyProgressCount } = useProgressStore();
+  const { messages: progressMessages, fetchMessages: fetchProgressMessages } = useProgressMessageStore();
   const [activities, setActivities] = useState([]);
   const [myQuestions, setMyQuestions] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const isOwnProfile = !!(clerkUser?.id && currentProfile?.clerkId === clerkUser.id);
+  console.log('[UserProfile] Render — isOwnProfile:', isOwnProfile, '| clerkUser?.id:', clerkUser?.id, '| profile.clerkId:', currentProfile?.clerkId, '| param username:', username, '| progressSummary:', !!progressSummary, '| progressLoading:', progressLoading);
 
   useEffect(() => {
     fetchUserByUsername(username);
@@ -48,17 +56,53 @@ export default function UserProfile() {
         .catch(err => console.error('[UserProfile] Error fetching own questions:', err.message))
         .finally(() => setLoadingQuestions(false));
     }
-  }, [currentProfile?._id, clerkUser?.username]);
+  }, [currentProfile?._id, clerkUser?.id]);
 
-  /* Retry if profile is null but auth user just loaded */
+  /* Fetch own progress summary + daily count if this is the user's own profile */
   useEffect(() => {
-    if (!currentProfile && !loading && clerkUser?.username === username) {
+    console.log('[UserProfile] Progress useEffect fired — isOwnProfile:', isOwnProfile, '| progressSummary:', !!progressSummary);
+    if (isOwnProfile && !progressSummary) {
+      console.log('[UserProfile] Calling fetchProgressSummary()...');
+      fetchProgressSummary();
+      fetchDailyProgressCount();
+    }
+  }, [isOwnProfile]);
+
+  /* Fetch progress messages (cached — only fetches once) */
+  useEffect(() => {
+    fetchProgressMessages();
+  }, []);
+  useEffect(() => {
+    if (!currentProfile && !loading && clerkUser?.id) {
       fetchUserByUsername(username);
     }
-  }, [clerkUser?.username]);
+  }, [clerkUser?.id]);
 
 
-  const isOwnProfile = clerkUser?.username === username;
+  /*
+   * CSV export — download full tracking data as CSV file
+   */
+  const handleCsvExport = async () => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const token = await window.Clerk?.session?.getToken();
+      const res = await fetch(`${API_BASE}/users/export-csv`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentProfile?.username || 'user'}_thejobstarter_export.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[UserProfile] CSV export error:', err.message);
+    }
+  };
 
   const handleFollow = async () => {
     if (!currentProfile) return;
@@ -87,6 +131,8 @@ export default function UserProfile() {
     );
   };
 
+  console.log('[UserProfile] Render progress check — isOwnProfile:', isOwnProfile, '| progressLoading:', progressLoading, '| progressSummary:', !!progressSummary);
+
   return (
     <div className="container container-sm" style={{ paddingTop: 'var(--space-xl)', paddingBottom: 'var(--space-xl)' }}>
       <Helmet>
@@ -106,9 +152,208 @@ export default function UserProfile() {
             onFollow={handleFollow}
             onEdit={() => navigate('/settings/profile')}
           />
+
+          {/* ═════ PROGRESS DASHBOARD (own profile only) ═════ */}
+          {isOwnProfile && (
+            <div style={{ marginTop: 'var(--space-xl)', marginBottom: 'var(--space-xl)' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                marginBottom: 'var(--space-md)'
+              }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', margin: 0 }}>
+                  My Progress
+                </h3>
+                <button
+                  onClick={handleCsvExport}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 14px',
+                    border: '3px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    boxShadow: '3px 3px 0 var(--shadow-color)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.78rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    transition: 'transform 0.12s, box-shadow 0.12s',
+                    fontFamily: 'inherit'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '4px 4px 0 var(--shadow-color)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '3px 3px 0 var(--shadow-color)'; }}
+                >
+                  <Download01Icon size={14} />
+                  Export CSV
+                </button>
+              </div>
+
+              {progressLoading && <p style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Loading progress...</p>}
+
+              {!progressLoading && !progressSummary && (
+                <p style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No progress data yet.</p>
+              )}
+
+              {!progressLoading && progressSummary && (
+                <>
+                  {/* ═════ OVERALL MOTIVATIONAL MESSAGE ═════ */}
+                  {(() => {
+                    const subjects = ['dsa', 'dbms', 'os'];
+                    let totalCompleted = 0, totalItems = 0;
+                    for (const s of subjects) {
+                      const d = progressSummary[s];
+                      if (d) { totalCompleted += d.overall.completed; totalItems += d.overall.total; }
+                    }
+                    const overallPct = totalItems > 0 ? Math.round((totalCompleted / totalItems) * 100) : 0;
+                    const overallMsg = getOverallMessage(overallPct, progressMessages);
+                    return (
+                      <div style={{
+                        padding: 'var(--space-md) var(--space-lg)',
+                        marginBottom: 'var(--space-md)',
+                        border: '3px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        boxShadow: 'var(--shadow)',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        textAlign: 'center'
+                      }}>
+                        {totalCompleted}/{totalItems} across all subjects · {overallPct}% complete
+                        <div style={{ fontWeight: 400, fontSize: '0.82rem', marginTop: '4px', color: 'var(--text-tertiary)' }}>
+                          {overallMsg}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* ═════ TODAY'S ACTIVITY ═════ */}
+                  <div style={{
+                    padding: 'var(--space-sm) var(--space-md)',
+                    marginBottom: 'var(--space-md)',
+                    border: '2px solid var(--border-color)',
+                    background: 'var(--bg-tertiary)',
+                    fontSize: '0.82rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <div style={{
+                      minWidth: 48, height: 48,
+                      border: '2px solid var(--border-color)',
+                      background: 'var(--accent)',
+                      color: 'var(--text-inverse)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 900,
+                      fontSize: '1.2rem'
+                    }}>
+                      {dailyCount}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Today's Activity
+                      </div>
+                      <div style={{ fontSize: '0.78rem', marginTop: 2 }}>
+                        {getStreakMessage(dailyCount, progressMessages)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-md)' }}>
+                    {['dsa', 'dbms', 'os'].map(subject => {
+                      const data = progressSummary[subject];
+                      if (!data) return null;
+                      const label = { dsa: 'DSA', dbms: 'DBMS', os: 'OS' }[subject];
+                      const pct = data.overall.total > 0 ? Math.round((data.overall.completed / data.overall.total) * 100) : 0;
+                      const { message } = getMotivationalMessage(pct, progressMessages);
+                      const items = [
+                        { type: 'Lessons', completed: data.lessons.completed, total: data.lessons.total },
+                        { type: 'Subtopics', completed: data.subtopics.completed, total: data.subtopics.total },
+                        { type: 'Problems', completed: data.problems.completed, total: data.problems.total }
+                      ];
+                      const quizzes = data.quizzes || { quizzesTaken: 0, avgScore: 0 };
+                      return (
+                        <Link
+                          key={subject}
+                          to={`/settings/progress/${subject}`}
+                          style={{
+                            display: 'block',
+                            padding: 'var(--space-lg)',
+                            border: '3px solid var(--border-color)',
+                            boxShadow: 'var(--shadow)',
+                            background: 'var(--bg-secondary)',
+                            textDecoration: 'none',
+                            color: 'var(--text-primary)',
+                            transition: 'transform 0.15s, box-shadow 0.15s'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-3px, -3px)'; e.currentTarget.style.boxShadow = '9px 9px 0 var(--shadow-color)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}
+                        >
+                          <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 'var(--space-sm)' }}>{label}</h4>
+                          <div style={{
+                            fontSize: '1.8rem',
+                            fontWeight: 900,
+                            marginBottom: 'var(--space-sm)'
+                          }}>
+                            {data.overall.completed}<span style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--text-tertiary)' }}>/{data.overall.total}</span>
+                          </div>
+                          <div style={{
+                            height: 8,
+                            background: 'var(--bg-tertiary)',
+                            border: '2px solid var(--border-color)',
+                            marginBottom: 'var(--space-sm)'
+                          }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${pct}%`,
+                              background: data.overall.completed === data.overall.total ? 'var(--success)' : 'var(--accent)',
+                              transition: 'width 0.3s'
+                            }} />
+                          </div>
+                          {/* ═════ PER-SUBJECT MOTIVATIONAL MESSAGE ═════ */}
+                          <div style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--text-tertiary)',
+                            fontStyle: 'italic',
+                            marginBottom: 'var(--space-sm)',
+                            padding: '6px 8px',
+                            borderLeft: '3px solid var(--accent)',
+                            background: 'var(--bg-tertiary)'
+                          }}>
+                            {message}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem' }}>
+                            {items.map(item => (
+                              <div key={item.type} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>{item.type}</span>
+                                <span style={{ fontWeight: 600 }}>
+                                  {item.completed}/{item.total}
+                                </span>
+                              </div>
+                            ))}
+                            <div key="quizzes" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>Quizzes</span>
+                              <span style={{ fontWeight: 600 }}>
+                                {quizzes.quizzesTaken} taken · {quizzes.avgScore}% avg
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <ExternalLinks links={currentProfile.externalLinks} />
           <SkillsTags skills={currentProfile.skills} />
           <ActivityFeed activities={activities} />
+
+          {/* ═════ FEEDBACK & INSIGHTS (own profile only) ═════ */}
+          {isOwnProfile && progressSummary && (
+            <FeedbackSection progress={progressSummary} />
+          )}
 
           {/* ═════ MY QUESTIONS (own profile only) ═════ */}
           {isOwnProfile && (
@@ -139,15 +384,15 @@ export default function UserProfile() {
                         alignItems: 'center',
                         gap: '10px',
                         padding: '12px 16px',
-                        border: '3px solid #000',
-                        boxShadow: '4px 4px 0 #000',
-                        background: question.status === 'pending' ? '#fffbeb' : question.status === 'rejected' ? '#fef2f2' : '#fff',
+                        border: '3px solid var(--border-color)',
+                        boxShadow: 'var(--shadow-sm)',
+                        background: question.status === 'pending' ? 'var(--warning-bg)' : question.status === 'rejected' ? 'var(--error-bg)' : 'var(--bg-secondary)',
                         textDecoration: 'none',
                         color: 'var(--text-primary)',
                         transition: 'transform 0.15s'
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '6px 6px 0 #000'; }}
-                      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '4px 4px 0 #000'; }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
                     >
                       <MessageQuestionIcon size={18} style={{ flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>

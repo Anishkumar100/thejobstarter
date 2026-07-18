@@ -26,7 +26,10 @@ const userSchema = new mongoose.Schema({
   skills: [String],
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  joinDate: { type: Date, default: Date.now }
+  joinDate: { type: Date, default: Date.now },
+  coachingCenter: { type: mongoose.Schema.Types.ObjectId, ref: 'CoachingCenter', default: null },
+  coachingCenterJoinedAt: { type: Date, default: null },
+  coordinatorFor: { type: mongoose.Schema.Types.ObjectId, ref: 'CoachingCenter', default: null }
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, BookOpen, Code2, Layers, Tags, Database,
   FileText, Users, HelpCircle, Globe, Mail, Image as ImageIcon,
   Home, Settings, BookText, Tag, Cpu, ThumbsUp, MessageSquareText,
-  X, ChevronDown
+  X, ChevronDown, Building2, Airplay
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -62,6 +62,13 @@ const SECTIONS = [
       { to: '/admin/languages', label: 'Languages', icon: Globe },
       { to: '/admin/newsletter', label: 'Newsletter', icon: Mail },
       { to: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareText },
+      { to: '/admin/progress-messages', label: 'Progress Messages', icon: ThumbsUp },
+    ]
+  },
+  {
+    heading: 'Coaching',
+    links: [
+      { to: '/admin/coaching-centers', label: 'Centres', icon: Building2 },
     ]
   },
   {
@@ -70,6 +77,7 @@ const SECTIONS = [
       { to: '/admin/media', label: 'Media Library', icon: ImageIcon },
       { to: '/admin/topics', label: 'Homepage Topics', icon: Home },
       { to: '/admin/homepage', label: 'Homepage Config', icon: Settings },
+      { to: '/admin/hero-section', label: 'Hero Section', icon: Airplay },
       { to: '/admin/about-page', label: 'About Page', icon: FileText },
       { to: '/admin/why-section', label: 'Why DSA/DBMS/OS', icon: ThumbsUp },
       { to: '/admin/why-the-job-starter', label: 'Why TheJobStarter', icon: ThumbsUp },

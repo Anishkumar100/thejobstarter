@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'motion/react';
-import { useDsaStore } from '../stores/useDsaStore.js';
 import Badge from '../components/ui/Badge.jsx';
 import { apiRequest } from '../api/client.js';
+import Loader from '../components/ui/Loader.jsx';
 import WhyTheseThree from '../components/home/WhyTheseThree.jsx';
 import WhyTheJobStarter from '../components/home/WhyTheJobStart.jsx';
 import HowItWorks from '../components/home/HowItWorks.jsx';
@@ -12,12 +12,13 @@ import Reviews from '../components/home/Reviews.jsx';
 import JoinCommunityCta from '../components/home/JoinCommunityCta.jsx';
 
 export default function Home() {
-  const { problems, fetchProblems } = useDsaStore();
   const [videoError, setVideoError] = useState(false);
   const [liveStats, setLiveStats] = useState(null);
+  const [pageLoading, setPageLoading] = useState(true);
   const handleVideoError = useCallback(() => setVideoError(true), []);
 
-  useEffect(() => { fetchProblems(); }, []);
+  /* Hero section data from SiteConfig */
+  const [heroData, setHeroData] = useState(null);
 
   /* WhyTheseThree section data from SiteConfig */
   const [whySectionData, setWhySectionData] = useState(null);
@@ -28,40 +29,24 @@ export default function Home() {
   /* HowItWorks section data from SiteConfig */
   const [howItWorksData, setHowItWorksData] = useState(null);
 
-  /* Fetch live stats + why section data from the public endpoint */
-  useEffect(() => {
-    apiRequest('/site-config/public')
-      .then(res => {
-        setLiveStats(res.data);
-        if (res.data?.homepageWhySection) {
-          setWhySectionData(res.data.homepageWhySection);
-        }
-        if (res.data?.homepageWhyTheJobStarter) {
-          setWhyTheJobStarterData(res.data.homepageWhyTheJobStarter);
-        }
-        if (res.data?.homepageHowItWorks) {
-          setHowItWorksData(res.data.homepageHowItWorks);
-        }
-      })
-      .catch(err => {
-        console.error('[HOME] Stats fetch failed:', err.message);
-      });
-  }, []);
-
+  /* Topics for the sticky cards section */
   const [topics, setTopics] = useState([]);
 
-  /* Fetch topics from API */
+  /* Fetch all homepage data in parallel, then show page */
   useEffect(() => {
-    apiRequest('/topics')
-      .then(res => {
+    Promise.all([
+      apiRequest('/site-config/public').then(res => {
+        setLiveStats(res.data);
+        if (res.data?.homepageHero?.title) setHeroData(res.data.homepageHero);
+        if (res.data?.homepageWhySection) setWhySectionData(res.data.homepageWhySection);
+        if (res.data?.homepageWhyTheJobStarter) setWhyTheJobStarterData(res.data.homepageWhyTheJobStarter);
+        if (res.data?.homepageHowItWorks) setHowItWorksData(res.data.homepageHowItWorks);
+      }).catch(err => console.error('[HOME] Config fetch failed:', err.message)),
+      apiRequest('/topics').then(res => {
         if (res.data && res.data.length > 0) setTopics(res.data);
-      })
-      .catch(err => {
-        console.error('[HOME] Topics fetch failed:', err.message);
-      });
+      }).catch(err => console.error('[HOME] Topics fetch failed:', err.message))
+    ]).finally(() => setPageLoading(false));
   }, []);
-
-  const featured = problems.slice(0, 6);
 
   const stats = liveStats?.homepageStats ? [
     { number: liveStats.homepageStats.problems, label: 'Problems', to: '/dsa' },
@@ -69,6 +54,11 @@ export default function Home() {
     { number: liveStats.homepageStats.users, label: 'Users', to: '/users' },
     { number: liveStats.homepageStats.questions, label: 'Questions', to: '/qa' }
   ] : [];
+
+  /* Show a full-page loader until all assets are fetched */
+  if (pageLoading) {
+    return <Loader text="Loading TheJobStarter..." />;
+  }
 
   return (
     <div>
@@ -86,7 +76,7 @@ export default function Home() {
         {!videoError ? (
           <video
             className="hero-bg-video"
-            src="/hero-video.mp4"
+            src={heroData?.videoUrl || '/hero-video.mp4'}
             autoPlay
             muted
             loop
@@ -100,18 +90,18 @@ export default function Home() {
         )}
         <div className="hero-overlay" />
         <div className="container hero-content">
-          <h1 className="home-hero__title">
-            Master Placements.<br />
-            Crack the Code.<br />
-            Land Your Dream Job.
-          </h1>
+          <h1
+            className="home-hero__title"
+            dangerouslySetInnerHTML={{
+              __html: heroData?.title || 'Master Placements.<br />Crack the Code.<br />Land Your Dream Job.'
+            }}
+          />
           <p className="home-hero__subtitle">
-            180+ curated DSA problems, in-depth DBMS & OS articles, and a
-            thriving community — all in one brutalist package.
+            {heroData?.subtitle || '180+ curated DSA problems, in-depth DBMS & OS articles, and a thriving community — all in one brutalist package.'}
           </p>
           <div className="home-hero__actions">
-            <Link to="/dsa" className="btn btn--primary">Browse DSA</Link>
-            <Link to="/qa" className="btn">Join Community</Link>
+            <Link to={heroData?.ctaPrimaryLink || '/dsa'} className="btn btn--primary">{heroData?.ctaPrimary || 'Browse DSA'}</Link>
+            <Link to={heroData?.ctaSecondaryLink || '/qa'} className="btn">{heroData?.ctaSecondary || 'Join Community'}</Link>
           </div>
         </div>
       </motion.section>

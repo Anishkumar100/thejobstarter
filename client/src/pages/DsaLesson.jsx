@@ -11,8 +11,6 @@ export default function DsaLesson() {
   const { lessons, fetchLessons, subtopics, subtopicsLoading, fetchSubtopics } = useDsaStore();
   const [search, setSearch] = useState('');
 
-  const lesson = lessons.find(l => l.slug === lessonSlug);
-
   useEffect(() => {
     fetchLessons();
     fetchSubtopics({ lesson: lessonSlug });
@@ -25,6 +23,8 @@ export default function DsaLesson() {
         s.description.toLowerCase().includes(search.toLowerCase())
       )
     : subtopics;
+
+  const lesson = lessons.find(l => l.slug === lessonSlug);
 
   if (!lesson && !subtopicsLoading) {
     return (

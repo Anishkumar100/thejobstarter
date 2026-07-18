@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useDsaStore } from '../stores/useDsaStore.js';
@@ -7,8 +7,37 @@ import Loader from '../components/ui/Loader.jsx';
 
 export default function AdminDsaProblemList() {
   const { problems, problemsLoading, problemsError, fetchProblems, deleteProblem } = useDsaStore();
+  const [filterLesson, setFilterLesson] = useState('');
+  const [filterSubtopic, setFilterSubtopic] = useState('');
+  const [availableSubtopics, setAvailableSubtopics] = useState([]);
+  const { lessons, fetchLessons, subtopics, fetchSubtopics } = useDsaStore();
 
-  useEffect(() => { fetchProblems({ limit: 100 }); }, []);
+  /* Fetch lessons on mount */
+  useEffect(() => { fetchLessons(); }, []);
+
+  /* Fetch subtopics when lesson changes */
+  useEffect(() => {
+    if (filterLesson) {
+      fetchSubtopics({ lesson: filterLesson });
+    } else {
+      setAvailableSubtopics([]);
+    }
+  }, [filterLesson]);
+
+  /* Keep available subtopics in sync with store */
+  useEffect(() => {
+    setAvailableSubtopics(subtopics || []);
+  }, [subtopics]);
+
+  /* Fetch problems whenever filters change */
+  useEffect(() => {
+    const filters = { limit: 100 };
+    if (filterLesson) filters.lesson = filterLesson;
+    if (filterSubtopic) filters.subtopic = filterSubtopic;
+    fetchProblems(filters);
+  }, [filterLesson, filterSubtopic]);
+
+
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this problem?')) return;
@@ -46,7 +75,56 @@ export default function AdminDsaProblemList() {
       </nav>
 
       <div className="listing-header">
-        <h1 className="listing-header__title">DSA Problems</h1>
+        <div>
+          <h1 className="listing-header__title">DSA Problems</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+            {/* Lesson filter */}
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Lesson:</label>
+            <select
+              value={filterLesson}
+              onChange={e => { setFilterLesson(e.target.value); setFilterSubtopic(''); }}
+              style={{
+                padding: '4px 10px',
+                border: '2px solid var(--border-color)',
+                background: 'var(--bg-surface)',
+                fontSize: '0.85rem',
+                fontFamily: 'inherit',
+                minWidth: 180
+              }}
+            >
+              <option value="">All Lessons</option>
+              {lessons.map(l => (
+                <option key={l._id} value={l.slug}>{l.title}</option>
+              ))}
+            </select>
+
+            {/* Subtopic filter */}
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Subtopic:</label>
+            <select
+              value={filterSubtopic}
+              onChange={e => setFilterSubtopic(e.target.value)}
+              disabled={!filterLesson}
+              style={{
+                padding: '4px 10px',
+                border: '2px solid var(--border-color)',
+                background: 'var(--bg-surface)',
+                fontSize: '0.85rem',
+                fontFamily: 'inherit',
+                minWidth: 200,
+                opacity: !filterLesson ? 0.5 : 1
+              }}
+            >
+              <option value="">All Subtopics</option>
+              {availableSubtopics.map(s => (
+                <option key={s._id} value={s.slug}>{s.title}</option>
+              ))}
+            </select>
+
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
+              {problems.length} problem{problems.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
         <Link to="/admin/dsa/problems/new" className="btn btn--primary">+ New Problem</Link>
       </div>
       {problemsLoading && <Loader text="LOADING..." />}

@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import {
   getUsers, getUserByUsername, updateProfile, deleteUser,
-  followUser, unfollowUser, getFollowers, getFollowing, getUserActivity, handleClerkWebhook
+  followUser, unfollowUser, getFollowers, getFollowing, getUserActivity, handleClerkWebhook,
+  linkCoachingCenter, checkProfileCompleteness, exportUserCsv
 } from '../controllers/userController.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/adminOnly.js';
@@ -12,6 +13,9 @@ const router = Router();
 router.post('/webhook', handleClerkWebhook);
 
 router.get('/', requireAuth, getUsers);
+router.post('/link-coaching-center', requireAuth, linkCoachingCenter);
+router.post('/check-profile-completeness', requireAuth, checkProfileCompleteness);
+router.get('/export-csv', requireAuth, exportUserCsv);
 router.get('/:username', requireAuth, getUserByUsername);
 router.put('/:username', requireAuth, updateProfile);
 router.delete('/:id', requireAuth, requireAdmin, deleteUser);

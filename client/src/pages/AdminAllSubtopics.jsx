@@ -8,11 +8,18 @@ import Loader from '../components/ui/Loader.jsx';
 export default function AdminAllSubtopics() {
   const { lessons, fetchLessons, subtopics, subtopicsLoading, subtopicsError, fetchSubtopics, deleteSubtopic } = useDsaStore();
   const [refresh, setRefresh] = useState(0);
+  const [filterLesson, setFilterLesson] = useState('');
 
   useEffect(() => {
     fetchLessons();
-    fetchSubtopics();
-  }, [refresh]);
+  }, []);
+
+  /* Fetch subtopics — with lesson filter if selected, or all if empty */
+  useEffect(() => {
+    const filters = {};
+    if (filterLesson) filters.lesson = filterLesson;
+    fetchSubtopics(filters);
+  }, [filterLesson, refresh]);
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this subtopic?')) return;
@@ -63,7 +70,29 @@ export default function AdminAllSubtopics() {
       <div className="listing-header">
         <div>
           <h1 className="listing-header__title">All Subtopics</h1>
-          <span className="listing-header__count">{subtopics.length} subtopics across {lessons.length} lessons</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Filter by lesson:</label>
+            <select
+              value={filterLesson}
+              onChange={e => setFilterLesson(e.target.value)}
+              style={{
+                padding: '4px 10px',
+                border: '2px solid var(--border-color)',
+                background: 'var(--bg-surface)',
+                fontSize: '0.85rem',
+                fontFamily: 'inherit',
+                minWidth: 200
+              }}
+            >
+              <option value="">All Lessons</option>
+              {lessons.map(l => (
+                <option key={l._id} value={l.slug}>{l.title}</option>
+              ))}
+            </select>
+            <span className="listing-header__count" style={{ marginLeft: '4px' }}>
+              {subtopics.length} subtopic{subtopics.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
       </div>
 

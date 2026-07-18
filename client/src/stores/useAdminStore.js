@@ -65,5 +65,15 @@ export const useAdminStore = create((set, get) => ({
   deleteUser: async (id) => {
     await apiRequest(`/admin/users/${id}`, { method: 'DELETE' });
     set(state => ({ users: state.users.filter(u => u._id !== id) }));
+  },
+
+  fetchUserById: async (id) => {
+    const res = await apiRequest(`/admin/users?_id=${id}`);
+    return res.data?.[0] || null;
+  },
+
+  updateUser: async (id, data) => {
+    const res = await apiRequest(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    return res.data;
   }
 }));

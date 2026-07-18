@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useOsStore } from '../stores/useOsStore.js';
@@ -7,9 +7,31 @@ import Loader from '../components/ui/Loader.jsx';
 
 export default function AdminOsProblemList() {
   const { problems, problemsLoading, problemsError, fetchProblems, deleteProblem } = useOsStore();
+  const [filterLesson, setFilterLesson] = useState('');
+  const [filterSubtopic, setFilterSubtopic] = useState('');
+  const [availableSubtopics, setAvailableSubtopics] = useState([]);
+  const { lessons, fetchLessons, subtopics, fetchSubtopics } = useOsStore();
 
-  /* Fetch all OS problems on mount */
-  useEffect(() => { fetchProblems({ limit: 100 }); }, []);
+  useEffect(() => { fetchLessons(); }, []);
+
+  useEffect(() => {
+    if (filterLesson) {
+      fetchSubtopics({ lesson: filterLesson });
+    } else {
+      setAvailableSubtopics([]);
+    }
+  }, [filterLesson]);
+
+  useEffect(() => {
+    setAvailableSubtopics(subtopics || []);
+  }, [subtopics]);
+
+  useEffect(() => {
+    const filters = { limit: 100 };
+    if (filterLesson) filters.lesson = filterLesson;
+    if (filterSubtopic) filters.subtopic = filterSubtopic;
+    fetchProblems(filters);
+  }, [filterLesson, filterSubtopic]);
 
   /* Handle problem deletion */
   const handleDelete = async (id) => {
@@ -47,7 +69,54 @@ export default function AdminOsProblemList() {
       </nav>
 
       <div className="listing-header">
-        <h1 className="listing-header__title">OS Problems</h1>
+        <div>
+          <h1 className="listing-header__title">OS Problems</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Lesson:</label>
+            <select
+              value={filterLesson}
+              onChange={e => { setFilterLesson(e.target.value); setFilterSubtopic(''); }}
+              style={{
+                padding: '4px 10px',
+                border: '2px solid var(--border-color)',
+                background: 'var(--bg-surface)',
+                fontSize: '0.85rem',
+                fontFamily: 'inherit',
+                minWidth: 180
+              }}
+            >
+              <option value="">All Lessons</option>
+              {lessons.map(l => (
+                <option key={l._id} value={l.slug}>{l.title}</option>
+              ))}
+            </select>
+
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Subtopic:</label>
+            <select
+              value={filterSubtopic}
+              onChange={e => setFilterSubtopic(e.target.value)}
+              disabled={!filterLesson}
+              style={{
+                padding: '4px 10px',
+                border: '2px solid var(--border-color)',
+                background: 'var(--bg-surface)',
+                fontSize: '0.85rem',
+                fontFamily: 'inherit',
+                minWidth: 200,
+                opacity: !filterLesson ? 0.5 : 1
+              }}
+            >
+              <option value="">All Subtopics</option>
+              {availableSubtopics.map(s => (
+                <option key={s._id} value={s.slug}>{s.title}</option>
+              ))}
+            </select>
+
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
+              {problems.length} problem{problems.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
         <Link to="/admin/os/problems/new" className="btn btn--primary">+ New Problem</Link>
       </div>
       {problemsLoading && <Loader text="LOADING..." />}

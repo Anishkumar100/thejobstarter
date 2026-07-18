@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'motion/react';
@@ -6,6 +6,7 @@ import { useOsStore } from '../stores/useOsStore.js';
 import ProblemView from '../components/dsa/ProblemView.jsx';
 import Loader from '../components/ui/Loader.jsx';
 import { ArrowLeft01Icon, DocumentAttachmentIcon, AiChat01Icon, UserGroupIcon } from 'hugeicons-react';
+import QuizEmbed from '../components/quiz/QuizEmbed.jsx';
 
 /*
  * OsDetail — displays a single OS problem's full detail with
@@ -138,6 +139,7 @@ export default function OsDetail() {
         {/* Left (60%): Problem content */}
         <div className="pdetail-main">
           <ProblemView problem={p} />
+          <QuizEmbed problemModel="OsProblem" slug={slug} subjectName="OS" />
         </div>
 
         {/* Right (40%): Downloads only — no code section for OS */}

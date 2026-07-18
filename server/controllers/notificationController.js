@@ -44,11 +44,23 @@ export async function getNotifications(req, res) {
 
     const userId = currentUser._id;
 
+    /* Auto-create profile_incomplete notification if profile is incomplete */
+    const isComplete = !!(currentUser.displayName && currentUser.college && currentUser.year);
+    if (!isComplete) {
+      const existing = await Notification.findOne({ user: userId, type: 'profile_incomplete', read: false });
+      if (!existing) {
+        await Notification.create({ user: userId, type: 'profile_incomplete', read: false });
+        console.log('[NOTIFICATION] Auto-created profile_incomplete notification for user:', userId);
+      }
+    }
+
     /* Fetch Notification documents */
     const notifications = await Notification.find({ user: userId })
       .sort({ createdAt: -1 })
       .populate('from', 'displayName username avatar')
       .limit(50);
+
+    console.log('[NOTIFICATION] Raw notifications fetched:', notifications.length, 'types:', notifications.map(n => n.type).join(','));
 
     /* Also fetch approved questions by this user directly from the Question collection */
     /* This ensures approved questions always show up even if Notification.create failed */
@@ -90,7 +102,7 @@ export async function getNotifications(req, res) {
     const existingIds = new Set(existingQuestions.map(q => q._id.toString()));
     const enriched = notifications.map(n => ({
       ...n.toObject(),
-      questionDeleted: !existingIds.has(n.questionId?.toString())
+      questionDeleted: n.questionId ? !existingIds.has(n.questionId.toString()) : false
     }));
 
     /* Merge: Notification docs + question-sourced notifs, sort by createdAt desc, limit to 50 */

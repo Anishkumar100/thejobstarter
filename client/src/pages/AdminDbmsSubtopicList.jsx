@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useDbmsStore } from '../stores/useDbmsStore.js';
 import DataTable from '../components/admin/DataTable.jsx';
@@ -7,6 +7,7 @@ import Loader from '../components/ui/Loader.jsx';
 
 export default function AdminDbmsSubtopicList() {
   const { lessonId } = useParams();
+  const navigate = useNavigate();
   const { lessons, fetchLessons, subtopics, subtopicsLoading, subtopicsError, fetchSubtopics, deleteSubtopic } = useDbmsStore();
   const [refresh, setRefresh] = useState(0);
 
@@ -28,8 +29,19 @@ export default function AdminDbmsSubtopicList() {
   useEffect(() => {
     if (lesson) {
       fetchSubtopics({ lesson: lesson.slug });
+    } else if (lessons.length > 0 && !lessonId) {
+      navigate(`/admin/dbms/lessons/${lessons[0]._id}/subtopics`, { replace: true });
     }
-  }, [lesson, refresh]);
+  }, [lesson, lessonId, lessons.length, refresh]);
+
+  const handleLessonChange = (e) => {
+    const val = e.target.value;
+    if (val) {
+      navigate('/admin/dbms/lessons/' + val + '/subtopics');
+    } else {
+      navigate('/admin/dbms/subtopics');
+    }
+  };
 
   /*
    * Handle subtopic deletion with confirmation
@@ -76,8 +88,28 @@ export default function AdminDbmsSubtopicList() {
 
       <div className="listing-header">
         <div>
-          <h1 className="listing-header__title">Subtopics: {lesson?.title || '...'}</h1>
-          <Link to={`/admin/dbms/lessons`} style={{ fontSize: '0.8rem', color: 'var(--accent)' }}>← Back to Lessons</Link>
+          <h1 className="listing-header__title">Subtopics</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Lesson:</label>
+            <select
+              value={lessonId || ''}
+              onChange={handleLessonChange}
+              style={{
+                padding: '4px 10px',
+                border: '2px solid var(--border-color)',
+                background: 'var(--bg-surface)',
+                fontSize: '0.85rem',
+                fontFamily: 'inherit',
+                minWidth: 200
+              }}
+            >
+              <option value="">All Subtopics</option>
+              {lessons.map(l => (
+                <option key={l._id} value={l._id}>{l.title}</option>
+              ))}
+            </select>
+            <Link to={`/admin/dbms/lessons`} style={{ fontSize: '0.8rem', color: 'var(--accent)' }}>← Manage Lessons</Link>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
           <Link to={`/admin/dbms/problems/new?lesson=${lesson?.slug || ''}`} className="btn">+ New Problem</Link>

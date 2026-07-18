@@ -7,6 +7,7 @@ import ProblemView from '../components/dsa/ProblemView.jsx';
 import CodeBlock from '../components/ui/CodeBlock.jsx';
 import Loader from '../components/ui/Loader.jsx';
 import { ArrowLeft01Icon, DocumentAttachmentIcon, AiChat01Icon, UserGroupIcon, CodeIcon, EyeIcon } from 'hugeicons-react';
+import QuizEmbed from '../components/quiz/QuizEmbed.jsx';
 
 export default function DsaDetail() {
   const { lessonSlug, subtopicSlug, problemSlug } = useParams();
@@ -132,6 +133,7 @@ export default function DsaDetail() {
         {/* Left (60%): Problem content */}
         <div className="pdetail-main">
           <ProblemView problem={p} />
+          <QuizEmbed problemModel="Problem" slug={slug} subjectName="DSA" />
         </div>
 
         {/* Right (40%): Code panel + downloads */}

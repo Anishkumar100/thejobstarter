@@ -1,6 +1,14 @@
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
+import CoachingCenter from '../models/CoachingCenter.js';
+import Progress from '../models/Progress.js';
 import clerk from '../config/clerk.js';
 import imagekit from '../config/imagekit.js';
+
+/* Simple in-memory rate limiter: userId → timestamps[] */
+const linkRateMap = new Map();
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; /* 1 hour */
 
 /*
  * POST /api/users/webhook
@@ -16,7 +24,7 @@ export async function handleClerkWebhook(req, res) {
       const displayName = [first_name, last_name].filter(Boolean).join(' ') || username;
       const email = email_addresses?.[0]?.email_address;
 
-      await User.findOneAndUpdate(
+      const user = await User.findOneAndUpdate(
         { clerkId: id },
         {
           clerkId: id,
@@ -27,11 +35,135 @@ export async function handleClerkWebhook(req, res) {
         },
         { upsert: true, new: true }
       );
+
+      /* Fire-and-forget: check if profile is incomplete for new users */
+      console.log('[USER] Webhook processed, user._id:', user._id, 'displayName:', displayName, 'college:', user.college, 'year:', user.year);
+      if (event.type === 'user.created') {
+        console.log('[USER] user.created — triggering completeness check for:', user._id);
+        checkAndNotifyProfileIncomplete(user._id).catch(err => {
+          console.error('[USER] Error checking profile completeness on sign-up:', err.message);
+        });
+      } else {
+        console.log('[USER] Webhook type is', event.type, '— skipping completeness check');
+      }
     }
 
     res.json({ success: true });
   } catch (error) {
     console.error('[USER] Webhook error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/users/link-coaching-center
+ * User: Link themselves to a coaching center via join code.
+ * Rate-limited: max 10 attempts per hour per user.
+ */
+export async function linkCoachingCenter(req, res) {
+  try {
+    console.log('[USER] Link coaching center request for user:', req.userId);
+    const { code } = req.body;
+
+    /* Validate input */
+    if (!code || typeof code !== 'string' || !code.trim()) {
+      return res.status(400).json({ error: 'Join code is required' });
+    }
+
+    /* Rate limit check */
+    const now = Date.now();
+    const attempts = linkRateMap.get(req.userId) || [];
+    const recent = attempts.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+    if (recent.length >= RATE_LIMIT_MAX) {
+      console.log('[USER] Rate limit hit for link-coaching-center:', req.userId);
+      return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    }
+    recent.push(now);
+    linkRateMap.set(req.userId, recent);
+
+    /* Find the center by code (active or trial only — no suspended) */
+    const center = await CoachingCenter.findOne({ code: code.trim(), status: { $ne: 'suspended' } });
+    if (!center) {
+      console.log('[USER] Invalid coaching center code:', code);
+      return res.status(404).json({ error: 'Invalid or expired code' });
+    }
+
+    /* Link the authenticated user to this center */
+    const user = await User.findOne({ clerkId: req.userId });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+
+    user.coachingCenter = center._id;
+    user.coachingCenterJoinedAt = new Date();
+    await user.save();
+
+    console.log('[USER] User linked to center:', center._id, 'code:', code);
+    res.json({ data: { coachingCenter: center._id, coachingCenterJoinedAt: user.coachingCenterJoinedAt } });
+  } catch (error) {
+    console.error('[USER] Error linking coaching center:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * Check if the user's profile is complete (displayName, college, year).
+ * If incomplete and no unread profile_incomplete notification exists, create one.
+ * If complete and an unread profile_incomplete notification exists, mark it read.
+ * Called from updateProfile after save, and can be called independently.
+ */
+export async function checkAndNotifyProfileIncomplete(userId) {
+  try {
+    const user = await User.findById(userId);
+    if (!user) return;
+
+    const isComplete = user.displayName && user.college && user.year;
+
+    if (isComplete) {
+      /* Mark any unread profile_incomplete notifications as read */
+      const result = await Notification.updateMany(
+        { user: userId, type: 'profile_incomplete', read: false },
+        { read: true }
+      );
+      if (result.modifiedCount > 0) {
+        console.log('[USER] Resolved profile_incomplete notification for user:', userId);
+      }
+    } else {
+      /* Check if there's already an unread profile_incomplete notification */
+      const existing = await Notification.findOne({ user: userId, type: 'profile_incomplete', read: false });
+      if (!existing) {
+        await Notification.create({
+          user: userId,
+          type: 'profile_incomplete',
+          read: false
+        });
+        console.log('[USER] Created profile_incomplete notification for user:', userId);
+      }
+    }
+  } catch (error) {
+    console.error('[USER] Error checking profile completeness:', error.message);
+  }
+}
+
+/*
+ * POST /api/users/check-profile-completeness
+ * User (own): Check if own profile is complete and manage profile_incomplete notification.
+ * Called on profile load to ensure the notification bell reflects current state.
+ */
+export async function checkProfileCompleteness(req, res) {
+  try {
+    const user = await User.findOne({ clerkId: req.userId });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    console.log('[USER] checkProfileCompleteness called for user:', user._id, '| displayName:', user.displayName, '| college:', user.college, '| year:', user.year);
+
+    await checkAndNotifyProfileIncomplete(user._id);
+
+    const isComplete = !!(user.displayName && user.college && user.year);
+    console.log('[USER] checkProfileCompleteness result — isComplete:', isComplete);
+    res.json({ data: { isComplete } });
+  } catch (error) {
+    console.error('[USER] Error checking profile completeness:', error.message);
     res.status(500).json({ error: error.message });
   }
 }
@@ -70,7 +202,7 @@ export async function getUsers(req, res) {
  */
 export async function getUserByUsername(req, res) {
   try {
-    let user = await User.findOne({ username: req.params.username });
+    let user = await User.findOne({ username: req.params.username }).populate('coachingCenter', 'name');
     /* Auto-create if the authenticated user is requesting their own profile */
     if (!user && req.userId) {
       const clerkUser = await clerk.users.getUser(req.userId);
@@ -162,6 +294,11 @@ export async function updateProfile(req, res) {
     }
     if (skills) user.skills = skills;
     await user.save();
+
+    /* Fire-and-forget: check profile completeness and notify if needed */
+    checkAndNotifyProfileIncomplete(user._id).catch(err => {
+      console.error('[USER] Failed to check profile completeness:', err.message);
+    });
 
     res.json({ data: user });
   } catch (error) {
@@ -278,6 +415,188 @@ export async function getFollowing(req, res) {
 import Question from '../models/Question.js';
 import Answer from '../models/Answer.js';
 import Bookmark from '../models/Bookmark.js';
+import QuizAttempt from '../models/QuizAttempt.js';
+import Quiz from '../models/Quiz.js';
+import DsaLesson from '../models/DsaLesson.js';
+import DbmsLesson from '../models/DbmsLesson.js';
+import OsLesson from '../models/OsLesson.js';
+import Subtopic from '../models/Subtopic.js';
+import DbmsSubtopic from '../models/DbmsSubtopic.js';
+import OsSubtopic from '../models/OsSubtopic.js';
+import Problem from '../models/Problem.js';
+import DbmsProblem from '../models/DbmsProblem.js';
+import OsProblem from '../models/OsProblem.js';
+import { getProgressSummary } from '../services/progressService.js';
+
+/*
+ * GET /api/users/export-csv
+ * User: Export all progress, quiz attempts, and user data as a CSV file.
+ */
+export async function exportUserCsv(req, res) {
+  try {
+    console.log('[USER] CSV export requested for user:', req.userId);
+    const user = await User.findOne({ clerkId: req.userId });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    /* Fetch progress summary */
+    const summary = await getProgressSummary(user._id);
+
+    /* Fetch all quiz attempts with quiz data */
+    const attempts = await QuizAttempt.find({ user: user._id })
+      .populate('quiz')
+      .sort({ attemptedAt: -1 })
+      .lean();
+
+    /* Fetch all progress records */
+    const allProgress = await Progress.find({ user: user._id }).sort({ subject: 1, targetType: 1 }).lean();
+
+    const rows = [];
+
+    /* ── Section 1: User info ── */
+    rows.push(['SECTION: USER INFO']);
+    rows.push(['Username', user.username || '']);
+    rows.push(['Display Name', user.displayName || '']);
+    rows.push(['Email', user.email || '']);
+    rows.push(['College', user.college || '']);
+    rows.push(['Year', user.year || '']);
+    rows.push(['Joined', user.joinDate ? new Date(user.joinDate).toISOString().split('T')[0] : '']);
+    rows.push(['']);
+
+    /* ── Section 2: Progress Summary ── */
+    rows.push(['SECTION: PROGRESS SUMMARY']);
+    rows.push(['Subject', 'Lessons Completed', 'Lessons Total', 'Subtopics Completed', 'Subtopics Total',
+      'Problems Completed', 'Problems Total', 'Overall Completed', 'Overall Total', 'Overall %',
+      'Quizzes Taken', 'Avg Quiz Score']);
+
+    for (const subject of ['dsa', 'dbms', 'os']) {
+      const d = summary[subject];
+      if (d) {
+        const pct = d.overall.total > 0 ? Math.round((d.overall.completed / d.overall.total) * 100) : 0;
+        rows.push([
+          subject.toUpperCase(),
+          d.lessons.completed, d.lessons.total,
+          d.subtopics.completed, d.subtopics.total,
+          d.problems.completed, d.problems.total,
+          d.overall.completed, d.overall.total,
+          `${pct}%`,
+          d.quizzes.quizzesTaken, `${d.quizzes.avgScore}%`
+        ]);
+      }
+    }
+    rows.push(['']);
+
+    /* ── Build name lookup maps ── */
+    const LESSON_MODELS = { dsa: DsaLesson, dbms: DbmsLesson, os: OsLesson };
+    const SUBTOPIC_MODELS = { dsa: Subtopic, dbms: DbmsSubtopic, os: OsSubtopic };
+    const PROBLEM_MODELS = { dsa: Problem, dbms: DbmsProblem, os: OsProblem };
+
+    /* Fetch all lesson/subtopic/problem names in batch */
+    const [dsaLessons, dsaSubtopics, dbmsLessons, dbmsSubtopics, osLessons, osSubtopics, dsaProblems, dbmsProblems, osProblems] = await Promise.all([
+      DsaLesson.find({}).select('slug title').lean(),
+      Subtopic.find({}).select('slug title lessonSlug').lean(),
+      DbmsLesson.find({}).select('slug title').lean(),
+      DbmsSubtopic.find({}).select('slug title lessonSlug').lean(),
+      OsLesson.find({}).select('slug title').lean(),
+      OsSubtopic.find({}).select('slug title lessonSlug').lean(),
+      Problem.find({}).select('slug title lessonSlug subtopicSlug').lean(),
+      DbmsProblem.find({}).select('slug title lessonSlug subtopicSlug').lean(),
+      OsProblem.find({}).select('slug title lessonSlug subtopicSlug').lean()
+    ]);
+
+    /* Build quick lookup maps */
+    const lessonNames = {};
+    const subtopicNames = {};
+    const problemNames = {};
+    const subtopicLessonMap = {}; /* subtopicSlug → lessonSlug */
+    const problemSubtopicMap = {}; /* problemSlug → subtopicSlug */
+    const problemLessonMap = {}; /* problemSlug → lessonSlug */
+
+    for (const l of [...dsaLessons, ...dbmsLessons, ...osLessons]) lessonNames[l.slug] = l.title;
+    for (const s of [...dsaSubtopics, ...dbmsSubtopics, ...osSubtopics]) {
+      subtopicNames[s.slug] = s.title;
+      subtopicLessonMap[s.slug] = s.lessonSlug;
+    }
+    for (const p of [...dsaProblems, ...dbmsProblems, ...osProblems]) {
+      problemNames[p.slug] = p.title;
+      problemSubtopicMap[p.slug] = p.subtopicSlug;
+      problemLessonMap[p.slug] = p.lessonSlug;
+    }
+
+    /* ── Section 3: Detailed Progress Records ── */
+    rows.push(['SECTION: PROGRESS RECORDS']);
+    rows.push(['Subject', 'Type', 'Name', 'Slug', 'Lesson', 'Subtopic', 'Completed At']);
+    for (const p of allProgress) {
+      let name = p.targetSlug;
+      let lessonName = '';
+      let subtopicName = '';
+      if (p.targetType === 'lesson') {
+        name = lessonNames[p.targetSlug] || p.targetSlug;
+      } else if (p.targetType === 'subtopic') {
+        name = subtopicNames[p.targetSlug] || p.targetSlug;
+        lessonName = lessonNames[subtopicLessonMap[p.targetSlug]] || '';
+      } else if (p.targetType === 'problem') {
+        name = problemNames[p.targetSlug] || p.targetSlug;
+        subtopicName = subtopicNames[problemSubtopicMap[p.targetSlug]] || '';
+        lessonName = lessonNames[problemLessonMap[p.targetSlug]] || '';
+      }
+      rows.push([
+        p.subject.toUpperCase(),
+        p.targetType,
+        name,
+        p.targetSlug,
+        lessonName,
+        subtopicName,
+        p.completedAt ? new Date(p.completedAt).toISOString() : ''
+      ]);
+    }
+    rows.push(['']);
+
+    /* ── Section 4: Quiz Attempts ── */
+    rows.push(['SECTION: QUIZ ATTEMPTS']);
+    rows.push(['Subject', 'Score', 'Questions', 'Correct', 'Attempted At', 'Problem Name', 'Problem Slug']);
+    for (const att of attempts) {
+      const correct = att.quiz.questions.filter((q, i) => att.answers[i] === q.correctIndex).length;
+      const subject = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os' }[att.quiz.problemModel] || '';
+      const probModel = { Problem, DbmsProblem, OsProblem }[att.quiz.problemModel];
+      let probName = '';
+      if (probModel) {
+        const prob = await probModel.findById(att.quiz.problemId).select('title slug').lean();
+        probName = prob?.title || '';
+      }
+      rows.push([
+        subject.toUpperCase(),
+        `${att.score}%`,
+        att.quiz.questions.length,
+        correct,
+        att.attemptedAt ? new Date(att.attemptedAt).toISOString() : '',
+        probName,
+        (att.quiz.problemId?.toString() || '')
+      ]);
+    }
+    rows.push(['']);
+
+    rows.push(['Generated on', new Date().toISOString()]);
+    rows.push(['TheJobStarter — TheWebytes']);
+
+    /* Build CSV string */
+    const csv = rows.map(r => r.map(cell => {
+      if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n') || cell.includes('\r'))) {
+        return `"${cell.replace(/"/g, '""')}"`;
+      }
+      return cell === null || cell === undefined ? '' : String(cell);
+    }).join(',')).join('\r\n');
+
+    const filename = `${user.username || 'user'}_thejobstarter_export_${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+
+    console.log('[USER] CSV export sent:', filename);
+  } catch (error) {
+    console.error('[USER] Error exporting CSV:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
 
 /*
  * GET /api/users/:id/activity

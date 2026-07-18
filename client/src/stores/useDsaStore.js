@@ -90,8 +90,8 @@ export const useDsaStore = create((set, get) => ({
 
   /*
    * Fetch problems with optional filters: difficulty, company, lesson, search
-   */
-  fetchProblems: async (filters = {}) => {
+   */   fetchProblems: async (filters = {}) => {
+    console.log('[DSA] Fetching problems with filters:', filters);
     const pl = usePageLoadingStore.getState();
     pl.start('DSA');
     set({ problemsLoading: true, problemsError: null });

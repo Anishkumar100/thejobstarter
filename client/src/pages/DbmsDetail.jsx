@@ -7,6 +7,7 @@ import ProblemView from '../components/dsa/ProblemView.jsx';
 import CodeBlock from '../components/ui/CodeBlock.jsx';
 import Loader from '../components/ui/Loader.jsx';
 import { ArrowLeft01Icon, DocumentAttachmentIcon, AiChat01Icon, UserGroupIcon, CodeIcon, EyeIcon } from 'hugeicons-react';
+import QuizEmbed from '../components/quiz/QuizEmbed.jsx';
 
 /*
  * DbmsDetail — displays a single DBMS problem's full detail with
@@ -142,6 +143,7 @@ export default function DbmsDetail() {
         {/* Left (60%): Problem content */}
         <div className="pdetail-main">
           <ProblemView problem={p} />
+          <QuizEmbed problemModel="DbmsProblem" slug={slug} subjectName="DBMS" />
         </div>
 
         {/* Right (40%): Code panel + downloads */}

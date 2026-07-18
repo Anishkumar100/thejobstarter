@@ -202,6 +202,8 @@ export async function runSeed() {
   );
   console.log('[SEED] SiteConfig seeded');
 
+  /* Note: Progress messages are now seeded via server/seeds/seedProgressMessages.js */
+
   const summary = {
     lessons: dsaLessons.length,
     problems: dsaProblems.length,

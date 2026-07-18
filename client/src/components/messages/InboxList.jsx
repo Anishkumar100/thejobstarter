@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import Avatar from '../ui/Avatar.jsx';
-import { MessageNotification01Icon, CheckmarkCircle02Icon, CheckmarkCircle01Icon, Cancel01Icon, CancelCircleIcon } from 'hugeicons-react';
+import { MessageNotification01Icon, CheckmarkCircle02Icon, CheckmarkCircle01Icon, Cancel01Icon, CancelCircleIcon, AlertCircleIcon } from 'hugeicons-react';
 import { useNotificationStore } from '../../stores/useNotificationStore.js';
 
 /* Return display data based on notification type */
@@ -29,6 +29,11 @@ const NOTIF_CONFIG = {
     badgeIcon: Cancel01Icon,
     badgeBg: '#dc2626',
     action: (from) => `${from.displayName || from.username || 'Someone'} rejected your answer`
+  },
+  profile_incomplete: {
+    badgeIcon: AlertCircleIcon,
+    badgeBg: '#f59e0b',
+    action: () => 'Complete your profile — add display name, college, and year'
   }
 };
 
@@ -79,20 +84,25 @@ export default function InboxList({ conversations = [], notifications = [], unre
             const config = NOTIF_CONFIG[item.type] || NOTIF_CONFIG.answer;
             const BadgeIcon = config.badgeIcon;
             const isAdminAction = item.type === 'question_approved' || item.type === 'question_rejected';
+            const isSystemNotif = item.type === 'profile_incomplete';
 
             const questionDeleted = item.questionDeleted;
-            const Wrapper = questionDeleted ? 'div' : Link;
-            const wrapperProps = questionDeleted
-              ? { className: `inbox-item inbox-item--deleted ${!item.read ? 'inbox-item--unread' : ''}` }
-              : { to: `/qa/${item.questionId}`, className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) };
+            const isProfileLink = isSystemNotif;
+            const noLink = questionDeleted && !isProfileLink;
+            const Wrapper = noLink ? 'div' : Link;
+            const wrapperProps = noLink
+              ? { className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}` }
+              : isProfileLink
+                ? { to: '/settings/profile', className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) }
+                : { to: `/qa/${item.questionId}`, className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) };
 
             return (
               <div key={`notif-${item._id}`} className="inbox-item__wrap">
                 <Wrapper {...wrapperProps}>
                   <div className="inbox-item__avatar inbox-item__avatar--notif">
-                    {isAdminAction ? (
-                      <div className="inbox-item__admin-avatar">
-                        <CheckmarkCircle01Icon size={18} />
+                    {isAdminAction || isSystemNotif ? (
+                      <div className="inbox-item__admin-avatar" style={isSystemNotif ? { background: '#f59e0b' } : {}}>
+                        {isSystemNotif ? <AlertCircleIcon size={18} /> : <CheckmarkCircle01Icon size={18} />}
                       </div>
                     ) : (
                       <Avatar src={from.avatar} name={from.displayName || from.username} size={36} />
@@ -106,6 +116,8 @@ export default function InboxList({ conversations = [], notifications = [], unre
                       <span className="inbox-item__name">
                         {isAdminAction ? (
                           <span className="inbox-item__admin-label">Admin</span>
+                        ) : isSystemNotif ? (
+                          <span className="inbox-item__admin-label" style={{ color: '#f59e0b' }}>Profile</span>
                         ) : (
                           from.displayName || from.username || 'Someone'
                         )}
@@ -115,10 +127,12 @@ export default function InboxList({ conversations = [], notifications = [], unre
                         {new Date(item.createdAt).toLocaleDateString()}
                       </span>
                     </div>
-                    <div className={`inbox-item__preview ${!item.read ? 'inbox-item__preview--unread' : ''}`}>
-                      {item.questionTitle}
-                    </div>
-                    {questionDeleted && (
+                    {!isSystemNotif && (
+                      <div className={`inbox-item__preview ${!item.read ? 'inbox-item__preview--unread' : ''}`}>
+                        {item.questionTitle}
+                      </div>
+                    )}
+                    {questionDeleted && !isSystemNotif && (
                       <span className="inbox-item__deleted-label">Question deleted</span>
                     )}
                   </div>

@@ -305,6 +305,18 @@ label {
   color: var(--text-secondary);
 }
 
+/* Success state */
+.success-text {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: var(--space-lg);
+  color: var(--success-text);
+  background: var(--success-bg);
+  border: var(--border);
+  margin: var(--space-lg) 0;
+}
+
 /* Error state */
 .error-text {
   font-family: var(--font-mono);

@@ -23,16 +23,21 @@ import languageRoutes from './routes/languageRoutes.js';
 import cheatsheetRoutes from './routes/cheatsheetRoutes.js';
 import bookmarkRoutes from './routes/bookmarkRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import coachingCenterRoutes from './routes/coachingCenterRoutes.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
 import siteConfigRoutes from './routes/siteConfigRoutes.js';
 import topicRoutes from './routes/topicRoutes.js';
 import metaRoutes from './routes/metaRoutes.js';
 import dbmsMetaRoutes from './routes/dbmsMetaRoutes.js';
 console.log('[APP] Importing notification routes...');
+import progressRoutes from './routes/progressRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import osRoutes from './routes/osRoutes.js';
 import osMetaRoutes from './routes/osMetaRoutes.js';
 import testimonialRoutes from './routes/testimonialRoutes.js';
+import quizRoutes from './routes/quizRoutes.js';
+import progressMessageRoutes from './routes/progressMessageRoutes.js';
+import coordinatorRoutes from './routes/coordinatorRoutes.js';
 
 /* Initialize Express app */
 const app = express();
@@ -107,6 +112,7 @@ app.use('/api/languages', languageRoutes);
 app.use('/api/cheatsheets', cheatsheetRoutes);
 app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/coaching-centers', coachingCenterRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/site-config', siteConfigRoutes);
 app.use('/api/topics', topicRoutes);
@@ -114,9 +120,13 @@ app.use('/api/dsa-meta', metaRoutes);
 app.use('/api/dbms-meta', dbmsMetaRoutes);
 app.use('/api/os', osRoutes);
 app.use('/api/os-meta', osMetaRoutes);
+app.use('/api/progress', progressRoutes);
 console.log('[APP] Registering notification routes...');
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/testimonials', testimonialRoutes);
+app.use('/api/quizzes', quizRoutes);
+app.use('/api/progress-messages', progressMessageRoutes);
+app.use('/api/coordinator', coordinatorRoutes);
 
 /*
  * SSR placeholder — Client will use Next.js in v2.

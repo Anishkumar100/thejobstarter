@@ -47,7 +47,17 @@ const siteConfigSchema = new mongoose.Schema({
    *   cta: { title, description }
    * Frontend About.jsx DEFAULT_ABOUT_DATA acts as the schema with defaults.
    */
-  aboutPage: { type: mongoose.Schema.Types.Mixed, default: {} }
+  aboutPage: { type: mongoose.Schema.Types.Mixed, default: {} },
+  /* homepageHero — Hero section content for the homepage */
+  homepageHero: {
+    title: { type: String, default: '' },
+    subtitle: { type: String, default: '' },
+    ctaPrimary: { type: String, default: '' },
+    ctaPrimaryLink: { type: String, default: '' },
+    ctaSecondary: { type: String, default: '' },
+    ctaSecondaryLink: { type: String, default: '' },
+    videoUrl: { type: String, default: '' }
+  }
 }, { timestamps: true });
 
 export default mongoose.model('SiteConfig', siteConfigSchema);

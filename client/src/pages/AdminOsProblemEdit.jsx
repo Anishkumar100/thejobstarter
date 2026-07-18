@@ -5,6 +5,7 @@ import { useOsStore } from '../stores/useOsStore.js';
 import { apiRequest } from '../api/client.js';
 import { DIFFICULTIES } from '../utils/constants.js';
 import { useOsMetaStore } from '../stores/useOsMetaStore.js';
+import QuizEditor from '../components/quiz/QuizEditor.jsx';
 
 export default function AdminOsProblemEdit() {
   const { id } = useParams();
@@ -281,8 +282,8 @@ export default function AdminOsProblemEdit() {
           {examples.map((ex, i) => (
             <div key={i} className="admin-form__example-row">
               <div className="admin-form__example-io">
-                <textarea className="input textarea--lg" rows={8} placeholder="Input — pipe table or plain text" value={ex.input} onChange={e => handleExample(i, 'input', e.target.value)} />
-                <textarea className="input textarea--lg" rows={8} placeholder="Output — pipe table or plain text" value={ex.output} onChange={e => handleExample(i, 'output', e.target.value)} />
+                <textarea className="input textarea--lg" rows={8} placeholder="Input — pipe table or plain text" value={ex.input} onChange={e => handleExample(i, 'input', e.target.value)} autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} />
+                <textarea className="input textarea--lg" rows={8} placeholder="Output — pipe table or plain text" value={ex.output} onChange={e => handleExample(i, 'output', e.target.value)} autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} />
               </div>
               <div className="admin-form__example-explain">
                 <textarea className="input textarea--lg" rows={5} placeholder="Explanation (optional)" value={ex.explanation} onChange={e => handleExample(i, 'explanation', e.target.value)} />
@@ -300,6 +301,9 @@ export default function AdminOsProblemEdit() {
           ))}
           <button type="button" className="btn btn--sm" onClick={addConstraint}>+ Add Constraint</button>
         </div>
+
+        {/* ═══ MCQ QUIZ EDITOR ═══ */}
+        {id && <QuizEditor problemId={id} problemModel="OsProblem" />}
 
         <button type="submit" className="btn btn--primary" style={{ marginTop: 'var(--space-lg)' }}>
           {isNew ? 'Create Problem' : 'Save Changes'}

@@ -31,6 +31,11 @@ import OsLesson from './pages/OsLesson.jsx';
 import OsSubtopic from './pages/OsSubtopic.jsx';
 import OsSubtopicProblems from './pages/OsSubtopicProblems.jsx';
 import OsDetail from './pages/OsDetail.jsx';
+import ProgrammingList from './pages/ProgrammingList.jsx';
+import ProgrammingLesson from './pages/ProgrammingLesson.jsx';
+import ProgrammingSubtopic from './pages/ProgrammingSubtopic.jsx';
+import ProgrammingSubtopicProblems from './pages/ProgrammingSubtopicProblems.jsx';
+import ProgrammingDetail from './pages/ProgrammingDetail.jsx';
 import BlogList from './pages/BlogList.jsx';
 import BlogDetail from './pages/BlogDetail.jsx';
 import Cheatsheets from './pages/Cheatsheets.jsx';
@@ -79,6 +84,14 @@ import AdminOsSubtopicEdit from './pages/AdminOsSubtopicEdit.jsx';
 import AdminOsProblemList from './pages/AdminOsProblemList.jsx';
 import AdminOsProblemEdit from './pages/AdminOsProblemEdit.jsx';
 import AdminOsMeta from './pages/AdminOsMeta.jsx';
+import AdminProgrammingList from './pages/AdminProgrammingList.jsx';
+import AdminProgrammingLessonEdit from './pages/AdminProgrammingLessonEdit.jsx';
+import AdminProgrammingAllSubtopics from './pages/AdminProgrammingAllSubtopics.jsx';
+import AdminProgrammingSubtopicList from './pages/AdminProgrammingSubtopicList.jsx';
+import AdminProgrammingSubtopicEdit from './pages/AdminProgrammingSubtopicEdit.jsx';
+import AdminProgrammingProblemList from './pages/AdminProgrammingProblemList.jsx';
+import AdminProgrammingProblemEdit from './pages/AdminProgrammingProblemEdit.jsx';
+import AdminProgrammingMeta from './pages/AdminProgrammingMeta.jsx';
 import AdminBlogList from './pages/AdminBlogList.jsx';
 import AdminBlogEdit from './pages/AdminBlogEdit.jsx';
 import AdminMedia from './pages/AdminMedia.jsx';
@@ -102,6 +115,9 @@ import AdminCoachingCenterStudentDetail from './pages/AdminCoachingCenterStudent
 import AdminLayout from './components/admin/AdminLayout.jsx';
 
 import CoordinatorDashboard from './pages/CoordinatorDashboard.jsx';
+import CoordinatorBatches from './pages/CoordinatorBatches.jsx';
+import CoordinatorBatchDetail from './pages/CoordinatorBatchDetail.jsx';
+import CoordinatorCourses from './pages/CoordinatorCourses.jsx';
 import CoordinatorStudentsList from './pages/CoordinatorStudentsList.jsx';
 import CoordinatorStudentDetail from './pages/CoordinatorStudentDetail.jsx';
 import CoordinatorProfile from './pages/CoordinatorProfile.jsx';
@@ -243,6 +259,11 @@ function AppRoutes() {
       <Route path="/os/:lessonSlug/:subtopicSlug/:problemSlug" element={<ProtectedRoute><AppLayout><OsDetail /></AppLayout></ProtectedRoute>} />
       <Route path="/os/:lessonSlug/:subtopicSlug" element={<ProtectedRoute><AppLayout><OsSubtopic /></AppLayout></ProtectedRoute>} />
       <Route path="/os/:lessonSlug" element={<ProtectedRoute><AppLayout><OsLesson /></AppLayout></ProtectedRoute>} />
+      <Route path="/programming" element={<ProtectedRoute><AppLayout><ProgrammingList /></AppLayout></ProtectedRoute>} />
+      <Route path="/programming/:lessonSlug/:subtopicSlug/problems" element={<ProtectedRoute><AppLayout><ProgrammingSubtopicProblems /></AppLayout></ProtectedRoute>} />
+      <Route path="/programming/:lessonSlug/:subtopicSlug/:problemSlug" element={<ProtectedRoute><AppLayout><ProgrammingDetail /></AppLayout></ProtectedRoute>} />
+      <Route path="/programming/:lessonSlug/:subtopicSlug" element={<ProtectedRoute><AppLayout><ProgrammingSubtopic /></AppLayout></ProtectedRoute>} />
+      <Route path="/programming/:lessonSlug" element={<ProtectedRoute><AppLayout><ProgrammingLesson /></AppLayout></ProtectedRoute>} />
       <Route path="/blog" element={<ProtectedRoute><AppLayout><BlogList /></AppLayout></ProtectedRoute>} />
       <Route path="/blog/:slug" element={<ProtectedRoute><AppLayout><BlogDetail /></AppLayout></ProtectedRoute>} />
       <Route path="/cheatsheets" element={<AppLayout><Cheatsheets /></AppLayout>} />
@@ -260,6 +281,9 @@ function AppRoutes() {
       <Route path="/settings/progress/:subject" element={<ProtectedRoute><AppLayout><SubjectProgressDetail /></AppLayout></ProtectedRoute>} />
 
       <Route path="/coordinator" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorDashboard /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/courses" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorCourses /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/batches" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorBatches /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/batches/:id" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorBatchDetail /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/students" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentsList /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/students/:userId" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentDetail /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/profile" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorProfile /></CoordinatorLayout></CoordinatorRoute>} />
@@ -304,6 +328,18 @@ function AppRoutes() {
       <Route path="/admin/os/problems/new" element={<AdminRoute><AdminLayout><AdminOsProblemEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/os/problems/:id/edit" element={<AdminRoute><AdminLayout><AdminOsProblemEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/os/meta" element={<AdminRoute><AdminLayout><AdminOsMeta /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming" element={<AdminRoute><AdminLayout><AdminProgrammingList /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/lessons" element={<AdminRoute><AdminLayout><AdminProgrammingList /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/lessons/new" element={<AdminRoute><AdminLayout><AdminProgrammingLessonEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/lessons/:id/edit" element={<AdminRoute><AdminLayout><AdminProgrammingLessonEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/subtopics" element={<AdminRoute><AdminLayout><AdminProgrammingAllSubtopics /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/lessons/:lessonId/subtopics" element={<AdminRoute><AdminLayout><AdminProgrammingSubtopicList /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/lessons/:lessonId/subtopics/new" element={<AdminRoute><AdminLayout><AdminProgrammingSubtopicEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/lessons/:lessonId/subtopics/:id/edit" element={<AdminRoute><AdminLayout><AdminProgrammingSubtopicEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/problems" element={<AdminRoute><AdminLayout><AdminProgrammingProblemList /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/problems/new" element={<AdminRoute><AdminLayout><AdminProgrammingProblemEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/problems/:id/edit" element={<AdminRoute><AdminLayout><AdminProgrammingProblemEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/programming/meta" element={<AdminRoute><AdminLayout><AdminProgrammingMeta /></AdminLayout></AdminRoute>} />
       <Route path="/admin/blog" element={<AdminRoute><AdminLayout><AdminBlogList /></AdminLayout></AdminRoute>} />
       <Route path="/admin/blog/new" element={<AdminRoute><AdminLayout><AdminBlogEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/blog/:id/edit" element={<AdminRoute><AdminLayout><AdminBlogEdit /></AdminLayout></AdminRoute>} />

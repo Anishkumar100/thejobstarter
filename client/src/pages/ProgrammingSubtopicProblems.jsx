@@ -1,0 +1,146 @@
+import { useEffect, useState, useMemo } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import { motion } from 'motion/react';
+import { useProgrammingStore } from '../stores/useProgrammingStore.js';
+import ProblemCard from '../components/dsa/ProblemCard.jsx';
+import Loader from '../components/ui/Loader.jsx';
+import { ArrowLeft01Icon, AiIdeaIcon, AiChat01Icon } from 'hugeicons-react';
+
+export default function ProgrammingSubtopicProblems() {
+  const { lessonSlug, subtopicSlug } = useParams();
+  const { problems, loading, fetchSubtopicProblems, currentSubtopic, fetchSubtopicBySlug } = useProgrammingStore();
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
+
+  useEffect(() => {
+    fetchSubtopicBySlug(subtopicSlug);
+    fetchSubtopicProblems(subtopicSlug);
+  }, [subtopicSlug]);
+
+  const stats = useMemo(() => {
+    const all = problems || [];
+    return {
+      total: all.length,
+      easy: all.filter(p => p.difficulty === 'easy').length,
+      medium: all.filter(p => p.difficulty === 'medium').length,
+      hard: all.filter(p => p.difficulty === 'hard').length,
+    };
+  }, [problems]);
+
+  const filtered = useMemo(() => {
+    if (difficultyFilter === 'all') return problems || [];
+    return (problems || []).filter(p => p.difficulty === difficultyFilter);
+  }, [problems, difficultyFilter]);
+
+  const subtitle = currentSubtopic?.description || `Practice problems to master ${subtopicSlug}.`;
+
+  return (
+    <div className="probs-page">
+      <Helmet>
+        <title>{currentSubtopic?.title || 'Problems'} — Programming — TheJobStarter</title>
+        <meta name="description" content={`Practice problems for ${currentSubtopic?.title || subtopicSlug}`} />
+      </Helmet>
+
+      <div className="probs-hero">
+        <Link to={`/programming/${lessonSlug}/${subtopicSlug}`} className="probs-back-link">
+          <ArrowLeft01Icon size={16} />
+          <span>Back to {currentSubtopic?.title || subtopicSlug}</span>
+        </Link>
+
+        <div className="probs-hero__body">
+          <div className="probs-hero__info">
+            <span className="probs-hero__supertitle">Practice Problems</span>
+            <h1 className="probs-hero__title">{currentSubtopic?.title} — Problems</h1>
+            <p className="probs-hero__desc">{subtitle}</p>
+          </div>
+
+          <div className="probs-hero__stats">
+            <div className="probs-stat probs-stat--total">
+              <span className="probs-stat__num">{stats.total}</span>
+              <span className="probs-stat__label">Total</span>
+            </div>
+            <div className="probs-stat probs-stat--easy">
+              <span className="probs-stat__num">{stats.easy}</span>
+              <span className="probs-stat__label">Easy</span>
+            </div>
+            <div className="probs-stat probs-stat--medium">
+              <span className="probs-stat__num">{stats.medium}</span>
+              <span className="probs-stat__label">Medium</span>
+            </div>
+            <div className="probs-stat probs-stat--hard">
+              <span className="probs-stat__num">{stats.hard}</span>
+              <span className="probs-stat__label">Hard</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="probs-toolbar">
+        <div className="probs-filters">
+          {['all', 'easy', 'medium', 'hard'].map(d => (
+            <button
+              key={d}
+              className={`probs-filter-btn ${difficultyFilter === d ? 'probs-filter-btn--active' : ''} probs-filter-btn--${d}`}
+              onClick={() => setDifficultyFilter(d)}
+            >
+              {d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)}
+              {d !== 'all' && <span className={`badge-dot badge-dot--${d}`} />}
+            </button>
+          ))}
+        </div>
+
+        <div className="probs-toolbar__actions">
+          <Link to="/qa" className="probs-toolbar__btn probs-toolbar__btn--primary">
+            <AiChat01Icon size={14} />
+            Community
+          </Link>
+          <Link to={`/programming/${lessonSlug}/${subtopicSlug}`} className="probs-toolbar__btn">
+            <AiIdeaIcon size={14} />
+            Study Notes
+          </Link>
+        </div>
+      </div>
+
+      <div className="probs-content">
+        {loading && <Loader text="LOADING PROBLEMS..." />}
+
+        {!loading && filtered.length > 0 && (
+          <div className="probs-grid">
+            {filtered.map((problem, i) => (
+              <motion.div
+                key={problem._id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.06, ease: 'easeOut' }}
+              >
+                <ProblemCard
+                  problem={problem}
+                  lessonSlug={lessonSlug}
+                  subtopicSlug={subtopicSlug}
+                  subject="programming"
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {!loading && filtered.length === 0 && (
+          <div className="probs-empty">
+            <AiIdeaIcon size={48} />
+            {difficultyFilter !== 'all' ? (
+              <>
+                <h3 className="probs-empty__title">No {difficultyFilter} problems yet</h3>
+                <p className="probs-empty__desc">Try a different difficulty filter or check back later.</p>
+              </>
+            ) : (
+              <>
+                <h3 className="probs-empty__title">No problems yet</h3>
+                <p className="probs-empty__desc">Problems for this topic are being added. Check back soon!</p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

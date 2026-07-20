@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
  */
 const progressSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  subject: { type: String, enum: ['dsa', 'dbms', 'os'], required: true },
+  subject: { type: String, enum: ['dsa', 'dbms', 'os', 'programming'], required: true },
   targetType: { type: String, enum: ['lesson', 'subtopic', 'problem'], required: true },
   targetSlug: { type: String, required: true },
   completedAt: { type: Date, default: Date.now }

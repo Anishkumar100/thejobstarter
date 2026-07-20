@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchQuizByProblem, submitQuizAttempt } from '../../api/quizApi.js';
+import { checkItemCompleted, markComplete } from '../../api/progressApi.js';
 import Button from '../ui/Button.jsx';
 import Loader from '../ui/Loader.jsx';
 import MarkdownRenderer from '../ui/MarkdownRenderer.jsx';
@@ -7,10 +8,11 @@ import MarkdownRenderer from '../ui/MarkdownRenderer.jsx';
 /*
  * QuizEmbed — Student-facing MCQ quiz rendered below a problem.
  * Questions and options support markdown (tables, code, etc.).
- * Fetches quiz by problem model + slug. If none exists, renders nothing.
- * Single-shot: once submitted, shows results. Also marks the problem complete.
+ * Fetches quiz by problem model + slug. If none exists, renders a
+ * "Mark Complete" button so the student can mark the problem done
+ * without a quiz. Single-shot quiz: once submitted, shows results.
  */
-export default function QuizEmbed({ problemModel, slug, subjectName }) {
+export default function QuizEmbed({ problemModel, slug, subjectName, subject }) {
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,11 +21,15 @@ export default function QuizEmbed({ problemModel, slug, subjectName }) {
   const [result, setResult] = useState(null);
   const [submitError, setSubmitError] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [problemCompleted, setProblemCompleted] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [checkingCompleted, setCheckingCompleted] = useState(false);
 
   useEffect(() => {
     if (!problemModel || !slug) return;
     setLoading(true);
     setError(null);
+    setProblemCompleted(false);
     fetchQuizByProblem(problemModel, slug)
       .then(res => {
         setQuiz(res.data);
@@ -35,16 +41,72 @@ export default function QuizEmbed({ problemModel, slug, subjectName }) {
       .catch(err => {
         if (err.message === 'No quiz for this problem' || err.message === 'Problem not found') {
           setQuiz(null);
+          /* Check if already completed when no quiz exists */
+          if (subject && slug) {
+            setCheckingCompleted(true);
+            checkItemCompleted(subject, 'problem', slug)
+              .then(res => { setProblemCompleted(res.completed); setCheckingCompleted(false); })
+              .catch(() => setCheckingCompleted(false));
+          }
         } else {
           setError(err.message);
         }
         setLoading(false);
       });
-  }, [problemModel, slug]);
+  }, [problemModel, slug, subject]);
+
+  const handleMarkComplete = async () => {
+    if (!subject || !slug || completing) return;
+    setCompleting(true);
+    try {
+      await markComplete(subject, 'problem', slug);
+      setProblemCompleted(true);
+    } catch (err) {
+      console.error('[QUIZ_EMBED] Error marking problem complete:', err.message);
+    }
+    setCompleting(false);
+  };
 
   if (loading) return <div style={{ padding: 'var(--space-lg)', textAlign: 'center' }}><Loader text="Loading quiz..." /></div>;
   if (error) return null;
-  if (!quiz) return null;
+  if (!quiz) {
+    /* No quiz exists — show Mark Complete or Completed badge */
+    if (checkingCompleted) return null;
+    return (
+      <div style={{
+        border: '3px solid var(--border-color)',
+        padding: 'var(--space-lg)',
+        marginTop: 'var(--space-lg)',
+        background: 'var(--bg-secondary)',
+        boxShadow: 'var(--shadow)',
+        textAlign: 'center'
+      }}>
+        {problemCompleted ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.2rem' }}>✅</span>
+            <div>
+              <h3 style={{ fontWeight: 700, fontSize: '1rem', margin: 0 }}>Problem Completed</h3>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
+                You've marked this {subjectName} problem as complete.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h3 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 'var(--space-xs)' }}>
+              No Quiz Available
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', marginBottom: 'var(--space-md)' }}>
+              This problem doesn't have an attached quiz. Mark it as complete manually.
+            </p>
+            <Button onClick={handleMarkComplete} disabled={completing}>
+              {completing ? 'Marking...' : '✓ Mark as Complete'}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   /* Already submitted — show results */
   if (result) {

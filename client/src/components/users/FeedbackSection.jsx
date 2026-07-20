@@ -8,8 +8,8 @@ import { BulbIcon, AlertCircleIcon, ArrowRight01Icon } from 'hugeicons-react';
 export default function FeedbackSection({ progress }) {
   const feedback = useMemo(() => {
     if (!progress) return [];
-    const subjects = ['dsa', 'dbms', 'os'];
-    const labels = { dsa: 'DSA', dbms: 'DBMS', os: 'OS' };
+    const subjects = ['dsa', 'dbms', 'os', 'programming'];
+    const labels = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming' };
     const result = [];
 
     /* Collect per-subject stats */
@@ -43,7 +43,8 @@ export default function FeedbackSection({ progress }) {
       const nextSteps = {
         dsa: 'Try revisiting the lesson on fundamental data structures.',
         dbms: 'Start with the SQL basics and normalization lessons.',
-        os: 'Begin with process management and memory concepts.'
+        os: 'Begin with process management and memory concepts.',
+        programming: 'Focus on core programming fundamentals: variables, control flow, functions, and data types before moving to advanced topics.'
       };
       result.push({
         type: 'improvement',

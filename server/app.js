@@ -38,6 +38,10 @@ import testimonialRoutes from './routes/testimonialRoutes.js';
 import quizRoutes from './routes/quizRoutes.js';
 import progressMessageRoutes from './routes/progressMessageRoutes.js';
 import coordinatorRoutes from './routes/coordinatorRoutes.js';
+import programmingRoutes from './routes/programmingRoutes.js';
+import programmingMetaRoutes from './routes/programmingMetaRoutes.js';
+import batchRoutes from './routes/batchRoutes.js';
+import courseOfferingRoutes from './routes/courseOfferingRoutes.js';
 
 /* Initialize Express app */
 const app = express();
@@ -127,6 +131,10 @@ app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/progress-messages', progressMessageRoutes);
 app.use('/api/coordinator', coordinatorRoutes);
+app.use('/api/programming', programmingRoutes);
+app.use('/api/programming-meta', programmingMetaRoutes);
+app.use('/api/batches', batchRoutes);
+app.use('/api/course-offerings', courseOfferingRoutes);
 
 /*
  * SSR placeholder — Client will use Next.js in v2.

@@ -3,6 +3,7 @@ import { customAlphabet } from 'nanoid';
 const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 6);
 import CoachingCenter from '../models/CoachingCenter.js';
 import User from '../models/User.js';
+import CourseOffering from '../models/CourseOffering.js';
 import { getCenterRoster } from '../services/centerRosterService.js';
 
 /*
@@ -168,6 +169,25 @@ export async function deleteCenter(req, res) {
  * Admin: Fetch roster for a coaching center (students + center info).
  * Delegates to the shared centerRosterService — no Express logic here.
  */
+/*
+ * GET /api/coaching-centers/:centerId/course-offerings
+ * Public (auth): List active course offerings for a center.
+ * Used by the student-facing dropdown in EditProfile.
+ */
+export async function getCenterCourseOfferings(req, res) {
+  try {
+    console.log('[COACHING] Fetching active course offerings for center:', req.params.id);
+    const offerings = await CourseOffering.find({
+      coachingCenter: req.params.id,
+      status: 'active'
+    }).sort({ name: 1 });
+    res.json({ data: offerings });
+  } catch (error) {
+    console.error('[COACHING] Error fetching course offerings:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function getCenterStudents(req, res) {
   try {
     console.log('[COACHING] Fetching students for center:', req.params.id);
@@ -191,7 +211,9 @@ export async function getCenterStudentById(req, res) {
 
     const student = await User.findById(userId)
       .select('-followers -following')
-      .populate('coachingCenter', 'name logo');
+      .populate('coachingCenter', 'name logo')
+      .populate('batch')
+      .populate('courseOffering', 'name');
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }

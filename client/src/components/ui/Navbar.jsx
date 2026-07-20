@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { to: '/dsa', label: 'DSA' },
   { to: '/dbms', label: 'DBMS' },
   { to: '/os', label: 'OS' },
+  { to: '/programming', label: 'Programming' },
   { to: '/blog', label: 'Blog' },
   { to: '/qa', label: 'Q&A' },
   { to: '/users', label: 'Community' },

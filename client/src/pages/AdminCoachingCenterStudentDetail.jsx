@@ -7,7 +7,9 @@ import Modal from '../components/ui/Modal.jsx';
 import { fetchAdminUserSummary, fetchAdminUserDailyCount } from '../api/progressApi.js';
 import { useProgressMessageStore } from '../stores/useProgressMessageStore.js';
 import { getMotivationalMessage, getStreakMessage } from '../utils/progressMessages.js';
-import { ArrowLeft, ExternalLink, Trash2, Save, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2, Save, CheckCircle, Layers } from 'lucide-react';
+
+import { BookOpen } from 'lucide-react';
 
 export default function AdminCoachingCenterStudentDetail() {
   const { centerId, userId } = useParams();
@@ -209,6 +211,64 @@ export default function AdminCoachingCenterStudentDetail() {
               <p>{currentStudent.coachingCenterJoinedAt ? new Date(currentStudent.coachingCenterJoinedAt).toLocaleDateString() : '—'}</p>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Batch Details */}
+      <div className="admin-card" style={{ marginBottom: 'var(--space-xl)' }}>
+        <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Layers size={18} /> Batch
+        </h2>
+        {currentStudent.batch ? (
+          <div style={{ fontSize: '0.9rem' }}>
+            <p>
+              <strong>Batch:</strong> {currentStudent.batch.name || '—'}
+            </p>
+            {currentStudent.batch.code && (
+              <p>
+                <strong>Code:</strong> <code style={{ background: 'var(--gray-100)', padding: '2px 6px', border: '2px solid var(--black)', fontFamily: 'monospace' }}>{currentStudent.batch.code}</code>
+              </p>
+            )}
+            {currentStudent.batch.status && (
+              <p>
+                <strong>Status:</strong>{' '}
+                <span style={{
+                  padding: '2px 6px', border: '2px solid var(--black)',
+                  background: currentStudent.batch.status === 'active' ? 'var(--success-bg)' : 'var(--gray-100)',
+                  fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase'
+                }}>
+                  {currentStudent.batch.status}
+                </span>
+              </p>
+            )}
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
+            This student is not assigned to any batch.
+          </p>
+        )}
+      </div>
+
+      {/* Course Offering */}
+      <div className="admin-card" style={{ marginBottom: 'var(--space-xl)' }}>
+        <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <BookOpen size={18} /> Course / Program
+        </h2>
+        {currentStudent.courseOffering ? (
+          <div style={{ fontSize: '0.9rem' }}>
+            <p>
+              <strong>Course:</strong> {currentStudent.courseOffering.name || '—'}
+            </p>
+            {currentStudent.courseOffering._id && (
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', marginTop: 4 }}>
+                ID: <code style={{ background: 'var(--gray-100)', padding: '1px 4px', border: '1px solid var(--black)', fontFamily: 'monospace' }}>{currentStudent.courseOffering._id}</code>
+              </p>
+            )}
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
+            No course assigned to this student.
+          </p>
         )}
       </div>
 

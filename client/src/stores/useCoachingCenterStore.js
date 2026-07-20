@@ -146,6 +146,14 @@ export const useCoachingCenterStore = create((set, get) => ({
   },
 
   /*
+   * Directly set the students array (used for batch assign/remove in admin detail)
+   * Supports both value and updater function (like React setState)
+   */
+  setStudents: (studentsOrFn) => set(state => ({
+    students: typeof studentsOrFn === 'function' ? studentsOrFn(state.students) : studentsOrFn
+  })),
+
+  /*
    * Admin: Remove a student from a center (emergency unlink)
    */
   removeStudentFromCenter: async (centerId, userId) => {

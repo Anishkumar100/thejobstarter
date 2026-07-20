@@ -3,6 +3,9 @@ import DsaLesson from '../models/DsaLesson.js';
 import DbmsLesson from '../models/DbmsLesson.js';
 import DbmsSubtopic from '../models/DbmsSubtopic.js';
 import DbmsProblem from '../models/DbmsProblem.js';
+import ProgrammingLesson from '../models/ProgrammingLesson.js';
+import ProgrammingSubtopic from '../models/ProgrammingSubtopic.js';
+import ProgrammingProblem from '../models/ProgrammingProblem.js';
 import Article from '../models/Article.js';
 import BlogPost from '../models/BlogPost.js';
 import User from '../models/User.js';
@@ -25,7 +28,7 @@ export async function getStats(req, res) {
   try {
     console.log('[ADMIN] Fetching dashboard stats...');
     const [
-      problems, lessons, dbmsLessons, dbmsSubtopics, dbmsProblems, dbmsMeta, os, blog, users, questions, languages, cheatsheets, newsletter, topics, subtopics
+      problems, lessons, dbmsLessons, dbmsSubtopics, dbmsProblems, dbmsMeta, os, blog, users, questions, languages, cheatsheets, newsletter, topics, subtopics, programmingLessons, programmingSubtopics, programmingProblems
     ] = await Promise.all([
       Problem.countDocuments(),
       DsaLesson.countDocuments(),
@@ -41,12 +44,15 @@ export async function getStats(req, res) {
       Cheatsheet.countDocuments(),
       Newsletter.countDocuments(),
       Topic.countDocuments(),
-      Subtopic.countDocuments()
+      Subtopic.countDocuments(),
+      ProgrammingLesson.countDocuments(),
+      ProgrammingSubtopic.countDocuments(),
+      ProgrammingProblem.countDocuments()
     ]);
 
     console.log('[ADMIN] Stats fetched');
     res.json({
-      data: { problems, lessons, dbmsLessons, dbmsSubtopics, dbmsProblems, dbmsMeta, os, blog, users, questions, languages, cheatsheets, newsletter, topics, subtopics }
+      data: { problems, lessons, dbmsLessons, dbmsSubtopics, dbmsProblems, dbmsMeta, os, blog, users, questions, languages, cheatsheets, newsletter, topics, subtopics, programmingLessons, programmingSubtopics, programmingProblems }
     });
   } catch (error) {
     console.error('[ADMIN] Error fetching stats:', error.message);
@@ -124,6 +130,7 @@ export async function exportUsersCsv(req, res) {
       'DSA Lessons', 'DSA Subtopics', 'DSA Problems', 'DSA Overall %', 'DSA Quiz Avg',
       'DBMS Lessons', 'DBMS Subtopics', 'DBMS Problems', 'DBMS Overall %', 'DBMS Quiz Avg',
       'OS Lessons', 'OS Subtopics', 'OS Problems', 'OS Overall %', 'OS Quiz Avg',
+      'PROG Lessons', 'PROG Subtopics', 'PROG Problems', 'PROG Overall %', 'PROG Quiz Avg',
       'Overall Completed', 'Overall Total', 'Overall %',
       'Status'
     ]);
@@ -131,7 +138,7 @@ export async function exportUsersCsv(req, res) {
     for (const u of users) {
       const progress = await getProgressSummary(u._id).catch(() => null);
       const p = progress || {};
-      const subjects = ['dsa', 'dbms', 'os'];
+      const subjects = ['dsa', 'dbms', 'os', 'programming'];
       let totalCompleted = 0, totalItems = 0;
       let quizTaken = 0, quizScoreSum = 0;
 

@@ -4,12 +4,12 @@ import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
 import Modal from '../components/ui/Modal.jsx';
-import { ArrowLeft, ExternalLink, Save, Trash2, TrendingUp, User, BookOpen, Database, Cpu, Target, Award, BarChart3, Brain, GraduationCap, Mail, Calendar, Edit3, ClipboardList } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Save, Trash2, TrendingUp, User, BookOpen, Database, Cpu, Target, Award, BarChart3, Brain, GraduationCap, Mail, Calendar, Edit3, ClipboardList, Layers } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip, ResponsiveContainer, LabelList, Cell
 } from 'recharts';
 
-const SUBJECT_COLORS = { dsa: '#6366f1', dbms: '#14b8a6', os: '#f59e0b' };
+const SUBJECT_COLORS = { dsa: '#6366f1', dbms: '#14b8a6', os: '#f59e0b', programming: '#a855f7' };
 const CARD = { border: '3px solid #000', padding: 'var(--space-md)', background: 'var(--bg-surface)', boxShadow: '4px 4px 0 #000' };
 const TOOLTIP = { background: 'var(--bg-surface)', border: '3px solid #000', padding: '8px 12px', fontSize: '0.78rem', boxShadow: '4px 4px 0 #000' };
 
@@ -186,8 +186,8 @@ export default function CoordinatorStudentDetail() {
   if (!student) return <div style={{ padding: 'var(--space-xl)', textAlign: 'center' }}><h2>Student not found</h2></div>;
 
   const progress = student.progress || {};
-  const subjects = ['dsa', 'dbms', 'os'];
-  const subjectNames = { dsa: 'DSA', dbms: 'DBMS', os: 'OS' };
+  const subjects = ['dsa', 'dbms', 'os', 'programming'];
+  const subjectNames = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Prog' };
 
   const totalItems = subjects.reduce((sum, sub) => sum + (progress[sub]?.overall?.total || 0), 0);
   const completedItems = subjects.reduce((sum, sub) => sum + (progress[sub]?.overall?.completed || 0), 0);
@@ -367,6 +367,42 @@ export default function CoordinatorStudentDetail() {
             <div><span style={{ fontWeight: 700, display: 'block', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Joined Platform</span>{student.joinDate ? new Date(student.joinDate).toLocaleDateString() : '\u2014'}</div>
             <div><span style={{ fontWeight: 700, display: 'block', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Linked to Centre</span>{student.coachingCenterJoinedAt ? new Date(student.coachingCenterJoinedAt).toLocaleDateString() : '\u2014'}</div>
           </div>
+        )}
+      </div>
+
+      {/* ═══ BATCH DETAILS ═══ */}
+      <div style={{ ...CARD, marginBottom: 'var(--space-lg)' }}>
+        <h2 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Layers size={16} /> Batch
+        </h2>
+        {student.batch ? (
+          <div style={{ fontSize: '0.85rem' }}>
+            <p><strong>Batch:</strong> {student.batch.name || '—'}</p>
+            {student.batch.code && (
+              <p>
+                <strong>Code:</strong>{' '}
+                <code style={{ background: 'var(--gray-100)', padding: '2px 6px', border: '2px solid var(--black)', fontFamily: 'monospace' }}>
+                  {student.batch.code}
+                </code>
+              </p>
+            )}
+            {student.batch.status && (
+              <p>
+                <strong>Status:</strong>{' '}
+                <span style={{
+                  padding: '2px 6px', border: '2px solid var(--black)',
+                  background: student.batch.status === 'active' ? 'var(--success-bg)' : 'var(--gray-100)',
+                  fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase'
+                }}>
+                  {student.batch.status}
+                </span>
+              </p>
+            )}
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>
+            This student is not assigned to any batch.
+          </p>
         )}
       </div>
 

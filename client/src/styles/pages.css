@@ -239,10 +239,10 @@
   line-height: 1.1;
 }
 
-/* Sticky stacking container — extra half card of scroll for breathing room */
+/* Sticky stacking container — height per card (100vh each) plus breathing room */
 .home-topics__scroll {
   position: relative;
-  height: calc(300vh + 60px);
+  height: calc(400vh + 60px);
   margin-top: -1px;
 }
 

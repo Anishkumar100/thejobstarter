@@ -133,7 +133,7 @@ export default function DsaDetail() {
         {/* Left (60%): Problem content */}
         <div className="pdetail-main">
           <ProblemView problem={p} />
-          <QuizEmbed problemModel="Problem" slug={slug} subjectName="DSA" />
+          <QuizEmbed problemModel="Problem" slug={slug} subjectName="DSA" subject="dsa" />
         </div>
 
         {/* Right (40%): Code panel + downloads */}

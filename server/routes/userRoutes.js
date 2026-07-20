@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   getUsers, getUserByUsername, updateProfile, deleteUser,
   followUser, unfollowUser, getFollowers, getFollowing, getUserActivity, handleClerkWebhook,
-  linkCoachingCenter, checkProfileCompleteness, exportUserCsv
+  linkCoachingCenter, checkProfileCompleteness, exportUserCsv, linkBatch, selectCourse
 } from '../controllers/userController.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/adminOnly.js';
@@ -14,6 +14,8 @@ router.post('/webhook', handleClerkWebhook);
 
 router.get('/', requireAuth, getUsers);
 router.post('/link-coaching-center', requireAuth, linkCoachingCenter);
+router.post('/link-batch', requireAuth, linkBatch);
+router.post('/select-course', requireAuth, selectCourse);
 router.post('/check-profile-completeness', requireAuth, checkProfileCompleteness);
 router.get('/export-csv', requireAuth, exportUserCsv);
 router.get('/:username', requireAuth, getUserByUsername);

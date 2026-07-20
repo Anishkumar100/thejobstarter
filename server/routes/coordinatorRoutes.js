@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { requireCoordinator } from '../middleware/coordinatorOnly.js';
-import { getStudents, getStats, getStudentById, updateStudent, removeStudent, exportCoordinatorCsv } from '../controllers/coordinatorController.js';
+import { getStudents, getStats, getStudentById, updateStudent, removeStudent, exportCoordinatorCsv, getCoordinatorBatches, createCoordinatorBatch, updateCoordinatorBatch, deleteCoordinatorBatch, assignStudentToBatch, removeStudentFromBatch, bulkAssignStudentsToBatch, bulkRemoveStudentsFromBatch, getCoordinatorCourseOfferings, createCoordinatorCourseOffering, updateCoordinatorCourseOffering, deleteCoordinatorCourseOffering, updateStudentCourse } from '../controllers/coordinatorController.js';
 
 const router = Router();
 
@@ -15,7 +15,24 @@ router.get('/students', requireAuth, requireCoordinator, getStudents);
 router.get('/students/:userId', requireAuth, requireCoordinator, getStudentById);
 router.patch('/students/:userId', requireAuth, requireCoordinator, updateStudent);
 router.patch('/students/:userId/remove', requireAuth, requireCoordinator, removeStudent);
+router.patch('/students/:userId/batch', requireAuth, requireCoordinator, assignStudentToBatch);
+router.patch('/students/:userId/batch/remove', requireAuth, requireCoordinator, removeStudentFromBatch);
 router.get('/stats', requireAuth, requireCoordinator, getStats);
 router.get('/export', requireAuth, requireCoordinator, exportCoordinatorCsv);
+router.get('/batches', requireAuth, requireCoordinator, getCoordinatorBatches);
+router.post('/batches', requireAuth, requireCoordinator, createCoordinatorBatch);
+router.patch('/batches/:id', requireAuth, requireCoordinator, updateCoordinatorBatch);
+router.delete('/batches/:id', requireAuth, requireCoordinator, deleteCoordinatorBatch);
+router.post('/batches/:id/assign-students', requireAuth, requireCoordinator, bulkAssignStudentsToBatch);
+router.post('/batches/:id/remove-students', requireAuth, requireCoordinator, bulkRemoveStudentsFromBatch);
+
+/* Course-offering routes */
+router.get('/course-offerings', requireAuth, requireCoordinator, getCoordinatorCourseOfferings);
+router.post('/course-offerings', requireAuth, requireCoordinator, createCoordinatorCourseOffering);
+router.patch('/course-offerings/:id', requireAuth, requireCoordinator, updateCoordinatorCourseOffering);
+router.delete('/course-offerings/:id', requireAuth, requireCoordinator, deleteCoordinatorCourseOffering);
+
+/* Student course change */
+router.patch('/students/:userId/course', requireAuth, requireCoordinator, updateStudentCourse);
 
 export default router;

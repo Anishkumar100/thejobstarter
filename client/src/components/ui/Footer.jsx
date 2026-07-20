@@ -139,6 +139,7 @@ export default function Footer() {
                 <Link to="/dsa" className="text-sm text-text-main hover:text-accent-brand transition-colors">DSA Problems</Link>
                 <Link to="/dbms" className="text-sm text-text-main hover:text-accent-brand transition-colors">DBMS Articles</Link>
                 <Link to="/os" className="text-sm text-text-main hover:text-accent-brand transition-colors">OS Articles</Link>
+                <Link to="/programming" className="text-sm text-text-main hover:text-accent-brand transition-colors">Programming</Link>
                 <Link to="/blog" className="text-sm text-text-main hover:text-accent-brand transition-colors">Blog</Link>
                 
               </div>

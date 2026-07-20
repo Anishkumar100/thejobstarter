@@ -6,7 +6,8 @@ import Loader from '../components/ui/Loader.jsx';
 const DEFAULT_TOPICS = [
   { title: 'DATA STRUCTURES\n& ALGORITHMS', subtitle: '', category: 'DSA', description: '180+ curated problems from easy to hard. Arrays, Trees, Graphs, DP — every topic covered.', cta: 'EXPLORE', link: '/dsa', accentColor: '#e11d48', order: 1, image: '' },
   { title: 'DATABASE\nMANAGEMENT SYSTEMS', subtitle: '', category: 'DBMS', description: 'In-depth articles on SQL, NoSQL, indexing, normalization, transactions & more.', cta: 'EXPLORE', link: '/dbms', accentColor: '#3b82f6', order: 2, image: '' },
-  { title: 'OPERATING\nSYSTEMS', subtitle: '', category: 'OS', description: 'Process scheduling, memory management, file systems, and synchronization.', cta: 'EXPLORE', link: '/os', accentColor: '#22c55e', order: 3, image: '' }
+  { title: 'OPERATING\nSYSTEMS', subtitle: '', category: 'OS', description: 'Process scheduling, memory management, file systems, and synchronization.', cta: 'EXPLORE', link: '/os', accentColor: '#22c55e', order: 3, image: '' },
+  { title: 'PROGRAMMING\nCONCEPTS', subtitle: '', category: 'PROG', description: 'Variables, control flow, OOP, concurrency, design patterns — the building blocks of software.', cta: 'EXPLORE', link: '/programming', accentColor: '#a855f7', order: 4, image: '' }
 ];
 
 export default function AdminTopics() {
@@ -20,7 +21,18 @@ export default function AdminTopics() {
     try {
       const res = await apiRequest('/topics');
       if (res.data && res.data.length > 0) {
-        setTopics(res.data);
+        /* Merge saved topics over defaults — keeps all 4 cards visible */
+        const merged = DEFAULT_TOPICS.map(def => {
+          const saved = res.data.find(t => t.category === def.category);
+          return saved ? { ...def, ...saved, _id: saved._id } : def;
+        });
+        /* Add any extra saved topics not in defaults */
+        res.data.forEach(t => {
+          if (!merged.find(m => m.category === t.category)) {
+            merged.push(t);
+          }
+        });
+        setTopics(merged);
       } else {
         setTopics(DEFAULT_TOPICS);
       }
@@ -73,7 +85,7 @@ export default function AdminTopics() {
 
       <div className="listing-header">
         <h1 className="listing-header__title">Homepage Topics</h1>
-        <span className="listing-header__count">3 cards</span>
+        <span className="listing-header__count">{topics.length} cards</span>
       </div>
 
       {loading && <Loader text="LOADING TOPICS..." />}

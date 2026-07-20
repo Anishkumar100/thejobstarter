@@ -29,7 +29,9 @@ const userSchema = new mongoose.Schema({
   joinDate: { type: Date, default: Date.now },
   coachingCenter: { type: mongoose.Schema.Types.ObjectId, ref: 'CoachingCenter', default: null },
   coachingCenterJoinedAt: { type: Date, default: null },
-  coordinatorFor: { type: mongoose.Schema.Types.ObjectId, ref: 'CoachingCenter', default: null }
+  coordinatorFor: { type: mongoose.Schema.Types.ObjectId, ref: 'CoachingCenter', default: null },
+  batch: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch', default: null },
+  courseOffering: { type: mongoose.Schema.Types.ObjectId, ref: 'CourseOffering', default: null }
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

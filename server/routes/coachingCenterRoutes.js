@@ -2,7 +2,8 @@ import { Router } from 'express';
 import {
   createCenter, getCenters, getCenterById,
   updateCenter, regenerateCenterCode, deleteCenter,
-  getCenterStudents, getCenterStudentById, updateCenterStudent, removeStudentFromCenter
+  getCenterStudents, getCenterStudentById, updateCenterStudent,
+  removeStudentFromCenter, getCenterCourseOfferings
 } from '../controllers/coachingCenterController.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/adminOnly.js';
@@ -15,6 +16,7 @@ router.get('/:id', requireAuth, requireAdmin, getCenterById);
 router.put('/:id', requireAuth, requireAdmin, updateCenter);
 router.post('/:id/regenerate-code', requireAuth, requireAdmin, regenerateCenterCode);
 router.delete('/:id', requireAuth, requireAdmin, deleteCenter);
+router.get('/:id/course-offerings', requireAuth, getCenterCourseOfferings);
 router.get('/:id/students', requireAuth, requireAdmin, getCenterStudents);
 router.patch('/:id/students/:userId', requireAuth, requireAdmin, removeStudentFromCenter);
 router.get('/:id/students/:userId', requireAuth, requireAdmin, getCenterStudentById);

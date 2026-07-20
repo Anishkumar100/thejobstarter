@@ -11,6 +11,13 @@ import HowItWorks from '../components/home/HowItWorks.jsx';
 import Reviews from '../components/home/Reviews.jsx';
 import JoinCommunityCta from '../components/home/JoinCommunityCta.jsx';
 
+const DEFAULT_TOPICS = [
+  { title: 'DATA STRUCTURES\n& ALGORITHMS', category: 'DSA', description: '180+ curated problems from easy to hard. Arrays, Trees, Graphs, DP — every topic covered.', link: '/dsa', accentColor: '#e11d48', order: 1, image: '' },
+  { title: 'DATABASE\nMANAGEMENT SYSTEMS', category: 'DBMS', description: 'In-depth articles on SQL, NoSQL, indexing, normalization, transactions & more.', link: '/dbms', accentColor: '#3b82f6', order: 2, image: '' },
+  { title: 'OPERATING\nSYSTEMS', category: 'OS', description: 'Process scheduling, memory management, file systems, and synchronization.', link: '/os', accentColor: '#22c55e', order: 3, image: '' },
+  { title: 'PROGRAMMING\nCONCEPTS', category: 'PROG', description: 'Variables, control flow, OOP, concurrency, design patterns — the building blocks of software.', link: '/programming', accentColor: '#a855f7', order: 4, image: '' }
+];
+
 export default function Home() {
   const [videoError, setVideoError] = useState(false);
   const [liveStats, setLiveStats] = useState(null);
@@ -43,7 +50,19 @@ export default function Home() {
         if (res.data?.homepageHowItWorks) setHowItWorksData(res.data.homepageHowItWorks);
       }).catch(err => console.error('[HOME] Config fetch failed:', err.message)),
       apiRequest('/topics').then(res => {
-        if (res.data && res.data.length > 0) setTopics(res.data);
+        if (res.data && res.data.length > 0) {
+          /* Merge saved topics over defaults — ensures all 4 cards show */
+          const merged = DEFAULT_TOPICS.map(def => {
+            const saved = res.data.find(t => t.category === def.category);
+            return saved ? { ...def, ...saved } : def;
+          });
+          res.data.forEach(t => {
+            if (!merged.find(m => m.category === t.category)) merged.push(t);
+          });
+          setTopics(merged);
+        } else {
+          setTopics(DEFAULT_TOPICS);
+        }
       }).catch(err => console.error('[HOME] Topics fetch failed:', err.message))
     ]).finally(() => setPageLoading(false));
   }, []);
@@ -133,7 +152,7 @@ export default function Home() {
         <div className="home-topics__header">
           <div className="container">
             <p className="home-topics__supertitle">MASTER EVERY DOMAIN</p>
-            <h2 className="home-topics__title">Three Pillars.<br />One Mission.</h2>
+            <h2 className="home-topics__title">Four Pillars.<br />One Mission.</h2>
           </div>
         </div>
         <div className="home-topics__scroll">

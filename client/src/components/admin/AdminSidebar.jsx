@@ -3,7 +3,7 @@ import {
   LayoutDashboard, BookOpen, Code2, Layers, Tags, Database,
   FileText, Users, HelpCircle, Globe, Mail, Image as ImageIcon,
   Home, Settings, BookText, Tag, Cpu, ThumbsUp, MessageSquareText,
-  X, ChevronDown, Building2, Airplay
+  X, ChevronDown, Building2, Airplay, Terminal
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -46,6 +46,15 @@ const SECTIONS = [
       { to: '/admin/os/subtopics', label: 'Subtopics', icon: Layers },
       { to: '/admin/os/problems', label: 'Problems', icon: BookText },
       { to: '/admin/os/meta', label: 'Categories', icon: Tag },
+    ]
+  },
+  {
+    heading: 'Programming',
+    links: [
+      { to: '/admin/programming', label: 'Lessons', icon: Terminal },
+      { to: '/admin/programming/subtopics', label: 'Subtopics', icon: Layers },
+      { to: '/admin/programming/problems', label: 'Problems', icon: Code2 },
+      { to: '/admin/programming/meta', label: 'Categories', icon: Tags },
     ]
   },
   {

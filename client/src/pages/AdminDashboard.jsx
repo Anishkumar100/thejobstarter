@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import {
   BookOpen, Code2, Tags, Database, Monitor, FileText,
   Users, HelpCircle, Globe, Mail, Image as ImageIcon,
-  Home, Settings, Plus
+  Home, Settings, Plus, Terminal
 } from 'lucide-react';
 import { useAdminStore } from '../stores/useAdminStore.js';
 import Loader from '../components/ui/Loader.jsx';
@@ -22,6 +22,8 @@ const SECTIONS = [
       { title: 'DSA Categories', count: null, link: '/admin/dsa/meta', icon: Tags, color: '#e11d48' },
       { title: 'DBMS Articles', count: 'dbms', link: '/admin/dbms', icon: Database, color: '#3b82f6' },
       { title: 'OS Articles', count: 'os', link: '/admin/os', icon: Monitor, color: '#22c55e' },
+      { title: 'Programming Lessons', count: 'programmingLessons', link: '/admin/programming', icon: Terminal, color: '#a855f7' },
+      { title: 'Programming Problems', count: 'programmingProblems', link: '/admin/programming/problems', icon: Code2, color: '#a855f7' },
       { title: 'Blog Posts', count: 'blog', link: '/admin/blog', icon: FileText, color: '#f59e0b' },
       { title: 'Why Section Editor', count: null, link: '/admin/why-section', icon: FileText, color: '#ff4f00' },
     ]
@@ -102,6 +104,8 @@ export default function AdminDashboard() {
             <Link to="/admin/dsa/problems/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> New Problem</Link>
             <Link to="/admin/dbms/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> DBMS Article</Link>
             <Link to="/admin/os/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> OS Article</Link>
+            <Link to="/admin/programming/lessons/new" className="btn btn--primary"><Plus size={14} style={{ marginRight: 4 }} /> New Prog Lesson</Link>
+            <Link to="/admin/programming/problems/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> New Prog Problem</Link>
             <Link to="/admin/blog/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> Blog Post</Link>
             <Link to="/admin/languages/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> Language</Link>
           </div>

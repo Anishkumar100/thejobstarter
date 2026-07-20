@@ -27,12 +27,13 @@ export default function SubjectProgressDetail() {
   const [attemptsLoading, setAttemptsLoading] = useState(true);
   const [expandedAttempt, setExpandedAttempt] = useState(null);
 
-  const validSubjects = ['dsa', 'dbms', 'os'];
-  const subjectLabel = { dsa: 'DSA', dbms: 'DBMS', os: 'OS' }[subject] || subject;
+  const validSubjects = ['dsa', 'dbms', 'os', 'programming'];
+  const subjectLabel = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming' }[subject] || subject;
   const subjectColors = {
     dsa: { bg: '#e8f4f8', accent: '#0066ff', border: '#0066ff' },
     dbms: { bg: '#fef3e2', accent: '#f59e0b', border: '#d97706' },
-    os: { bg: '#f0fdf4', accent: '#16a34a', border: '#15803d' }
+    os: { bg: '#f0fdf4', accent: '#16a34a', border: '#15803d' },
+    programming: { bg: '#f3f0ff', accent: '#a855f7', border: '#9333ea' }
   };
   const colors = subjectColors[subject] || { bg: '#f5f5f5', accent: '#000', border: '#000' };
 
@@ -456,7 +457,7 @@ export default function SubjectProgressDetail() {
                         }) : ''}
                         {att.problemSlug && (
                           <span> · <Link
-                            to={`/${subject === 'dsa' ? 'dsa' : subject === 'dbms' ? 'dbms' : 'os'}/${att.problemSlug}`}
+                            to={`/${subject === 'dsa' ? 'dsa' : subject === 'dbms' ? 'dbms' : subject === 'programming' ? 'programming' : 'os'}/${att.problemSlug}`}
                             onClick={e => e.stopPropagation()}
                             style={{ textDecoration: 'underline', color: 'var(--accent-blue, #0066ff)' }}
                           >View problem</Link></span>

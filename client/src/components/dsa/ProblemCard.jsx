@@ -4,12 +4,12 @@ import { Link } from 'react-router-dom';
  * Enhanced ProblemCard — displays a problem with difficulty badge,
  * topic tags, company tags, and view/bookmark stats.
  */
-export default function ProblemCard({ problem, lessonSlug, subtopicSlug }) {
+export default function ProblemCard({ problem, lessonSlug, subtopicSlug, subject = 'dsa' }) {
   const linkTo = lessonSlug && subtopicSlug
-    ? `/dsa/${lessonSlug}/${subtopicSlug}/${problem.slug}`
+    ? `/${subject}/${lessonSlug}/${subtopicSlug}/${problem.slug}`
     : lessonSlug
-      ? `/dsa/${lessonSlug}/${problem.slug}`
-      : `/dsa/${problem.slug}`;
+      ? `/${subject}/${lessonSlug}/${problem.slug}`
+      : `/${subject}/${problem.slug}`;
 
   return (
     <Link to={linkTo} className="prob-card">

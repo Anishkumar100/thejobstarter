@@ -5,7 +5,7 @@ import { useCoachingCenterStore } from '../stores/useCoachingCenterStore.js';
 import DataTable from '../components/admin/DataTable.jsx';
 import Modal from '../components/ui/Modal.jsx';
 import Loader from '../components/ui/Loader.jsx';
-import { Building2, Plus, Upload } from 'lucide-react';
+import { Building2, Plus, Upload, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { uploadMedia } from '../api/mediaApi.js';
 
 export default function AdminCoachingCenters() {
@@ -132,6 +132,33 @@ export default function AdminCoachingCenters() {
         <button className="btn btn--primary" onClick={() => setShowCreate(true)}>
           <Plus size={14} style={{ marginRight: 4 }} /> New Centre
         </button>
+      </div>
+
+      {/* Stats cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-xl)' }}>
+        {[
+          { label: 'Total', value: centers.length, icon: Building2, color: 'var(--black)' },
+          { label: 'Active', value: centers.filter(c => c.status === 'active').length, icon: CheckCircle, color: 'var(--success)' },
+          { label: 'Trial', value: centers.filter(c => c.status === 'trial').length, icon: Clock, color: 'var(--warning)' },
+          { label: 'Suspended', value: centers.filter(c => c.status === 'suspended').length, icon: XCircle, color: 'var(--error)' }
+        ].map(stat => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.label} style={{
+              border: '3px solid var(--black)',
+              padding: 'var(--space-md)',
+              background: 'var(--bg-surface)',
+              boxShadow: '6px 6px 0 var(--black)',
+              textAlign: 'center'
+            }}>
+              <Icon size={24} style={{ color: stat.color, marginBottom: 6 }} />
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
+                {stat.label}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, lineHeight: 1.2 }}>{stat.value}</div>
+            </div>
+          );
+        })}
       </div>
 
       {loading && <Loader text="LOADING..." />}

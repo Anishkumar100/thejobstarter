@@ -33,6 +33,18 @@ export default function ProfileHero({ profile, isOwnProfile, onFollow, onEdit })
           {profile?.college && profile?.year && <span> · </span>}
           {profile?.year && <span>Year {profile.year}</span>}
           {(profile?.college || profile?.year) && <span> · </span>}
+          {profile?.batch && (
+            <>
+              <span style={{
+                padding: '1px 6px', border: '1px solid var(--black)',
+                background: profile.batch.status === 'active' ? 'var(--success-bg)' : 'var(--gray-100)',
+                fontSize: '0.7rem', fontWeight: 700, fontFamily: 'monospace'
+              }}>
+                {profile.batch.name}
+              </span>
+              <span> · </span>
+            </>
+          )}
           <span>Joined {new Date(profile?.joinDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
         </div>
 

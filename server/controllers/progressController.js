@@ -7,9 +7,11 @@ import User from '../models/User.js';
 import Subtopic from '../models/Subtopic.js';
 import DbmsSubtopic from '../models/DbmsSubtopic.js';
 import OsSubtopic from '../models/OsSubtopic.js';
+import ProgrammingSubtopic from '../models/ProgrammingSubtopic.js';
 import Problem from '../models/Problem.js';
 import DbmsProblem from '../models/DbmsProblem.js';
 import OsProblem from '../models/OsProblem.js';
+import ProgrammingProblem from '../models/ProgrammingProblem.js';
 import { getProgressSummary, cascadeProgressCompletion } from '../services/progressService.js';
 
 /*
@@ -26,15 +28,11 @@ export async function markComplete(req, res) {
     if (!subject || !targetType || !targetSlug) {
       return res.status(400).json({ error: 'subject, targetType, and targetSlug are required' });
     }
-    if (!['dsa', 'dbms', 'os'].includes(subject)) {
-      return res.status(400).json({ error: 'Invalid subject. Must be dsa, dbms, or os' });
+    if (!['dsa', 'dbms', 'os', 'programming'].includes(subject)) {
+      return res.status(400).json({ error: 'Invalid subject. Must be dsa, dbms, os, or programming' });
     }
     if (!['lesson', 'subtopic', 'problem'].includes(targetType)) {
       return res.status(400).json({ error: 'Invalid targetType. Must be lesson, subtopic, or problem' });
-    }
-    /* Problems can only be completed via quiz submission, not manual markComplete */
-    if (targetType === 'problem') {
-      return res.status(403).json({ error: 'Problems can only be completed by submitting the attached quiz' });
     }
 
     const user = await User.findOne({ clerkId: req.userId });
@@ -49,9 +47,23 @@ export async function markComplete(req, res) {
 
     console.log('[PROGRESS] Marked complete:', subject, targetType, targetSlug);
 
+    /* Cascade: when a problem is marked complete, check if the subtopic/lesson is now done */
+    if (targetType === 'problem') {
+      const PROBLEM_MODELS = { dsa: Problem, dbms: DbmsProblem, os: OsProblem, programming: ProgrammingProblem };
+      const ProbModel = PROBLEM_MODELS[subject];
+      if (ProbModel) {
+        const probDoc = await ProbModel.findOne({ slug: targetSlug }).select('lessonSlug subtopicSlug');
+        if (probDoc?.lessonSlug) {
+          cascadeProgressCompletion(user._id, subject, probDoc.lessonSlug, probDoc.subtopicSlug).catch(err => {
+            console.error('[CASCADE] Error during problem cascade:', err.message);
+          });
+        }
+      }
+    }
+
     /* Cascade: when a subtopic is manually completed, check if the lesson is now done */
     if (targetType === 'subtopic') {
-      const SUBTOPIC_MODELS = { dsa: Subtopic, dbms: DbmsSubtopic, os: OsSubtopic };
+      const SUBTOPIC_MODELS = { dsa: Subtopic, dbms: DbmsSubtopic, os: OsSubtopic, programming: ProgrammingSubtopic };
       const SubModel = SUBTOpic_MODELS[subject];
       if (SubModel) {
         const subDoc = await SubModel.findOne({ slug: targetSlug }).select('lessonSlug');
@@ -183,8 +195,8 @@ export async function checkCompleted(req, res) {
 
     /* Auto-complete subtopics that have zero problems (pure theory subtopics) */
     if (targetType === 'subtopic') {
-      const SubModel = { dsa: Subtopic, dbms: DbmsSubtopic, os: OsSubtopic }[subject];
-      const ProbModel = { dsa: Problem, dbms: DbmsProblem, os: OsProblem }[subject];
+      const SubModel = { dsa: Subtopic, dbms: DbmsSubtopic, os: OsSubtopic, programming: ProgrammingSubtopic }[subject];
+      const ProbModel = { dsa: Problem, dbms: DbmsProblem, os: OsProblem, programming: ProgrammingProblem }[subject];
       if (SubModel && ProbModel) {
         const sub = await SubModel.findOne({ slug: targetSlug }).select('lessonSlug');
         if (sub) {

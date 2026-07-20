@@ -1,8 +1,8 @@
 import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, X, ChevronDown,
-  Building2, Mail, User as UserIcon,
-  MapPin, Phone, Shield, Circle
+  Building2, Mail, User as UserIcon, Layers,
+  MapPin, Phone, Shield, Circle, BookOpen
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -18,6 +18,18 @@ const SECTIONS = [
     heading: 'Students',
     links: [
       { to: '/coordinator/students', label: 'All Students', icon: Users },
+    ]
+  },
+  {
+    heading: 'Batches',
+    links: [
+      { to: '/coordinator/batches', label: 'Manage Batches', icon: Layers },
+    ]
+  },
+  {
+    heading: 'Courses',
+    links: [
+      { to: '/coordinator/courses', label: 'Manage Courses', icon: BookOpen },
     ]
   },
   {

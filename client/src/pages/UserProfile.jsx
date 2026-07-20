@@ -197,7 +197,7 @@ export default function UserProfile() {
                 <>
                   {/* ═════ OVERALL MOTIVATIONAL MESSAGE ═════ */}
                   {(() => {
-                    const subjects = ['dsa', 'dbms', 'os'];
+                    const subjects = ['dsa', 'dbms', 'os', 'programming'];
                     let totalCompleted = 0, totalItems = 0;
                     for (const s of subjects) {
                       const d = progressSummary[s];
@@ -259,10 +259,10 @@ export default function UserProfile() {
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-md)' }}>
-                    {['dsa', 'dbms', 'os'].map(subject => {
+                    {['dsa', 'dbms', 'os', 'programming'].map(subject => {
                       const data = progressSummary[subject];
                       if (!data) return null;
-                      const label = { dsa: 'DSA', dbms: 'DBMS', os: 'OS' }[subject];
+                      const label = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Prog' }[subject];
                       const pct = data.overall.total > 0 ? Math.round((data.overall.completed / data.overall.total) * 100) : 0;
                       const { message } = getMotivationalMessage(pct, progressMessages);
                       const items = [

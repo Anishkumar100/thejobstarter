@@ -139,7 +139,7 @@ export default function OsDetail() {
         {/* Left (60%): Problem content */}
         <div className="pdetail-main">
           <ProblemView problem={p} />
-          <QuizEmbed problemModel="OsProblem" slug={slug} subjectName="OS" />
+          <QuizEmbed problemModel="OsProblem" slug={slug} subjectName="OS" subject="os" />
         </div>
 
         {/* Right (40%): Downloads only — no code section for OS */}

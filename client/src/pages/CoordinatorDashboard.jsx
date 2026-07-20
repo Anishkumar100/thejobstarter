@@ -10,11 +10,11 @@ import {
 import {
   Users, BarChart3, PieChart as PieChartIcon, TrendingUp,
   BookOpen, Database, Cpu, CheckCircle2, Award, Target,
-  Calendar, ClipboardList, GraduationCap, ArrowRight, Lightbulb, Download
+  Calendar, ClipboardList, GraduationCap, ArrowRight, Lightbulb, Download, Code2, Layers
 } from 'lucide-react';
 
 const PIE_COLORS = ['var(--success)', 'var(--error)', 'var(--text-tertiary)'];
-const SUBJECT_COLORS = { DSA: '#6366f1', DBMS: '#14b8a6', OS: '#f59e0b' };
+const SUBJECT_COLORS = { DSA: '#6366f1', DBMS: '#14b8a6', OS: '#f59e0b', PROG: '#a855f7' };
 
 /*
  * BRUTALIST CARD — sharp corners, thick solid border, hard offset shadow
@@ -38,20 +38,23 @@ export default function CoordinatorDashboard() {
   const [students, setStudents] = useState([]);
   const [stats, setStats] = useState(null);
   const [center, setCenter] = useState(null);
+  const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [studentsRes, statsRes] = await Promise.all([
+      const [studentsRes, statsRes, batchesRes] = await Promise.all([
         apiRequest('/coordinator/students'),
-        apiRequest('/coordinator/stats')
+        apiRequest('/coordinator/stats'),
+        apiRequest('/coordinator/batches')
       ]);
       const roster = studentsRes.data;
       setStudents(roster.students || []);
       setCenter(roster.center);
       setStats(statsRes.data);
+      setBatches(batchesRes.data || []);
     } catch (err) {
       console.error('[COORD] Error:', err.message);
       setError(err.message);
@@ -63,7 +66,7 @@ export default function CoordinatorDashboard() {
   const computeOverallPct = (progress) => {
     if (!progress) return 0;
     let total = 0, completed = 0;
-    for (const sub of ['dsa', 'dbms', 'os']) {
+    for (const sub of ['dsa', 'dbms', 'os', 'programming']) {
       const s = progress[sub]?.overall;
       if (s) { total += s.total; completed += s.completed; }
     }
@@ -82,18 +85,20 @@ export default function CoordinatorDashboard() {
 
   const subjectChartData = useMemo(() => {
     if (!students.length) return [];
-    let dsaT = 0, dsaD = 0, dbmsT = 0, dbmsD = 0, osT = 0, osD = 0;
+    let dsaT = 0, dsaD = 0, dbmsT = 0, dbmsD = 0, osT = 0, osD = 0, progT = 0, progD = 0;
     for (const s of students) {
       const p = s.progress;
       if (!p) continue;
       if (p.dsa?.overall) { dsaT += p.dsa.overall.total; dsaD += p.dsa.overall.completed; }
       if (p.dbms?.overall) { dbmsT += p.dbms.overall.total; dbmsD += p.dbms.overall.completed; }
       if (p.os?.overall) { osT += p.os.overall.total; osD += p.os.overall.completed; }
+      if (p.programming?.overall) { progT += p.programming.overall.total; progD += p.programming.overall.completed; }
     }
     return [
-      { subject: 'DSA', done: dsaD, total: dsaT, pct: dsaT > 0 ? Math.round((dsaD / dsaT) * 100) : 0, left: Math.max(0, dsaT - dsaD) },
-      { subject: 'DBMS', done: dbmsD, total: dbmsT, pct: dbmsT > 0 ? Math.round((dbmsD / dbmsT) * 100) : 0, left: Math.max(0, dbmsT - dbmsD) },
-      { subject: 'OS', done: osD, total: osT, pct: osT > 0 ? Math.round((osD / osT) * 100) : 0, left: Math.max(0, osT - osD) },
+      { key: 'dsa', subject: 'DSA', done: dsaD, total: dsaT, pct: dsaT > 0 ? Math.round((dsaD / dsaT) * 100) : 0, left: Math.max(0, dsaT - dsaD) },
+      { key: 'dbms', subject: 'DBMS', done: dbmsD, total: dbmsT, pct: dbmsT > 0 ? Math.round((dbmsD / dbmsT) * 100) : 0, left: Math.max(0, dbmsT - dbmsD) },
+      { key: 'os', subject: 'OS', done: osD, total: osT, pct: osT > 0 ? Math.round((osD / osT) * 100) : 0, left: Math.max(0, osT - osD) },
+      { key: 'programming', subject: 'PROG', done: progD, total: progT, pct: progT > 0 ? Math.round((progD / progT) * 100) : 0, left: Math.max(0, progT - progD) },
     ];
   }, [students]);
 
@@ -246,14 +251,53 @@ export default function CoordinatorDashboard() {
             );
           })}
           <div style={{ ...CARD, boxShadow: '6px 6px 0 #000' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}><Award size={18} /><span style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)' }}>Subjects Active</span></div>
-            <div style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, color: '#6366f1', lineHeight: 1 }}>{subjectChartData.filter(d => d.total > 0).length}</div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4 }}>DSA, DBMS, OS</div>
-          </div>
-          <div style={{ ...CARD, boxShadow: '6px 6px 0 #000' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}><TrendingUp size={18} /><span style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)' }}>Quiz Participation</span></div>
             <div style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, color: '#14b8a6', lineHeight: 1 }}>{Math.round((stats.studentsWithQuizzes / (stats.totalStudents || 1)) * 100)}%</div>
             <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4 }}>{stats.studentsWithQuizzes} of {stats.totalStudents} students have attempted quizzes</div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ BATCHES SECTION ═══ */}
+      {batches.length > 0 && (
+        <div style={{ marginBottom: 'var(--space-xl)' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Layers size={20} /> Batches ({batches.length})
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-md)' }}>
+            {batches.map(b => {
+              const studentCount = students.filter(s => {
+                const bid = s.batch?._id || s.batch;
+                return bid === b._id;
+              }).length;
+              return (
+                <div key={b._id} style={{ border: '3px solid #000', padding: 'var(--space-md)', background: 'var(--bg-surface)', boxShadow: '4px 4px 0 #000' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <h3 style={{ fontSize: '0.9rem', fontWeight: 800 }}>{b.name}</h3>
+                    <span style={{
+                      padding: '2px 6px', border: '2px solid var(--black)',
+                      background: b.status === 'active' ? 'var(--success-bg)' : 'var(--gray-100)',
+                      fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase'
+                    }}>
+                      {b.status}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span>
+                      Code: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }}>{b.code}</strong>
+                    </span>
+                    <span>
+                      <Users size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                      <strong>{studentCount}</strong> student{studentCount !== 1 ? 's' : ''}
+                      {b.expectedStudents ? ` / ${b.expectedStudents} expected` : ''}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+                      Created {new Date(b.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -272,7 +316,7 @@ export default function CoordinatorDashboard() {
             padding: 'var(--space-sm)', border: '2px solid #000', background: 'var(--bg-tertiary)'
           }}>
             <p>
-              <strong>What this shows:</strong> This stacked bar chart compares how many learning items (lessons, topics, and problems combined) your students have completed across each subject — <strong>DSA</strong> (Data Structures & Algorithms), <strong>DBMS</strong> (Database Management Systems), and <strong>OS</strong> (Operating Systems).
+              <strong>What this shows:</strong> This stacked bar chart compares how many learning items (lessons, topics, and problems combined) your students have completed across each subject — <strong>DSA</strong> (Data Structures & Algorithms), <strong>DBMS</strong> (Database Management Systems), <strong>OS</strong> (Operating Systems), and <strong>PROG</strong> (Programming Concepts).
             </p>
             <p style={{ marginTop: 6 }}>
               <strong>How to read it:</strong> The <span style={{ color: 'var(--success)', fontWeight: 700 }}>green</span> section of each bar shows items that have been completed by all your students combined. The <span style={{ color: 'var(--text-tertiary)', fontWeight: 700 }}>gray</span> section shows items still remaining. The number written <em>inside</em> the green bar is the count of completed items. Hover over a bar to see the exact numbers.
@@ -325,7 +369,7 @@ export default function CoordinatorDashboard() {
             padding: 'var(--space-sm)', border: '2px solid #000', background: 'var(--bg-tertiary)'
           }}>
             <p>
-              <strong>What this shows:</strong> This donut chart takes everything your students are learning — across <strong>all three subjects (DSA, DBMS, and OS)</strong> and all content types (lessons, topics, problems) — and shows you how much has been completed in total.
+              <strong>What this shows:</strong> This donut chart takes everything your students are learning — across <strong>all four subjects (DSA, DBMS, OS, and PROG)</strong> and all content types (lessons, topics, problems) — and shows you how much has been completed in total.
             </p>
             <p style={{ marginTop: 6 }}>
               <strong>How to read it:</strong> The <span style={{ color: 'var(--success)', fontWeight: 700 }}>green</span> slice represents the total number of items that have been completed across your entire batch of students. The <span style={{ color: 'var(--error)', fontWeight: 700 }}>red</span> slice is what still needs to be done. The larger the green slice, the more progress your batch has made overall. Hover over each slice to see the exact count.
@@ -421,7 +465,7 @@ export default function CoordinatorDashboard() {
             padding: 'var(--space-sm)', border: '2px solid #000', background: 'var(--bg-tertiary)'
           }}>
             <p>
-              <strong>What this shows:</strong> This panel breaks down the total completion numbers by content type — <strong>lessons</strong> (the main chapters), <strong>topics</strong> (subsections within each lesson), and <strong>problems</strong> (practice questions). All numbers are summed across DSA, DBMS, and OS.
+              <strong>What this shows:</strong> This panel breaks down the total completion numbers by content type — <strong>lessons</strong> (the main chapters), <strong>topics</strong> (subsections within each lesson), and <strong>problems</strong> (practice questions). All numbers are summed across DSA, DBMS, OS, and PROG.
             </p>
             <p style={{ marginTop: 6 }}>
               <strong>How to read it:</strong> Each row shows the count of items done versus the total available, along with a percentage bar. A high percentage on lessons but low on problems means students are reading the material but not practising enough.
@@ -509,7 +553,7 @@ export default function CoordinatorDashboard() {
             padding: 'var(--space-sm)', border: '2px solid #000', background: 'var(--bg-tertiary)'
           }}>
             <p>
-              <strong>What this shows:</strong> This section displays the <strong>average quiz score</strong> for each subject (DSA, DBMS, OS) across all students who have attempted quizzes. A coloured progress bar shows how close the batch average is to 100%.
+              <strong>What this shows:</strong> This section displays the <strong>average quiz score</strong> for each subject (DSA, DBMS, OS, PROG) across all students who have attempted quizzes. A coloured progress bar shows how close the batch average is to 100%.
             </p>
             <p style={{ marginTop: 6 }}>
               <strong>How to read it:</strong> Each bar shows the average score for that subject. <span style={{ color: 'var(--success)', fontWeight: 700 }}>Green</span> = 70%+ (good), <span style={{ color: 'var(--warning)', fontWeight: 700 }}>amber</span> = 50–69% (needs improvement), <span style={{ color: 'var(--error)', fontWeight: 700 }}>red</span> = below 50% (needs serious attention). Subjects with no attempts will show "No attempts yet."
@@ -522,7 +566,7 @@ export default function CoordinatorDashboard() {
             {subjectChartData.map(d => {
               let totalScore = 0, count = 0;
               for (const s of students) {
-                const q = s.progress?.[d.subject.toLowerCase()]?.quizzes;
+                const q = s.progress?.[d.key]?.quizzes;
                 if (q?.quizzesTaken > 0) { totalScore += q.avgScore * q.quizzesTaken; count += q.quizzesTaken; }
               }
               const avg = count > 0 ? Math.round(totalScore / count) : null;
@@ -531,7 +575,7 @@ export default function CoordinatorDashboard() {
                 <div key={d.subject}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: 4 }}>
                     <span style={{ fontWeight: 700, color: SUBJECT_COLORS[d.subject], display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {d.subject === 'DSA' ? <Cpu size={14} /> : d.subject === 'DBMS' ? <Database size={14} /> : <BookOpen size={14} />}
+                      {d.key === 'dsa' ? <Cpu size={14} /> : d.key === 'dbms' ? <Database size={14} /> : d.key === 'os' ? <BookOpen size={14} /> : <Code2 size={14} />}
                       {d.subject}
                     </span>
                     <span style={{ fontWeight: 800, color: grade.color, fontSize: '0.82rem' }}>{avg !== null ? `${avg}% — ${grade.label}` : 'No attempts yet'}</span>

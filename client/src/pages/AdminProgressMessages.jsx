@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2, CircleCheck, CircleX } from 'lucide-react';
 import Loader from '../components/ui/Loader.jsx';
 
 const CONTEXTS = ['per-subject', 'overall', 'celebration', 'streak'];
-const SUBJECTS = ['all', 'dsa', 'dbms', 'os'];
+const SUBJECTS = ['all', 'dsa', 'dbms', 'os', 'programming'];
 const TIERS = [0, 10, 25, 50, 75, 90, 100];
 
 const EMPTY_FORM = { message: '', tier: 50, context: 'per-subject', subject: 'all', active: true };

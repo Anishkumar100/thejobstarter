@@ -1,6 +1,8 @@
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import CoachingCenter from '../models/CoachingCenter.js';
+import Batch from '../models/Batch.js';
+import CourseOffering from '../models/CourseOffering.js';
 import Progress from '../models/Progress.js';
 import clerk from '../config/clerk.js';
 import imagekit from '../config/imagekit.js';
@@ -107,6 +109,116 @@ export async function linkCoachingCenter(req, res) {
 }
 
 /*
+ * POST /api/users/link-batch
+ * User: Link themselves to a batch within their existing center via batch code.
+ * The user must already be linked to the batch's coachingCenter.
+ * Rate-limited: max 10 attempts per hour per user.
+ */
+export async function linkBatch(req, res) {
+  try {
+    console.log('[USER] Link batch request for user:', req.userId);
+    const { code } = req.body;
+
+    /* Validate input */
+    if (!code || typeof code !== 'string' || !code.trim()) {
+      return res.status(400).json({ error: 'Batch code is required' });
+    }
+
+    /* Rate limit check (reuse the same rate map) */
+    const now = Date.now();
+    const attempts = linkRateMap.get(req.userId) || [];
+    const recent = attempts.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+    if (recent.length >= RATE_LIMIT_MAX) {
+      console.log('[USER] Rate limit hit for link-batch:', req.userId);
+      return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    }
+    recent.push(now);
+    linkRateMap.set(req.userId, recent);
+
+    /* Find the batch by code */
+    const batch = await Batch.findOne({ code: code.trim(), status: 'active' });
+    if (!batch) {
+      console.log('[USER] Invalid batch code:', code);
+      return res.status(404).json({ error: 'Invalid or expired batch code' });
+    }
+
+    /* Find the authenticated user */
+    const user = await User.findOne({ clerkId: req.userId });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+
+    /* Guard: user must already be linked to the batch's center */
+    if (!user.coachingCenter || user.coachingCenter.toString() !== batch.coachingCenter.toString()) {
+      console.log('[USER] User', req.userId, 'is not linked to batch\'s center');
+      return res.status(403).json({
+        error: 'You must join the coaching centre first before joining a batch. Ask your centre for their join code.'
+      });
+    }
+
+    /* Link the user to this batch */
+    user.batch = batch._id;
+    await user.save();
+
+    console.log('[USER] User linked to batch:', batch._id, 'code:', code);
+    res.json({ data: { batch: batch._id, batchName: batch.name } });
+  } catch (error) {
+    console.error('[USER] Error linking batch:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/users/select-course
+ * User: Select a course offering from their linked center.
+ * Body: { courseOfferingId }
+ * Verifies the course belongs to the user's own coachingCenter.
+ */
+export async function selectCourse(req, res) {
+  try {
+    console.log('[USER] Select course request for user:', req.userId);
+    const { courseOfferingId } = req.body;
+
+    if (!courseOfferingId) {
+      return res.status(400).json({ error: 'courseOfferingId is required' });
+    }
+
+    const user = await User.findOne({ clerkId: req.userId });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    /* Guard: user must be linked to a center first */
+    if (!user.coachingCenter) {
+      return res.status(400).json({ error: 'You must join a coaching centre first before selecting a course.' });
+    }
+
+    /* Verify the course offering belongs to the user's center */
+    const offering = await CourseOffering.findById(courseOfferingId);
+    if (!offering) {
+      return res.status(404).json({ error: 'Course offering not found' });
+    }
+    if (offering.coachingCenter.toString() !== user.coachingCenter.toString()) {
+      return res.status(403).json({ error: 'Course offering does not belong to your centre' });
+    }
+
+    user.courseOffering = offering._id;
+    await user.save();
+
+    /* Fire-and-forget: re-check profile completeness now that courseOffering is set */
+    checkAndNotifyProfileIncomplete(user._id).catch(err => {
+      console.error('[USER] Failed to check profile completeness after selecting course:', err.message);
+    });
+
+    console.log('[USER] Course selected:', offering.name, 'for user:', user._id);
+    res.json({ data: { courseOffering: offering._id, courseOfferingName: offering.name } });
+  } catch (error) {
+    console.error('[USER] Error selecting course:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
  * Check if the user's profile is complete (displayName, college, year).
  * If incomplete and no unread profile_incomplete notification exists, create one.
  * If complete and an unread profile_incomplete notification exists, mark it read.
@@ -117,7 +229,13 @@ export async function checkAndNotifyProfileIncomplete(userId) {
     const user = await User.findById(userId);
     if (!user) return;
 
-    const isComplete = user.displayName && user.college && user.year;
+    /*
+     * Profile completeness: displayName, college, year are always required.
+     * courseOffering is conditionally required — only if the user has joined a coaching center.
+     */
+    const hasRequiredFields = user.displayName && user.college && user.year;
+    const hasCourseIfNeeded = !user.coachingCenter || user.courseOffering;
+    const isComplete = hasRequiredFields && hasCourseIfNeeded;
 
     if (isComplete) {
       /* Mark any unread profile_incomplete notifications as read */
@@ -202,7 +320,10 @@ export async function getUsers(req, res) {
  */
 export async function getUserByUsername(req, res) {
   try {
-    let user = await User.findOne({ username: req.params.username }).populate('coachingCenter', 'name');
+    let user = await User.findOne({ username: req.params.username })
+      .populate('coachingCenter', 'name')
+      .populate('batch')
+      .populate('courseOffering', 'name');
     /* Auto-create if the authenticated user is requesting their own profile */
     if (!user && req.userId) {
       const clerkUser = await clerk.users.getUser(req.userId);
@@ -426,6 +547,9 @@ import OsSubtopic from '../models/OsSubtopic.js';
 import Problem from '../models/Problem.js';
 import DbmsProblem from '../models/DbmsProblem.js';
 import OsProblem from '../models/OsProblem.js';
+import ProgrammingProblem from '../models/ProgrammingProblem.js';
+import ProgrammingLesson from '../models/ProgrammingLesson.js';
+import ProgrammingSubtopic from '../models/ProgrammingSubtopic.js';
 import { getProgressSummary } from '../services/progressService.js';
 
 /*
@@ -468,7 +592,7 @@ export async function exportUserCsv(req, res) {
       'Problems Completed', 'Problems Total', 'Overall Completed', 'Overall Total', 'Overall %',
       'Quizzes Taken', 'Avg Quiz Score']);
 
-    for (const subject of ['dsa', 'dbms', 'os']) {
+    for (const subject of ['dsa', 'dbms', 'os', 'programming']) {
       const d = summary[subject];
       if (d) {
         const pct = d.overall.total > 0 ? Math.round((d.overall.completed / d.overall.total) * 100) : 0;
@@ -486,9 +610,9 @@ export async function exportUserCsv(req, res) {
     rows.push(['']);
 
     /* ── Build name lookup maps ── */
-    const LESSON_MODELS = { dsa: DsaLesson, dbms: DbmsLesson, os: OsLesson };
-    const SUBTOPIC_MODELS = { dsa: Subtopic, dbms: DbmsSubtopic, os: OsSubtopic };
-    const PROBLEM_MODELS = { dsa: Problem, dbms: DbmsProblem, os: OsProblem };
+    const LESSON_MODELS = { dsa: DsaLesson, dbms: DbmsLesson, os: OsLesson, programming: ProgrammingLesson };
+    const SUBTOPIC_MODELS = { dsa: Subtopic, dbms: DbmsSubtopic, os: OsSubtopic, programming: ProgrammingSubtopic };
+    const PROBLEM_MODELS = { dsa: Problem, dbms: DbmsProblem, os: OsProblem, programming: ProgrammingProblem };
 
     /* Fetch all lesson/subtopic/problem names in batch */
     const [dsaLessons, dsaSubtopics, dbmsLessons, dbmsSubtopics, osLessons, osSubtopics, dsaProblems, dbmsProblems, osProblems] = await Promise.all([
@@ -498,9 +622,12 @@ export async function exportUserCsv(req, res) {
       DbmsSubtopic.find({}).select('slug title lessonSlug').lean(),
       OsLesson.find({}).select('slug title').lean(),
       OsSubtopic.find({}).select('slug title lessonSlug').lean(),
+      ProgrammingLesson.find({}).select('slug title').lean(),
+      ProgrammingSubtopic.find({}).select('slug title lessonSlug').lean(),
       Problem.find({}).select('slug title lessonSlug subtopicSlug').lean(),
       DbmsProblem.find({}).select('slug title lessonSlug subtopicSlug').lean(),
-      OsProblem.find({}).select('slug title lessonSlug subtopicSlug').lean()
+      OsProblem.find({}).select('slug title lessonSlug subtopicSlug').lean(),
+      ProgrammingProblem.find({}).select('slug title lessonSlug subtopicSlug').lean()
     ]);
 
     /* Build quick lookup maps */
@@ -556,8 +683,8 @@ export async function exportUserCsv(req, res) {
     rows.push(['Subject', 'Score', 'Questions', 'Correct', 'Attempted At', 'Problem Name', 'Problem Slug']);
     for (const att of attempts) {
       const correct = att.quiz.questions.filter((q, i) => att.answers[i] === q.correctIndex).length;
-      const subject = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os' }[att.quiz.problemModel] || '';
-      const probModel = { Problem, DbmsProblem, OsProblem }[att.quiz.problemModel];
+      const subject = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming' }[att.quiz.problemModel] || '';
+      const probModel = { Problem, DbmsProblem, OsProblem, ProgrammingProblem }[att.quiz.problemModel];
       let probName = '';
       if (probModel) {
         const prob = await probModel.findById(att.quiz.problemId).select('title slug').lean();

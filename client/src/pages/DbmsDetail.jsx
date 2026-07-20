@@ -143,7 +143,7 @@ export default function DbmsDetail() {
         {/* Left (60%): Problem content */}
         <div className="pdetail-main">
           <ProblemView problem={p} />
-          <QuizEmbed problemModel="DbmsProblem" slug={slug} subjectName="DBMS" />
+          <QuizEmbed problemModel="DbmsProblem" slug={slug} subjectName="DBMS" subject="dbms" />
         </div>
 
         {/* Right (40%): Code panel + downloads */}

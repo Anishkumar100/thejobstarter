@@ -63,7 +63,13 @@ export async function getQuestions(req, res) {
 export async function getQuestionById(req, res) {
   try {
     console.log('[QA] Fetching question by ID:', req.params.id);
-    const question = await Question.findById(req.params.id);
+    /* Validate ObjectId format to avoid CastError */
+    const { id } = req.params;
+    if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      console.log('[QA] Invalid question ID format:', id);
+      return res.status(400).json({ error: 'Invalid question ID' });
+    }
+    const question = await Question.findById(id);
     if (!question) {
       console.log('[QA] Question not found:', req.params.id);
       return res.status(404).json({ error: 'Question not found' });

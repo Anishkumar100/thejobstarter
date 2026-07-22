@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Button from '../ui/Button.jsx';
 
 const CATEGORIES = ['All', 'Images', 'Documents', 'Videos', 'Other'];
@@ -21,6 +21,8 @@ function getCategory(file) {
 
 export default function MediaLibrary({ files = [], onDelete }) {
   const [activeCategory, setActiveCategory] = useState('All');
+  /* Track which card's URL was just copied for feedback toast */
+  const [copiedId, setCopiedId] = useState(null);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -34,6 +36,29 @@ export default function MediaLibrary({ files = [], onDelete }) {
   }, [files]);
 
   const displayed = activeCategory === 'All' ? files : grouped[activeCategory] || [];
+
+  /*
+   * Copy a URL to clipboard and flash feedback on the button for 2 seconds
+   */
+  const handleCopy = useCallback(async (fileId, url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(fileId);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      /* Fallback for environments without clipboard API */
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopiedId(fileId);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  }, []);
 
   return (
     <div>
@@ -93,17 +118,53 @@ export default function MediaLibrary({ files = [], onDelete }) {
                   {getCategory(file) === 'Videos' ? '▶' : '📄'}
                 </div>
               )}
-              <div style={{ padding: 'var(--space-sm)' }}>
-                <p style={{ fontSize: '0.75rem', wordBreak: 'break-all', marginBottom: '4px' }}>
+              <div style={{ padding: 'var(--space-sm)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {/* File name */}
+                <p style={{
+                  fontSize: '0.72rem', fontWeight: 700,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                }} title={file.name}>
                   {file.name}
                 </p>
+                {/* Category tag */}
                 <span style={{
                   fontSize: '0.6rem', fontWeight: 600, textTransform: 'uppercase',
                   color: 'var(--text-tertiary)', letterSpacing: '0.05em'
                 }}>
                   {getCategory(file)}
                 </span>
-                <div style={{ marginTop: 'var(--space-sm)' }}>
+                {/* URL display + copy */}
+                <div style={{
+                  background: 'var(--surface-alt)',
+                  border: '2px solid var(--border-color)',
+                  padding: '4px 6px',
+                  fontSize: '0.62rem',
+                  wordBreak: 'break-all',
+                  lineHeight: 1.4,
+                  fontFamily: 'var(--font-mono)',
+                  maxHeight: '3em',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }} title={file.url}>
+                  {file.url}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(file.fileId, file.url)}
+                  style={{
+                    alignSelf: 'flex-start',
+                    fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.03em',
+                    padding: '3px 10px', cursor: 'pointer',
+                    border: '2px solid var(--border-color)',
+                    background: copiedId === file.fileId ? 'var(--success-bg, #d4edda)' : 'var(--surface)',
+                    color: copiedId === file.fileId ? 'var(--success-text, #155724)' : 'var(--text-primary)',
+                    textTransform: 'uppercase',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {copiedId === file.fileId ? 'COPIED!' : 'COPY URL'}
+                </button>
+                <div>
                   <Button variant="danger" size="sm" onClick={() => onDelete(file.fileId)}>Delete</Button>
                 </div>
               </div>

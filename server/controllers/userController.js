@@ -324,18 +324,29 @@ export async function getUserByUsername(req, res) {
       .populate('coachingCenter', 'name')
       .populate('batch')
       .populate('courseOffering', 'name');
-    /* Auto-create if the authenticated user is requesting their own profile */
+    /* Auto-create or update username if the authenticated user is requesting their own profile */
     if (!user && req.userId) {
       const clerkUser = await clerk.users.getUser(req.userId);
       const clerkUsername = clerkUser.username || clerkUser.emailAddresses?.[0]?.emailAddress?.split('@')[0];
       if (clerkUsername === req.params.username) {
-        user = await User.create({
-          clerkId: req.userId,
-          username: clerkUsername,
-          displayName: clerkUser.fullName || clerkUsername,
-          avatar: clerkUser.imageUrl || '',
-          email: clerkUser.primaryEmailAddress?.emailAddress || ''
-        });
+        /* Check if a user with this clerkId already exists (webhook may have created it with a different username) */
+        const existing = await User.findOne({ clerkId: req.userId });
+        if (existing) {
+          /* Update username to match the URL in case it changed */
+          existing.username = req.params.username;
+          if (clerkUser.fullName) existing.displayName = clerkUser.fullName;
+          if (clerkUser.imageUrl) existing.avatar = clerkUser.imageUrl;
+          await existing.save();
+          user = existing;
+        } else {
+          user = await User.create({
+            clerkId: req.userId,
+            username: clerkUsername,
+            displayName: clerkUser.fullName || clerkUsername,
+            avatar: clerkUser.imageUrl || '',
+            email: clerkUser.primaryEmailAddress?.emailAddress || ''
+          });
+        }
       }
     }
     if (!user) {
@@ -375,6 +386,16 @@ export async function getUserByUsername(req, res) {
 export async function updateProfile(req, res) {
   try {
     let user = await User.findOne({ username: req.params.username });
+    /* Fallback: if not found by username but matches authenticated user's clerkId, find by clerkId */
+    if (!user && req.userId) {
+      user = await User.findOne({ clerkId: req.userId });
+      if (user && req.params.username !== user.username) {
+        /* Update username to match the URL */
+        user.username = req.params.username;
+        await user.save();
+        console.log('[USER] Updated username to:', req.params.username);
+      }
+    }
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     if (user.clerkId && user.clerkId !== req.userId) {

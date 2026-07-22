@@ -136,17 +136,15 @@ export async function deleteBatch(req, res) {
     console.log('[BATCH] Deleting batch:', req.params.id);
     const linkedStudents = await User.countDocuments({ batch: req.params.id });
     if (linkedStudents > 0) {
-      console.log('[BATCH] Cannot delete batch with linked students:', linkedStudents);
-      return res.status(409).json({
-        error: `Cannot delete batch with ${linkedStudents} linked student(s). Archive the batch instead.`
-      });
+      console.log('[BATCH] Unlinking', linkedStudents, 'students from batch:', req.params.id);
+      await User.updateMany({ batch: req.params.id }, { $set: { batch: null } });
     }
     const batch = await Batch.findByIdAndDelete(req.params.id);
     if (!batch) {
       return res.status(404).json({ error: 'Batch not found' });
     }
-    console.log('[BATCH] Batch deleted:', req.params.id);
-    res.json({ success: true });
+    console.log('[BATCH] Batch deleted:', req.params.id, '- unlinked students:', linkedStudents);
+    res.json({ success: true, unlinkedStudents: linkedStudents });
   } catch (error) {
     console.error('[BATCH] Error deleting batch:', error.message);
     res.status(500).json({ error: error.message });

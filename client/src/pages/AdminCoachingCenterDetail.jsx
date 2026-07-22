@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { useCoachingCenterStore } from '../stores/useCoachingCenterStore.js';
 import Loader from '../components/ui/Loader.jsx';
 import Modal from '../components/ui/Modal.jsx';
-import { Shield, RefreshCw, ArrowLeft, Users, Layers, Trash2, CheckSquare, BookOpen } from 'lucide-react';
+import { Shield, RefreshCw, ArrowLeft, Users, Layers, Trash2, CheckSquare, BookOpen, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function AdminCoachingCenterDetail() {
   const { id } = useParams();
@@ -507,6 +507,73 @@ export default function AdminCoachingCenterDetail() {
           </div>
         )}
       </div>
+
+      {/* ═══ NEEDS ATTENTION ═══ */}
+      {(() => {
+        const flagged = students.filter(s => s.needsAttention);
+        return (
+          <div className="admin-card" style={{ marginTop: 'var(--space-xl)', borderLeft: '6px solid #dc2626' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <AlertCircle size={18} style={{ color: '#dc2626' }} />
+                <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>
+                  Needs Attention
+                </h2>
+                <span style={{
+                  fontSize: '0.65rem', fontWeight: 800,
+                  padding: '2px 10px', border: '2px solid #000',
+                  background: flagged.length > 0 ? '#dc2626' : 'var(--success)',
+                  color: '#fff'
+                }}>
+                  {flagged.length} flagged
+                </span>
+              </div>
+            </div>
+
+            {flagged.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', color: 'var(--text-tertiary)' }}>
+                <CheckCircle size={16} style={{ color: 'var(--success)' }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>No students need attention right now</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {flagged.sort((a, b) => (b.attentionReasons?.length || 0) - (a.attentionReasons?.length || 0)).map(s => (
+                  <Link key={s._id} to={`/admin/coaching-centers/${id}/students/${s._id}`} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '6px 10px', border: '2px solid #000',
+                    background: 'var(--surface)', textDecoration: 'none', color: 'inherit',
+                    fontSize: '0.82rem', transition: 'transform 0.12s'
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 #000'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    {s.avatar ? (
+                      <img src={s.avatar} alt="" style={{ width: 28, height: 28, border: '2px solid #000', objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 28, height: 28, border: '2px solid #000', background: 'var(--gray-300)', flexShrink: 0 }} />
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontWeight: 700 }}>{s.displayName || s.username}</span>
+                      <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>{s.batch?.name || 'No batch'}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {(s.attentionReasons || []).map((reason, i) => (
+                        <span key={i} style={{
+                          fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
+                          padding: '2px 6px', border: '2px solid #000',
+                          background: reason.includes('Inactive') ? '#fee2e2' : reason.includes('Bottom') ? '#fef3c7' : '#e0e7ff'
+                        }}>
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Student Roster */}
       <div className="admin-card" style={{ marginTop: 'var(--space-xl)' }}>

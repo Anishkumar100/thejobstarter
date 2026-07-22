@@ -11,7 +11,8 @@
 import User from '../models/User.js';
 import CoachingCenter from '../models/CoachingCenter.js';
 import Batch from '../models/Batch.js';
-import { getProgressSummariesForUsers } from './progressService.js';
+import { getProgressSummariesForUsers, getLastActivityForUsers } from './progressService.js';
+import { computeNeedsAttention, syncNeedsAttentionNotifications } from './needsAttentionService.js';
 
 /*
  * getCenterRoster(centerId)
@@ -47,6 +48,14 @@ export async function getCenterRoster(centerId) {
     ...s,
     progress: summaries.get(s._id.toString()) || null
   }));
+
+  /* Attach last-activity timestamps and compute needs-attention flags */
+  const lastActivityMap = await getLastActivityForUsers(userIds);
+  computeNeedsAttention(studentsWithProgress, lastActivityMap);
+  /* Fire-and-forget notification sync — don't block the response */
+  syncNeedsAttentionNotifications(studentsWithProgress).catch(err =>
+    console.error('[ROSTER] Notification sync error:', err.message)
+  );
 
   console.log('[ROSTER] Center:', center.name, '| Students:', totalStudents);
 
@@ -89,6 +98,14 @@ export async function getBatchRoster(batchId) {
     ...s,
     progress: summaries.get(s._id.toString()) || null
   }));
+
+  /* Attach last-activity timestamps and compute needs-attention flags */
+  const lastActivityMap = await getLastActivityForUsers(userIds);
+  computeNeedsAttention(studentsWithProgress, lastActivityMap);
+  /* Fire-and-forget notification sync */
+  syncNeedsAttentionNotifications(studentsWithProgress).catch(err =>
+    console.error('[ROSTER] Notification sync error:', err.message)
+  );
 
   console.log('[ROSTER] Batch:', batch.name, '| Students:', totalStudents);
 

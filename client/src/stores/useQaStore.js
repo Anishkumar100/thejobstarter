@@ -41,6 +41,12 @@ export const useQaStore = create((set, get) => ({
   fetchQuestionById: async (id) => {
     const pl = usePageLoadingStore.getState();
     pl.start('Q&A');
+    if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      console.error('[QA] Invalid question ID:', id);
+      set({ error: null, loading: false, currentQuestion: null, answers: [] });
+      pl.stop('Q&A');
+      return;
+    }
     set({ loading: true, error: null });
     try {
       const res = await fetchQuestionById(id);

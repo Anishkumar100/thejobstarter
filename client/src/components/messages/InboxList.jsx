@@ -34,6 +34,11 @@ const NOTIF_CONFIG = {
     badgeIcon: AlertCircleIcon,
     badgeBg: '#f59e0b',
     action: () => 'Complete your profile — add display name, college, and year'
+  },
+  needs_attention: {
+    badgeIcon: AlertCircleIcon,
+    badgeBg: '#dc2626',
+    action: () => 'You need attention — review your progress and quizzes'
   }
 };
 
@@ -84,24 +89,30 @@ export default function InboxList({ conversations = [], notifications = [], unre
             const config = NOTIF_CONFIG[item.type] || NOTIF_CONFIG.answer;
             const BadgeIcon = config.badgeIcon;
             const isAdminAction = item.type === 'question_approved' || item.type === 'question_rejected';
-            const isSystemNotif = item.type === 'profile_incomplete';
+            const isSystemNotif = item.type === 'profile_incomplete' || item.type === 'needs_attention';
 
             const questionDeleted = item.questionDeleted;
-            const isProfileLink = isSystemNotif;
-            const noLink = questionDeleted && !isProfileLink;
+            const isProfileLink = item.type === 'profile_incomplete';
+            const isAttentionLink = item.type === 'needs_attention';
+            const hasQaLink = item.questionId;
+            const noLink = (questionDeleted || !hasQaLink) && !isProfileLink && !isAttentionLink;
             const Wrapper = noLink ? 'div' : Link;
             const wrapperProps = noLink
               ? { className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}` }
-              : isProfileLink
-                ? { to: '/settings/profile', className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) }
-                : { to: `/qa/${item.questionId}`, className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) };
+              : isAttentionLink
+                ? { to: '/', className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) }
+                : isProfileLink
+                  ? { to: '/settings/profile', className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) }
+                  : { to: `/qa/${item.questionId}`, className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) };
 
             return (
               <div key={`notif-${item._id}`} className="inbox-item__wrap">
                 <Wrapper {...wrapperProps}>
                   <div className="inbox-item__avatar inbox-item__avatar--notif">
                     {isAdminAction || isSystemNotif ? (
-                      <div className="inbox-item__admin-avatar" style={isSystemNotif ? { background: '#f59e0b' } : {}}>
+                      <div className="inbox-item__admin-avatar" style={{
+                        background: item.type === 'needs_attention' ? '#dc2626' : item.type === 'profile_incomplete' ? '#f59e0b' : '#000'
+                      }}>
                         {isSystemNotif ? <AlertCircleIcon size={18} /> : <CheckmarkCircle01Icon size={18} />}
                       </div>
                     ) : (
@@ -117,7 +128,11 @@ export default function InboxList({ conversations = [], notifications = [], unre
                         {isAdminAction ? (
                           <span className="inbox-item__admin-label">Admin</span>
                         ) : isSystemNotif ? (
-                          <span className="inbox-item__admin-label" style={{ color: '#f59e0b' }}>Profile</span>
+                          <span className="inbox-item__admin-label" style={{
+                            color: item.type === 'needs_attention' ? '#dc2626' : '#f59e0b'
+                          }}>
+                            {item.type === 'needs_attention' ? 'Attention' : 'Profile'}
+                          </span>
                         ) : (
                           from.displayName || from.username || 'Someone'
                         )}
@@ -130,6 +145,19 @@ export default function InboxList({ conversations = [], notifications = [], unre
                     {!isSystemNotif && (
                       <div className={`inbox-item__preview ${!item.read ? 'inbox-item__preview--unread' : ''}`}>
                         {item.questionTitle}
+                      </div>
+                    )}
+                    {item.type === 'needs_attention' && item.attentionReasons?.length > 0 && (
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+                        {item.attentionReasons.map((reason, i) => (
+                          <span key={i} style={{
+                            fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
+                            padding: '2px 6px', border: '2px solid #000',
+                            background: reason.includes('Inactive') ? '#fee2e2' : reason.includes('Bottom') ? '#fef3c7' : '#e0e7ff'
+                          }}>
+                            {reason}
+                          </span>
+                        ))}
                       </div>
                     )}
                     {questionDeleted && !isSystemNotif && (

@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
-import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar } from 'lucide-react';
+import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 
 const CARD = {
   border: '4px solid var(--border-color)',
@@ -209,10 +209,8 @@ export default function CoordinatorBatchDetail() {
 
   const handleDelete = async () => {
     if (enrolledStudents.length > 0) {
-      alert(`Cannot delete batch with ${enrolledStudents.length} linked student(s). Remove students first or archive it.`);
-      return;
-    }
-    if (!confirm('Delete this batch permanently?')) return;
+      if (!confirm(`This batch has ${enrolledStudents.length} student(s) who will be unassigned. Delete anyway?`)) return;
+    } else if (!confirm('Delete this batch permanently?')) return;
     try {
       await apiRequest(`/coordinator/batches/${id}`, { method: 'DELETE' });
       navigate('/coordinator/batches');
@@ -425,6 +423,65 @@ export default function CoordinatorBatchDetail() {
           </button>
         )}
       </div>
+
+      {/* ═══ NEEDS ATTENTION ═══ */}
+      {(() => {
+        const flagged = enrolledStudents.filter(s => s.needsAttention);
+        if (flagged.length === 0) return null;
+        return (
+          <div style={{ marginBottom: 'var(--space-xl)', ...CARD, borderLeft: '6px solid #dc2626' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <AlertCircle size={18} style={{ color: '#dc2626' }} />
+                <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>
+                  Needs Attention
+                </h2>
+                <span style={{
+                  fontSize: '0.65rem', fontWeight: 800,
+                  padding: '2px 10px', border: '2px solid #000',
+                  background: '#dc2626', color: '#fff'
+                }}>
+                  {flagged.length} flagged
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {flagged.sort((a, b) => (b.attentionReasons?.length || 0) - (a.attentionReasons?.length || 0)).map(s => (
+                <Link key={s._id} to={`/coordinator/students/${s._id}`} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '6px 10px', border: '2px solid #000',
+                  background: 'var(--surface)', textDecoration: 'none', color: 'inherit',
+                  fontSize: '0.82rem', transition: 'transform 0.12s'
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 #000'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  {s.avatar ? (
+                    <img src={s.avatar} alt="" style={{ width: 28, height: 28, border: '2px solid #000', objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 28, height: 28, border: '2px solid #000', background: 'var(--gray-300)', flexShrink: 0 }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontWeight: 700 }}>{s.displayName || s.username}</span>
+                    <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>{s.college || '—'}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {(s.attentionReasons || []).map((reason, i) => (
+                      <span key={i} style={{
+                        fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
+                        padding: '2px 6px', border: '2px solid #000',
+                        background: reason.includes('Inactive') ? '#fee2e2' : reason.includes('Bottom') ? '#fef3c7' : '#e0e7ff'
+                      }}>
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ═══════════════════════════════════════ */}
       {/* ENROLLED STUDENTS — in this batch       */}

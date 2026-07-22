@@ -318,15 +318,13 @@ export async function deleteCoordinatorBatch(req, res) {
 
     const linkedStudents = await User.countDocuments({ batch: id });
     if (linkedStudents > 0) {
-      console.log('[COORD] Cannot delete batch with linked students:', linkedStudents);
-      return res.status(409).json({
-        error: `Cannot delete batch with ${linkedStudents} linked student(s). Archive it instead.`
-      });
+      console.log('[COORD] Unlinking', linkedStudents, 'students from batch:', id);
+      await User.updateMany({ batch: id }, { $set: { batch: null } });
     }
 
     await Batch.findByIdAndDelete(id);
-    console.log('[COORD] Batch deleted:', id);
-    res.json({ success: true });
+    console.log('[COORD] Batch deleted:', id, '- unlinked students:', linkedStudents);
+    res.json({ success: true, unlinkedStudents: linkedStudents });
   } catch (error) {
     console.error('[COORD] Error deleting batch:', error.message);
     res.status(500).json({ error: error.message });
@@ -707,13 +705,13 @@ export async function exportCoordinatorCsv(req, res) {
     rows.push(['SECTION: STUDENT PROGRESS']);
     rows.push([
       'Username', 'Display Name', 'Email', 'College', 'Year',
-      'Joined Centre',
+      'Joined Centre', 'Batch',
       'DSA Lessons', 'DSA Subtopics', 'DSA Problems', 'DSA Overall %', 'DSA Quiz Avg',
       'DBMS Lessons', 'DBMS Subtopics', 'DBMS Problems', 'DBMS Overall %', 'DBMS Quiz Avg',
       'OS Lessons', 'OS Subtopics', 'OS Problems', 'OS Overall %', 'OS Quiz Avg',
       'PROG Lessons', 'PROG Subtopics', 'PROG Problems', 'PROG Overall %', 'PROG Quiz Avg',
       'Overall Completed', 'Overall Total', 'Overall %',
-      'Status'
+      'Status', 'Needs Attention', 'Attention Reasons'
     ]);
 
     for (const s of students) {
@@ -727,7 +725,8 @@ export async function exportCoordinatorCsv(req, res) {
         s.email || '',
         s.college || '',
         s.year || '',
-        s.coachingCenterJoinedAt ? new Date(s.coachingCenterJoinedAt).toISOString().split('T')[0] : ''
+        s.coachingCenterJoinedAt ? new Date(s.coachingCenterJoinedAt).toISOString().split('T')[0] : '',
+        s.batch?.name || ''
       ];
 
       for (const sub of subjects) {
@@ -755,6 +754,8 @@ export async function exportCoordinatorCsv(req, res) {
       const status = overallPct > 0 ? deriveStatus({ completionPct: overallPct, quizAvgPct: overallQuizAvg }) : 'Not started';
 
       row.push(totalCompleted, totalItems, `${overallPct}%`, status);
+      row.push(s.needsAttention ? 'Yes' : 'No');
+      row.push(s.attentionReasons ? s.attentionReasons.join('; ') : '');
       rows.push(row);
     }
 

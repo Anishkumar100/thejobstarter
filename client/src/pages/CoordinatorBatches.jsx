@@ -93,15 +93,10 @@ export default function CoordinatorBatches() {
   };
 
   /*
-   * Delete a batch (only if empty)
+   * Delete a batch (unlinks any remaining students first)
    */
   const handleDelete = async (batchId) => {
-    const count = getBatchStudentCount(batchId);
-    if (count > 0) {
-      alert(`Cannot delete batch with ${count} linked student(s). Remove students first or archive it.`);
-      return;
-    }
-    if (!confirm('Delete this batch permanently?')) return;
+    if (!confirm('Delete this batch permanently? Students currently linked will be unassigned.')) return;
     try {
       await apiRequest(`/coordinator/batches/${batchId}`, { method: 'DELETE' });
       console.log('[COORD BATCHES] Batch deleted:', batchId);

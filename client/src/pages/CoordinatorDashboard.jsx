@@ -10,7 +10,8 @@ import {
 import {
   Users, BarChart3, PieChart as PieChartIcon, TrendingUp,
   BookOpen, Database, Cpu, CheckCircle2, Award, Target,
-  Calendar, ClipboardList, GraduationCap, ArrowRight, Lightbulb, Download, Code2, Layers
+  Calendar, ClipboardList, GraduationCap, ArrowRight, Lightbulb, Download, Code2, Layers,
+  AlertCircle, CheckCircle
 } from 'lucide-react';
 
 const PIE_COLORS = ['var(--success)', 'var(--error)', 'var(--text-tertiary)'];
@@ -228,6 +229,101 @@ export default function CoordinatorDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ═══ NEEDS ATTENTION ═══ */}
+      {(() => {
+        const flagged = students.filter(s => s.needsAttention);
+        return (
+          <div style={{ marginBottom: 'var(--space-xl)', ...CARD, borderLeft: '8px solid #dc2626' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <AlertCircle size={20} style={{ color: '#dc2626' }} />
+                <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>
+                  Needs Attention
+                </h2>
+                <span style={{
+                  fontSize: '0.65rem', fontWeight: 800,
+                  padding: '2px 10px', border: '2px solid #000',
+                  background: flagged.length > 0 ? '#dc2626' : 'var(--success)',
+                  color: '#fff'
+                }}>
+                  {flagged.length} flagged
+                </span>
+              </div>
+            </div>
+
+            {flagged.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0', color: 'var(--text-tertiary)' }}>
+                <CheckCircle size={18} style={{ color: 'var(--success)' }} />
+                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>No students need attention right now</span>
+              </div>
+            ) : (
+              <>
+                {/* Batch breakdown mini bar */}
+                {(() => {
+                  const batchCounts = {};
+                  flagged.forEach(s => {
+                    const name = s.batch?.name || 'Unassigned';
+                    batchCounts[name] = (batchCounts[name] || 0) + 1;
+                  });
+                  const total = flagged.length;
+                  return (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 'var(--space-md)' }}>
+                      {Object.entries(batchCounts).sort((a, b) => b[1] - a[1]).map(([name, count]) => (
+                        <span key={name} style={{
+                          fontSize: '0.65rem', fontWeight: 700, padding: '3px 10px',
+                          border: '2px solid #000', background: name === 'Unassigned' ? 'var(--surface-alt)' : 'var(--surface)'
+                        }}>
+                          {name} <strong>({count})</strong>
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Student rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {flagged.sort((a, b) => (b.attentionReasons?.length || 0) - (a.attentionReasons?.length || 0)).map(s => (
+                    <Link key={s._id} to={`/coordinator/students/${s._id}`} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 12px', border: '2px solid #000',
+                      background: 'var(--surface)', textDecoration: 'none', color: 'inherit',
+                      transition: 'transform 0.12s'
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 #000'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                      {s.avatar ? (
+                        <img src={s.avatar} alt="" style={{ width: 32, height: 32, border: '2px solid #000', objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 32, height: 32, border: '2px solid #000', background: 'var(--gray-300)', flexShrink: 0 }} />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>{s.displayName || s.username}</div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                          {s.batch?.name || 'No batch'} · {s.college || '—'}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flex: '0 1 auto', maxWidth: '50%', justifyContent: 'flex-end' }}>
+                        {(s.attentionReasons || []).map((reason, i) => (
+                          <span key={i} style={{
+                            fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
+                            padding: '2px 8px', border: '2px solid #000',
+                            background: reason.includes('Inactive') ? '#fee2e2' : reason.includes('Bottom') ? '#fef3c7' : '#e0e7ff',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {reason}
+                          </span>
+                        ))}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ═══ STATS CARDS ═══ */}
       {stats && (

@@ -255,3 +255,45 @@ export async function getProgressSummariesForUsers(userIds) {
   console.log('[PROGRESS] Batch summaries computed');
   return result;
 }
+
+/*
+ * getLastActivityForUsers(userIds)
+ * Batch query: returns a Map of userId → lastActivity Date.
+ * Computes the max of each user's latest Progress.completedAt and latest QuizAttempt.attemptedAt.
+ * Used by needsAttentionService to detect inactivity.
+ */
+export async function getLastActivityForUsers(userIds) {
+  console.log('[PROGRESS] Fetching last activity for', userIds.length, 'users');
+  if (userIds.length === 0) return new Map();
+
+  const result = new Map();
+  userIds.forEach(id => result.set(id.toString(), null));
+
+  /* Get max completedAt from Progress per user */
+  const progressActivity = await Progress.aggregate([
+    { $match: { user: { $in: userIds } } },
+    { $group: { _id: '$user', lastActivity: { $max: '$completedAt' } } }
+  ]);
+
+  for (const row of progressActivity) {
+    result.set(row._id.toString(), row.lastActivity);
+  }
+
+  /* Get max attemptedAt from QuizAttempt per user */
+  const quizActivity = await QuizAttempt.aggregate([
+    { $match: { user: { $in: userIds } } },
+    { $group: { _id: '$user', lastAttempt: { $max: '$attemptedAt' } } }
+  ]);
+
+  for (const row of quizActivity) {
+    const key = row._id.toString();
+    const existing = result.get(key);
+    /* Take the later of the two dates */
+    if (!existing || row.lastAttempt > existing) {
+      result.set(key, row.lastAttempt);
+    }
+  }
+
+  console.log('[PROGRESS] Last activity fetched for', result.size, 'users');
+  return result;
+}

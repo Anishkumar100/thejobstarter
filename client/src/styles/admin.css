@@ -444,6 +444,32 @@
   border-color: var(--accent-hover);
 }
 
+/* Theme toggle at the bottom of the sidebar */
+.admin-sidebar__theme-toggle {
+  margin-top: auto;
+  padding: 12px 8px;
+  border-top: 2px solid var(--border-color);
+}
+
+.admin-sidebar__theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.admin-sidebar__theme-btn:hover {
+  background: var(--bg-secondary);
+}
+
 /* Admin card wrapper */
 .admin-card {
   border: 3px solid var(--border-color);

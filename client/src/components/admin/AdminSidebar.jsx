@@ -3,9 +3,10 @@ import {
   LayoutDashboard, BookOpen, Code2, Layers, Tags, Database,
   FileText, Users, HelpCircle, Globe, Mail, Image as ImageIcon,
   Home, Settings, BookText, Tag, Cpu, ThumbsUp, MessageSquareText,
-  X, ChevronDown, Building2, Airplay, Terminal
+  X, ChevronDown, Building2, Airplay, Terminal, Sun, Moon
 } from 'lucide-react';
 import { useState } from 'react';
+import { useThemeStore } from '../../stores/useThemeStore.js';
 
 /*
  * AdminSidebar — Navigation sidebar for the admin dashboard
@@ -96,6 +97,7 @@ const SECTIONS = [
 ];
 
 export default function AdminSidebar({ isOpen, onToggle }) {
+  const { theme, toggleTheme } = useThemeStore();
   const [expandedSections, setExpandedSections] = useState(
     /* Collapse everything except Dashboard by default on mobile */
     SECTIONS.map((s) => s.heading === 'Dashboard')
@@ -177,6 +179,19 @@ export default function AdminSidebar({ isOpen, onToggle }) {
             </div>
           </div>
         ))}
+
+        {/* Theme toggle at the bottom of sidebar */}
+        <div className="admin-sidebar__theme-toggle">
+          <button
+            type="button"
+            className="admin-sidebar__theme-btn"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+        </div>
       </aside>
     </>
   );

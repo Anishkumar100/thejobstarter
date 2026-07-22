@@ -50,7 +50,7 @@ export default function DsaList() {
     return categories
       .filter(c => map[c.value])
       .map(c => ({ value: c.value, label: c.label, lessons: map[c.value] }));
-  }, [filtered]);
+  }, [filtered, categories]);
 
   return (
     <div>

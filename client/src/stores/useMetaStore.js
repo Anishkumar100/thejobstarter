@@ -40,7 +40,6 @@ export const useMetaStore = create((set, get) => ({
         .filter(i => i.type === 'company')
         .sort((a, b) => a.order - b.order)
         .map(i => i.label);
-
       set({ categories, topics, companies, loading: false });
     } catch (error) {
       console.error('[META] Error fetching meta, using constants fallback:', error.message);

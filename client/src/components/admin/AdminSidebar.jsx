@@ -79,6 +79,7 @@ const SECTIONS = [
     heading: 'Coaching',
     links: [
       { to: '/admin/coaching-centers', label: 'Centres', icon: Building2 },
+      { to: '/admin/plans', label: 'Plans', icon: FileText },
     ]
   },
   {

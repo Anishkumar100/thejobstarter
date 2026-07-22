@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
-import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus } from 'lucide-react';
 
 const CARD = {
   border: '4px solid var(--border-color)',
@@ -34,6 +34,14 @@ export default function CoordinatorBatchDetail() {
   const [confirmAction, setConfirmAction] = useState(null);
   /* confirmAction: { type: 'assign'|'remove'|'removeCenter', ids: [] } */
 
+  /* ── Plan section ── */
+  const [activePlan, setActivePlan] = useState(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
+  const [showPlanPicker, setShowPlanPicker] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState([]);
+  const [selectedPlanId, setSelectedPlanId] = useState('');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+
   /*
    * Fetch batch metadata and full centre student roster
    */
@@ -62,6 +70,63 @@ export default function CoordinatorBatchDetail() {
   };
 
   useEffect(() => { fetchData(); }, [id]);
+
+  /* Fetch active plan for this batch */
+  const fetchActivePlan = async () => {
+    setLoadingPlan(true);
+    try {
+      const res = await apiRequest(`/plans/batches/${id}/active-plan`);
+      setActivePlan(res.data);
+    } catch (err) {
+      console.error('[BATCH DETAIL] Active plan error:', err.message);
+      setActivePlan(null);
+    }
+    setLoadingPlan(false);
+  };
+
+  useEffect(() => { if (id) fetchActivePlan(); }, [id]);
+
+  /* Open plan picker — fetch available plans */
+  const openPlanPicker = async () => {
+    try {
+      const res = await apiRequest('/coordinator/plans?status=published');
+      setAvailablePlans(res.data || []);
+      setSelectedPlanId('');
+      setStartDate(new Date().toISOString().split('T')[0]);
+      setShowPlanPicker(true);
+    } catch (err) {
+      alert(err.message || 'Failed to load plans');
+    }
+  };
+
+  /* Assign a plan to this batch */
+  const handleAssignPlan = async () => {
+    if (!selectedPlanId || !startDate) {
+      alert('Please select a plan and start date');
+      return;
+    }
+    try {
+      const res = await apiRequest(`/plans/batches/${id}/assign-plan`, {
+        method: 'POST',
+        body: JSON.stringify({ planId: selectedPlanId, startDate })
+      });
+      setActivePlan(res.data);
+      setShowPlanPicker(false);
+    } catch (err) {
+      alert(err.message || 'Failed to assign plan');
+    }
+  };
+
+  /* Unassign the current plan */
+  const handleUnassignPlan = async () => {
+    if (!confirm('Remove the active plan from this batch?')) return;
+    try {
+      await apiRequest(`/plans/batches/${id}/unassign-plan`, { method: 'DELETE' });
+      setActivePlan(null);
+    } catch (err) {
+      alert(err.message || 'Failed to unassign plan');
+    }
+  };
 
   /* Filter helper — match name, email, and course filter */
   const matchesSearch = (s) => {
@@ -381,6 +446,139 @@ export default function CoordinatorBatchDetail() {
         </div>
       </div>
 
+      {/* ═══ PLAN SECTION ═══ */}
+      <div style={{ ...CARD, marginBottom: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+          <h2 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)' }}>
+            <FileText size={18} /> Active Plan
+          </h2>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {activePlan ? (
+              <>
+                <button className="btn btn--sm" onClick={openPlanPicker}
+                  style={{ fontSize: '0.65rem', padding: '4px 10px' }}>
+                  Change Plan
+                </button>
+                <button className="btn btn--sm btn--danger" onClick={handleUnassignPlan}
+                  style={{ fontSize: '0.65rem', padding: '4px 10px' }}>
+                  <X size={12} /> Unassign
+                </button>
+              </>
+            ) : (
+              <button className="btn btn--sm" onClick={openPlanPicker}
+                style={{ fontSize: '0.65rem', padding: '4px 10px' }}>
+                <Plus size={12} /> Assign Plan
+              </button>
+            )}
+          </div>
+        </div>
+
+        {loadingPlan ? (
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>Loading plan...</p>
+        ) : activePlan ? (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                {activePlan.plan?.name || 'Unknown Plan'}
+              </strong>
+              <span style={{
+                fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
+                padding: '2px 6px', border: '2px solid var(--border-color)',
+                background: 'var(--success-bg)', color: 'var(--success-text)'
+              }}>
+                Active
+              </span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
+              Started {new Date(activePlan.startDate).toLocaleDateString()} · Day {activePlan.currentDay} of {activePlan.totalDays}
+            </div>
+            {/* Progress bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                flex: 1, height: 14,
+                background: 'var(--bg-tertiary)',
+                border: '2px solid var(--border-color)',
+                position: 'relative', overflow: 'hidden'
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: `${Math.round((activePlan.currentDay / activePlan.totalDays) * 100)}%`,
+                  background: 'var(--success)',
+                  transition: 'width 0.4s ease'
+                }} />
+              </div>
+              <span style={{ fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                {Math.round((activePlan.currentDay / activePlan.totalDays) * 100)}%
+              </span>
+            </div>
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Clock size={14} /> No plan assigned yet. Create or assign a study plan to track daily progress.
+          </p>
+        )}
+      </div>
+
+      {/* ── Plan Picker Modal ── */}
+      {showPlanPicker && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'var(--overlay)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 'var(--space-md)'
+        }} onClick={() => setShowPlanPicker(false)}>
+          <div style={{
+            background: 'var(--bg-surface)', border: '4px solid var(--border-color)',
+            boxShadow: 'var(--shadow-lg)', padding: 'var(--space-lg)', maxWidth: 480, width: '100%'
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 'var(--space-md)', fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <FileText size={18} /> Assign a Plan
+            </h3>
+
+            {availablePlans.length === 0 ? (
+              <div style={{ padding: 'var(--space-md)', textAlign: 'center', border: '2px dashed var(--border-color)', marginBottom: 'var(--space-md)' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', marginBottom: 6 }}>No published plans available.</p>
+                <Link to="/coordinator/plans/new" className="btn btn--sm" style={{ fontSize: '0.72rem' }}
+                  onClick={() => setShowPlanPicker(false)}>
+                  <Plus size={12} /> Create a Plan
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: 'var(--space-md)' }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 4, color: 'var(--text-secondary)' }}>Select Plan</label>
+                  <select className="input" value={selectedPlanId}
+                    onChange={e => setSelectedPlanId(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', fontSize: '0.85rem' }}>
+                    <option value="">— Choose a plan —</option>
+                    {availablePlans.map(p => (
+                      <option key={p._id} value={p._id}>
+                        {p.name} ({p.durationDays} days · {p.items?.length || 0} items)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ marginBottom: 'var(--space-lg)' }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 4, color: 'var(--text-secondary)' }}>Start Date</label>
+                  <input type="date" className="input" value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', fontSize: '0.85rem' }} />
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => setShowPlanPicker(false)}>Cancel</button>
+              <button className="btn" onClick={handleAssignPlan}
+                disabled={!selectedPlanId || !startDate}
+                style={{ background: selectedPlanId && startDate ? 'var(--success)' : undefined, color: selectedPlanId && startDate ? 'var(--text-inverse)' : undefined }}>
+                Assign Plan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Search + Filter Bar ── */}
       <div style={{
         ...CARD, marginBottom: 'var(--space-md)',
@@ -429,17 +627,17 @@ export default function CoordinatorBatchDetail() {
         const flagged = enrolledStudents.filter(s => s.needsAttention);
         if (flagged.length === 0) return null;
         return (
-          <div style={{ marginBottom: 'var(--space-xl)', ...CARD, borderLeft: '6px solid #dc2626' }}>
+          <div style={{ marginBottom: 'var(--space-xl)', ...CARD, borderLeft: '6px solid var(--error)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <AlertCircle size={18} style={{ color: '#dc2626' }} />
+                <AlertCircle size={18} style={{ color: 'var(--error)' }} />
                 <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>
                   Needs Attention
                 </h2>
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 800,
-                  padding: '2px 10px', border: '2px solid #000',
-                  background: '#dc2626', color: '#fff'
+                  padding: '2px 10px', border: '2px solid var(--border-color)',
+                  background: 'var(--error)', color: 'var(--text-inverse)'
                 }}>
                   {flagged.length} flagged
                 </span>
@@ -449,17 +647,17 @@ export default function CoordinatorBatchDetail() {
               {flagged.sort((a, b) => (b.attentionReasons?.length || 0) - (a.attentionReasons?.length || 0)).map(s => (
                 <Link key={s._id} to={`/coordinator/students/${s._id}`} style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '6px 10px', border: '2px solid #000',
-                  background: 'var(--surface)', textDecoration: 'none', color: 'inherit',
+                  padding: '6px 10px', border: '2px solid var(--border-color)',
+                  background: 'var(--bg-surface)', textDecoration: 'none', color: 'var(--text-primary)',
                   fontSize: '0.82rem', transition: 'transform 0.12s'
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 #000'; }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 var(--border-color)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
                 >
                   {s.avatar ? (
-                    <img src={s.avatar} alt="" style={{ width: 28, height: 28, border: '2px solid #000', objectFit: 'cover', flexShrink: 0 }} />
+                    <img src={s.avatar} alt="" style={{ width: 28, height: 28, border: '2px solid var(--border-color)', objectFit: 'cover', flexShrink: 0 }} />
                   ) : (
-                    <div style={{ width: 28, height: 28, border: '2px solid #000', background: 'var(--gray-300)', flexShrink: 0 }} />
+                    <div style={{ width: 28, height: 28, border: '2px solid var(--border-color)', background: 'var(--bg-tertiary)', flexShrink: 0 }} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontWeight: 700 }}>{s.displayName || s.username}</span>
@@ -469,8 +667,8 @@ export default function CoordinatorBatchDetail() {
                     {(s.attentionReasons || []).map((reason, i) => (
                       <span key={i} style={{
                         fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
-                        padding: '2px 6px', border: '2px solid #000',
-                        background: reason.includes('Inactive') ? '#fee2e2' : reason.includes('Bottom') ? '#fef3c7' : '#e0e7ff'
+                        padding: '2px 6px', border: '2px solid var(--border-color)',
+                        background: reason.includes('Inactive') ? 'var(--error-bg)' : reason.includes('Bottom') ? 'var(--warning-bg)' : 'var(--accent-light)'
                       }}>
                         {reason}
                       </span>

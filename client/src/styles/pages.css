@@ -531,7 +531,20 @@
   font-family: var(--font-mono);
 }
 
-/* ===== PROBLEM DETAIL PAGE (pdetail) ===== */
+/* ===== Plan Builder Responsive ===== */
+@media (max-width: 900px) {
+  .plan-builder-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .plan-builder-grid > div:first-child {
+    position: static !important;
+    max-height: none !important;
+  }
+  .plan-builder-grid div[style*="sticky"] {
+    position: static !important;
+    max-height: none !important;
+  }
+}
 
 /* ── Page wrapper ── */
 .pdetail-page {
@@ -672,12 +685,13 @@
   padding: 12px 14px;
   border: 3px solid var(--border-color);
   background: var(--bg-primary);
-  min-width: 80px;
+  min-width: 0;
   text-align: center;
+  overflow: hidden;
 }
 
 .pdetail-stat--wide {
-  min-width: 100px;
+  min-width: 0;
 }
 
 .pdetail-stat__num {
@@ -687,15 +701,20 @@
   margin-bottom: 4px;
   font-family: var(--font-mono);
   color: var(--text-primary);
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .pdetail-stat__num-sm {
   font-size: 0.9rem;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.3;
   margin-bottom: 4px;
   font-family: var(--font-mono);
   color: var(--accent);
+  word-break: break-all;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .pdetail-stat__label {
@@ -1338,11 +1357,10 @@
     padding: var(--space-sm) 0 var(--space-md);
   }
   .pdetail-hero__stats {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
   .pdetail-stat {
     padding: 10px;
-    min-width: 0;
   }
   .pdetail-stat__num {
     font-size: 1.1rem;
@@ -1381,9 +1399,6 @@
   }
   .pdetail-layout {
     padding: 0 var(--space-sm);
-  }
-  .pdetail-hero__stats {
-    grid-template-columns: repeat(2, 1fr);
   }
   .pdetail-sidebar {
     grid-template-columns: 1fr;
@@ -6241,4 +6256,5 @@ ol.subtopic-list .subtopic-list__item::marker {
     padding: 6px 10px;
   }
 }
+
 

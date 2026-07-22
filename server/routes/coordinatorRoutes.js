@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { requireCoordinator } from '../middleware/coordinatorOnly.js';
 import { getStudents, getStats, getStudentById, updateStudent, removeStudent, exportCoordinatorCsv, getCoordinatorBatches, createCoordinatorBatch, updateCoordinatorBatch, deleteCoordinatorBatch, assignStudentToBatch, removeStudentFromBatch, bulkAssignStudentsToBatch, bulkRemoveStudentsFromBatch, getCoordinatorCourseOfferings, createCoordinatorCourseOffering, updateCoordinatorCourseOffering, deleteCoordinatorCourseOffering, updateStudentCourse } from '../controllers/coordinatorController.js';
+import { getCoordinatorPlans, getCoordinatorPlanById, createCoordinatorPlan, updateCoordinatorPlan, deleteCoordinatorPlan, getBatchesWithPlans } from '../controllers/planController.js';
 
 const router = Router();
 
@@ -34,5 +35,15 @@ router.delete('/course-offerings/:id', requireAuth, requireCoordinator, deleteCo
 
 /* Student course change */
 router.patch('/students/:userId/course', requireAuth, requireCoordinator, updateStudentCourse);
+
+/* ── Plan routes (scoped to own center) ── */
+router.get('/plans', requireAuth, requireCoordinator, getCoordinatorPlans);
+router.get('/plans/:id', requireAuth, requireCoordinator, getCoordinatorPlanById);
+router.post('/plans', requireAuth, requireCoordinator, createCoordinatorPlan);
+router.put('/plans/:id', requireAuth, requireCoordinator, updateCoordinatorPlan);
+router.delete('/plans/:id', requireAuth, requireCoordinator, deleteCoordinatorPlan);
+
+/* ── Batch progress (for dashboard) ── */
+router.get('/batches/progress', requireAuth, requireCoordinator, getBatchesWithPlans);
 
 export default router;

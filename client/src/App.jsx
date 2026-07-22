@@ -115,6 +115,7 @@ import AdminCoachingCenterStudentDetail from './pages/AdminCoachingCenterStudent
 import AdminLayout from './components/admin/AdminLayout.jsx';
 
 import CoordinatorDashboard from './pages/CoordinatorDashboard.jsx';
+import CoordinatorGeneralStats from './pages/CoordinatorGeneralStats.jsx';
 import CoordinatorBatches from './pages/CoordinatorBatches.jsx';
 import CoordinatorBatchDetail from './pages/CoordinatorBatchDetail.jsx';
 import CoordinatorCourses from './pages/CoordinatorCourses.jsx';
@@ -122,6 +123,8 @@ import CoordinatorStudentsList from './pages/CoordinatorStudentsList.jsx';
 import CoordinatorStudentDetail from './pages/CoordinatorStudentDetail.jsx';
 import CoordinatorProfile from './pages/CoordinatorProfile.jsx';
 import CoordinatorLayout from './components/coordinator/CoordinatorLayout.jsx';
+import AdminPlanList from './pages/AdminPlanList.jsx';
+import AdminPlanBuilder from './pages/AdminPlanBuilder.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 import './styles/tailwind.css';
@@ -281,12 +284,16 @@ function AppRoutes() {
       <Route path="/settings/progress/:subject" element={<ProtectedRoute><AppLayout><SubjectProgressDetail /></AppLayout></ProtectedRoute>} />
 
       <Route path="/coordinator" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorDashboard /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/general-stats" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorGeneralStats /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/courses" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorCourses /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/batches" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorBatches /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/batches/:id" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorBatchDetail /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/students" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentsList /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/students/:userId" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentDetail /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/profile" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorProfile /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/plans" element={<CoordinatorRoute><CoordinatorLayout><AdminPlanList /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/plans/new" element={<CoordinatorRoute><CoordinatorLayout><AdminPlanBuilder /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/plans/:id/edit" element={<CoordinatorRoute><CoordinatorLayout><AdminPlanBuilder /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/messages" element={<ProtectedRoute><AppLayout><MessagesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/messages/:userId" element={<ProtectedRoute><AppLayout><MessageThreadPage /></AppLayout></ProtectedRoute>} />
 
@@ -362,6 +369,9 @@ function AppRoutes() {
       <Route path="/admin/coaching-centers" element={<AdminRoute><AdminLayout><AdminCoachingCenters /></AdminLayout></AdminRoute>} />
       <Route path="/admin/coaching-centers/:id" element={<AdminRoute><AdminLayout><AdminCoachingCenterDetail /></AdminLayout></AdminRoute>} />
       <Route path="/admin/coaching-centers/:centerId/students/:userId" element={<AdminRoute><AdminLayout><AdminCoachingCenterStudentDetail /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/plans" element={<AdminRoute><AdminLayout><AdminPlanList /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/plans/new" element={<AdminRoute><AdminLayout><AdminPlanBuilder /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/plans/:id/edit" element={<AdminRoute><AdminLayout><AdminPlanBuilder /></AdminLayout></AdminRoute>} />
 
       <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
     </Routes>

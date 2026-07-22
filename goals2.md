@@ -786,7 +786,7 @@ notification — not just the coordinator dashboard.
 - **Phase 11 (Programming Concepts):** Completed — models, controllers, routes, admin UI, public pages, retrofit in all 3-subject lists, coordinator/admin roster columns, quiz authoring, ProblemCard subject prop
 - **Phase 12 (Batches):** Completed
 - **Phase 13 (Needs Attention):** Completed — all 3 automated checks (inactivity, bottom 15%, quiz avg <50%) implemented with `needsAttentionService.js`, wired into coordinator dashboard, admin center detail, and student notifications. Additional session fixes below.
-- **Phase 14 (Placement Plans):** Not started
+- **Phase 14 (Placement Plans):** Completed — `Plan` + `BatchPlan` models, full CRUD controller/routes (admin + coordinator-scoped), content hierarchy & search APIs, assign/unassign batch plan endpoints, batch progress endpoint. Frontend: `AdminPlanBuilder.jsx` (two-column builder with sticky left column, responsive mobile stack, hierarchy browser, day planner, inline instructions, save/publish), `AdminPlanList.jsx` (search, filter, create/edit/delete/publish), `CoordinatorBatchDetail.jsx` (plan picker modal, progress bar), `CoordinatorDashboard.jsx` (batch progress cards). Route paths documented in `phase14.md` need alignment: assign/unassign live at `/api/plans/batches/:id/...` (not `/api/batches/:id/...` as spec states). Student-facing plan view deferred to Phase 16.
 - **Phase 15 (Dual progress):** Not started
 - **Phase 16 (Daily tasks):** Not started
 
@@ -799,6 +799,7 @@ notification — not just the coordinator dashboard.
 - **Messages page refresh button** — added manual Refresh button with `lastFetched` timestamp display + spin animation; no auto-polling changes
 - **Coordinator Assign Students** — button now navigates to `/coordinator/batches/:id` (batch detail page with full student management) instead of opening a limited popup modal; removed the assign modal entirely
 - **`server/utils/xlsxExport.js`** — deleted (orphaned file, zero imports)
+- **Phase 14 frontend polish** — `AdminPlanBuilder.jsx` two-column layout made responsive: flex row (≥900px) with sticky left column (`position:sticky`, `overflow-y:auto`, `maxHeight:calc(100vh - 140px)`), flex column (<900px, stacked, no sticky). `.admin-main overflow-x:auto` override (breaks sticky) applied on mount, restored on unmount. Same override added to `AdminPlanList.jsx`.
 
 ### Remaining / Next Actions
 

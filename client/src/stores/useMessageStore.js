@@ -9,16 +9,17 @@ export const useMessageStore = create((set, get) => ({
   activeUserId: null,
   loading: false,
   error: null,
+  lastFetched: null,
 
   fetchConversations: async () => {
     set({ loading: true, error: null });
     try {
       if (USE_MOCK) {
         const { conversations } = await import('../data/messages.js');
-        set({ conversations, loading: false });
+        set({ conversations, loading: false, lastFetched: new Date().toLocaleTimeString() });
       } else {
         const res = await fetchInbox();
-        set({ conversations: res.data, loading: false });
+        set({ conversations: res.data, loading: false, lastFetched: new Date().toLocaleTimeString() });
       }
     } catch (error) {
       console.error('[MESSAGE] Error:', error.message);

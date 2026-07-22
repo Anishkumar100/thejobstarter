@@ -785,13 +785,22 @@ notification — not just the coordinator dashboard.
 
 - **Phase 11 (Programming Concepts):** Completed — models, controllers, routes, admin UI, public pages, retrofit in all 3-subject lists, coordinator/admin roster columns, quiz authoring, ProblemCard subject prop
 - **Phase 12 (Batches):** Completed
-- **Phase 13 (Needs Attention):** In progress — expanded spec above with plain-language framing, explicit general-data-only scope, and all three stakeholder deliverables (coordinator section, admin section, student notification)
+- **Phase 13 (Needs Attention):** Completed — all 3 automated checks (inactivity, bottom 15%, quiz avg <50%) implemented with `needsAttentionService.js`, wired into coordinator dashboard, admin center detail, and student notifications. Additional session fixes below.
 - **Phase 14 (Placement Plans):** Not started
 - **Phase 15 (Dual progress):** Not started
 - **Phase 16 (Daily tasks):** Not started
+
+### Session Fixes (Post-Phase-13)
+
+- **Duplicate clerkId fix** — `getUserByUsername` checks for existing doc by `clerkId` before creating; `updateProfile` falls back to `clerkId` lookup when username not found
+- **`/qa/null` 500 fix** — `getQuestionById` validates ObjectId format before query; `useQaStore.fetchQuestionById` guards against null/invalid ID; `InboxList` renders `div` instead of `<Link to="/qa/null">` when `questionId` is missing
+- **Theme toggle performance** — `App.jsx` changed from `useThemeStore()` (subscribes to full store, re-renders entire app on every toggle) to `useThemeStore(state => state.initTheme)` (selects only the stable function)
+- **Smooth theme transitions** — added `transition` on `*` in `global.css` for `background-color`, `color`, `border-color`, `box-shadow` (150ms ease)
+- **Messages page refresh button** — added manual Refresh button with `lastFetched` timestamp display + spin animation; no auto-polling changes
+- **Coordinator Assign Students** — button now navigates to `/coordinator/batches/:id` (batch detail page with full student management) instead of opening a limited popup modal; removed the assign modal entirely
+- **`server/utils/xlsxExport.js`** — deleted (orphaned file, zero imports)
 
 ### Remaining / Next Actions
 
 1. Seed the Programming topic image via `/admin/topics` (hero image for `/programming` page)
 2. Create quizzes for DBMS/OS/ProgrammingProblem problems and submit attempts to populate quiz stats
-3. Finish Phase 13 (Needs Attention) per the expanded spec above

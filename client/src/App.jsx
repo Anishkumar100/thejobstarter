@@ -369,7 +369,8 @@ function AppRoutes() {
 }
 
 export default function App() {
-  const { initTheme } = useThemeStore();
+  /* Select only initTheme by reference — avoids re-rendering App when theme changes elsewhere */
+  const initTheme = useThemeStore(state => state.initTheme);
 
   useEffect(() => {
     initTheme();

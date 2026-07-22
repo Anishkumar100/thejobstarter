@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
@@ -14,6 +14,7 @@ const CARD = {
 };
 
 export default function CoordinatorBatches() {
+  const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,9 +23,6 @@ export default function CoordinatorBatches() {
   const [courseOfferings, setCourseOfferings] = useState([]);
   const [form, setForm] = useState({ name: '', expectedStudents: '', courseOffering: '' });
   const [saving, setSaving] = useState(false);
-  const [assignBatchId, setAssignBatchId] = useState(null);
-  const [selectedAddIds, setSelectedAddIds] = useState([]);
-  const [assigning, setAssigning] = useState(false);
   const [editingCourseBatchId, setEditingCourseBatchId] = useState(null);
   const [editingCourseValue, setEditingCourseValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,33 +106,10 @@ export default function CoordinatorBatches() {
   };
 
   /*
-   * Open assign modal for a batch
+   * Navigate to batch detail page for student assignment
    */
   const handleOpenAssign = (batchId) => {
-    setAssignBatchId(batchId);
-    setSelectedAddIds([]);
-  };
-
-  /*
-   * Add selected students to batch
-   */
-  const handleAddStudents = async () => {
-    if (!assignBatchId || selectedAddIds.length === 0) return;
-    setAssigning(true);
-    try {
-      await apiRequest(`/coordinator/batches/${assignBatchId}/assign-students`, {
-        method: 'POST',
-        body: JSON.stringify({ userIds: selectedAddIds })
-      });
-      setAllStudents(prev => prev.map(s => selectedAddIds.includes(s._id) ? { ...s, batch: { _id: assignBatchId } } : s));
-      setAssignBatchId(null);
-      setSelectedAddIds([]);
-      console.log('[COORD BATCHES] Added', selectedAddIds.length, 'students to batch:', assignBatchId);
-    } catch (err) {
-      console.error('[COORD BATCHES] Add students error:', err.message);
-      alert(err.message || 'Failed to add students');
-    }
-    setAssigning(false);
+    navigate(`/coordinator/batches/${batchId}`);
   };
 
   /*
@@ -158,8 +133,6 @@ export default function CoordinatorBatches() {
   };
 
   if (loading) return <Loader text="LOADING BATCHES..." />;
-
-  const unassignedStudents = allStudents.filter(s => !s.batch);
 
   /*
    * Filter batches by search, course, and date range
@@ -342,10 +315,9 @@ export default function CoordinatorBatches() {
                   <button
                     className="btn btn--sm"
                     onClick={(e) => { e.preventDefault(); handleOpenAssign(b._id); }}
-                    disabled={unassignedStudents.length === 0}
                     style={{ fontSize: '0.7rem' }}
                   >
-                    <Plus size={12} /> Assign Students
+                    <Users size={12} /> Manage Students
                   </button>
                   {/* Inline course editor */}
                   {editingCourseBatchId === b._id ? (
@@ -420,50 +392,6 @@ export default function CoordinatorBatches() {
         </form>
       </Modal>
 
-      {/* Assign Students Modal */}
-      <Modal isOpen={assignBatchId !== null} onClose={() => setAssignBatchId(null)}>
-        <h2 style={{ marginBottom: 'var(--space-lg)' }}>
-          Assign Students — {batches.find(b => b._id === assignBatchId)?.name || ''}
-        </h2>
-        {unassignedStudents.length === 0 ? (
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
-            All students are already assigned to a batch.
-          </p>
-        ) : (
-          <>
-            <div style={{ maxHeight: 300, overflowY: 'auto', border: '3px solid var(--black)', padding: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
-              {unassignedStudents.map(s => (
-                <label key={s._id} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 10px', cursor: 'pointer', fontSize: '0.85rem',
-                  borderBottom: '1px solid var(--gray-300)',
-                  background: selectedAddIds.includes(s._id) ? 'var(--accent-bg)' : 'transparent'
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedAddIds.includes(s._id)}
-                    onChange={e => {
-                      setSelectedAddIds(prev =>
-                        e.target.checked ? [...prev, s._id] : prev.filter(id => id !== s._id)
-                      );
-                    }}
-                  />
-                  <div>
-                    <strong>{s.displayName || s.username}</strong>
-                    {s.email && <div style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>{s.email}</div>}
-                  </div>
-                </label>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn--ghost" onClick={() => setAssignBatchId(null)}>Cancel</button>
-              <button type="button" className="btn" onClick={handleAddStudents} disabled={selectedAddIds.length === 0 || assigning}>
-                {assigning ? 'Adding...' : `Add Selected (${selectedAddIds.length})`}
-              </button>
-            </div>
-          </>
-        )}
-      </Modal>
     </div>
   );
 }

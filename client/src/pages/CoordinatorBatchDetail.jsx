@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
-import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus } from 'lucide-react';
+import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus, BarChart3, TrendingUp } from 'lucide-react';
 
 const CARD = {
   border: '4px solid var(--border-color)',
@@ -33,6 +33,11 @@ export default function CoordinatorBatchDetail() {
   const [dateFilter, setDateFilter] = useState('');
   const [confirmAction, setConfirmAction] = useState(null);
   /* confirmAction: { type: 'assign'|'remove'|'removeCenter', ids: [] } */
+
+  /* ── Day-by-day batch progress ── */
+  const [batchDayProgress, setBatchDayProgress] = useState(null);
+  const [loadingDayProgress, setLoadingDayProgress] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
 
   /* ── Plan section ── */
   const [activePlan, setActivePlan] = useState(null);
@@ -85,6 +90,23 @@ export default function CoordinatorBatchDetail() {
   };
 
   useEffect(() => { if (id) fetchActivePlan(); }, [id]);
+
+  /* Fetch batch-level day progress when active plan is available */
+  useEffect(() => {
+    const fetchDayProgress = async () => {
+      if (!activePlan?.plan?._id || !id) return;
+      setLoadingDayProgress(true);
+      try {
+        const res = await apiRequest(`/plans/${activePlan.plan._id}/day-progress/${id}`);
+        setBatchDayProgress(res.data);
+      } catch (err) {
+        console.error('[BATCH DETAIL] Day progress error:', err.message);
+        setBatchDayProgress(null);
+      }
+      setLoadingDayProgress(false);
+    };
+    fetchDayProgress();
+  }, [activePlan?.plan?._id, id]);
 
   /* Open plan picker — fetch available plans */
   const openPlanPicker = async () => {
@@ -285,6 +307,17 @@ export default function CoordinatorBatchDetail() {
     }
   };
 
+  /* ── Plan progress distribution ── */
+  const planDistribution = (() => {
+    const counts = { ahead: 0, 'on-track': 0, behind: 0, 'just-started': 0, none: 0 };
+    for (const s of enrolledStudents) {
+      const pp = s.progress?.planProgress;
+      if (pp && pp.paceStatus) counts[pp.paceStatus] = (counts[pp.paceStatus] || 0) + 1;
+      else counts.none++;
+    }
+    return counts;
+  })();
+
   /* ── Single-student remove from batch (per-row action) ── */
 
   const handleSingleRemove = async (student) => {
@@ -478,9 +511,11 @@ export default function CoordinatorBatchDetail() {
         ) : activePlan ? (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-              <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+              <Link to={`/coordinator/plans/${activePlan.plan?._id}`} style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', textDecoration: 'none', cursor: 'pointer' }}
+                onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline'; }}
+                onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
                 {activePlan.plan?.name || 'Unknown Plan'}
-              </strong>
+              </Link>
               <span style={{
                 fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
                 padding: '2px 6px', border: '2px solid var(--border-color)',
@@ -492,25 +527,39 @@ export default function CoordinatorBatchDetail() {
             <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
               Started {new Date(activePlan.startDate).toLocaleDateString()} · Day {activePlan.currentDay} of {activePlan.totalDays}
             </div>
-            {/* Progress bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                flex: 1, height: 14,
-                background: 'var(--bg-tertiary)',
-                border: '2px solid var(--border-color)',
-                position: 'relative', overflow: 'hidden'
-              }}>
-                <div style={{
-                  height: '100%',
-                  width: `${Math.round((activePlan.currentDay / activePlan.totalDays) * 100)}%`,
-                  background: 'var(--success)',
-                  transition: 'width 0.4s ease'
-                }} />
-              </div>
-              <span style={{ fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                {Math.round((activePlan.currentDay / activePlan.totalDays) * 100)}%
-              </span>
-            </div>
+            {/* Progress bar — guard against NaN when totalDays=0 or currentDay<1 */}
+            {(() => {
+              const total = Number(activePlan.totalDays) || 1;
+              const current = Math.max(0, Number(activePlan.currentDay) || 0);
+              const pct = current > 0 && total > 0 ? Math.round((current / total) * 100) : 0;
+              return current < 1 ? (
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+                  Plan starts on {new Date(activePlan.startDate).toLocaleDateString()}. Progress will appear once the plan is underway.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    flex: 1, height: 14,
+                    background: 'var(--bg-tertiary)',
+                    border: '2px solid var(--border-color)',
+                    position: 'relative', overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${pct}%`,
+                      background: 'var(--success)',
+                      transition: 'width 0.4s ease'
+                    }} />
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                    {pct}%
+                  </span>
+                </div>
+              );
+            })()}
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: 6, borderTop: '2px solid var(--gray-300)', paddingTop: 6 }}>
+              This progress bar shows elapsed <strong>time</strong> (days passed ÷ total plan days). For student-level completion, see the <strong>Pace Distribution</strong> card and <strong>Day-by-Day Progress</strong> section below. Click the plan name to view the full plan structure.
+            </p>
           </div>
         ) : (
           <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -518,6 +567,261 @@ export default function CoordinatorBatchDetail() {
           </p>
         )}
       </div>
+
+      {/* Plan Progress Distribution */}
+      {activePlan && enrolledStudents.length > 0 && (
+        <div style={{ ...CARD, marginBottom: 'var(--space-md)', padding: 'var(--space-sm) var(--space-md)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+            <h3 style={{ fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <BarChart3 size={14} /> Pace Distribution
+            </h3>
+            {[
+              { key: 'ahead', label: 'Ahead', color: '#16a34a' },
+              { key: 'on-track', label: 'On Track', color: '#2563eb' },
+              { key: 'behind', label: 'Behind', color: '#dc2626' },
+              { key: 'just-started', label: 'Just Started', color: 'var(--text-tertiary)' },
+              { key: 'none', label: 'No Plan', color: 'var(--gray-300)' }
+            ].map(({ key, label, color }) => {
+              const count = planDistribution[key] || 0;
+              const pct = enrolledStudents.length > 0 ? Math.round((count / enrolledStudents.length) * 100) : 0;
+              return count > 0 ? (
+                <div key={key} style={{ textAlign: 'center', minWidth: 60 }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color }}>{count}</div>
+                  <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>{label}</div>
+                  <div style={{ height: 4, width: '100%', background: 'var(--bg-tertiary)', marginTop: 2 }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: color }} />
+                  </div>
+                </div>
+              ) : null;
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ DAY-BY-DAY PROGRESS ═══ */}
+      {batchDayProgress && batchDayProgress.days && batchDayProgress.days.length > 0 && (
+        <div style={{ ...CARD, marginBottom: 'var(--space-lg)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--space-sm)', flexWrap: 'wrap' }}>
+            <Calendar size={18} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+            <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Day-by-Day Progress
+            </h2>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)', padding: '2px 8px', border: '2px solid var(--border-color)', whiteSpace: 'nowrap' }}>
+              {enrolledStudents.length} students · {batchDayProgress.durationDays} days
+            </span>
+          </div>
+
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-sm)', borderLeft: '3px solid var(--gray-500)', paddingLeft: 8 }}>
+            Each bar shows the <strong>average completion %</strong> for that day across all students. 
+            Green ≥80% (strong), Yellow 50-79% (moderate), Red &lt;50% (weak), Gray = no items or not started. 
+            <strong> Click any day</strong> to see which students completed, partially completed, or missed that day's items.
+          </p>
+
+          {/* Day grid */}
+          <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
+            <div style={{ display: 'flex', gap: 3, minWidth: batchDayProgress.days.length * 60 }}>
+              {batchDayProgress.days.map(d => {
+                const barColor = d.isFuture ? 'var(--gray-300)' : d.avgCompletionPct >= 80 ? '#16a34a' : d.avgCompletionPct >= 50 ? '#eab308' : d.avgCompletionPct > 0 ? '#dc2626' : 'var(--gray-300)';
+                const isSelected = selectedDay?.day === d.day;
+                return (
+                  <div key={d.day} onClick={() => setSelectedDay(isSelected ? null : d)}
+                    style={{
+                      flexShrink: 0, width: 56, textAlign: 'center', cursor: d.isFuture ? 'default' : 'pointer',
+                      border: `2px solid ${isSelected ? '#2563eb' : d.isCurrent ? 'var(--border-color)' : 'transparent'}`,
+                      background: isSelected ? '#eff6ff' : d.isCurrent ? 'var(--bg-tertiary)' : 'transparent',
+                      padding: '6px 2px', transition: 'all 0.12s'
+                    }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: d.isFuture ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
+                      Day {d.day}
+                    </div>
+                    {d.isFuture ? (
+                      <div style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)', marginTop: 2 }}>—</div>
+                    ) : d.itemsCount === 0 ? (
+                      <div style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)', marginTop: 2 }}>Rest</div>
+                    ) : (
+                      <>
+                        <div style={{
+                          height: 40, width: 20, margin: '4px auto 2px',
+                          background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)',
+                          position: 'relative', overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            position: 'absolute', bottom: 0, left: 0, right: 0,
+                            height: `${d.avgCompletionPct}%`,
+                            background: barColor,
+                            transition: 'height 0.3s'
+                          }} />
+                        </div>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, color: d.avgCompletionPct >= 50 ? barColor : 'var(--text-tertiary)' }}>
+                          {d.avgCompletionPct}%
+                        </div>
+                        <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)' }}>
+                          {d.totalCompletions}/{d.itemsCount * d.studentCount}
+                        </div>
+                      </>
+                    )}
+                    {d.isCurrent && (
+                      <div style={{ fontSize: '0.45rem', fontWeight: 800, textTransform: 'uppercase', color: '#2563eb', marginTop: 1 }}>Today</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', marginTop: 6, fontSize: '0.6rem', color: 'var(--text-tertiary)', borderTop: '2px solid var(--gray-300)', paddingTop: 6 }}>
+            <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#16a34a', marginRight: 3, border: '2px solid var(--border-color)' }} /> ≥80% completed</span>
+            <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#eab308', marginRight: 3, border: '2px solid var(--border-color)' }} /> 50-79%</span>
+            <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#dc2626', marginRight: 3, border: '2px solid var(--border-color)' }} /> &lt;50%</span>
+            <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gray-300)', marginRight: 3, border: '2px solid var(--border-color)' }} /> Not started / Rest</span>
+            <span style={{ fontStyle: 'italic' }}>Click any day to see who completed what</span>
+          </div>
+
+          {/* ── Day detail panel (shown when a day is selected) ── */}
+          {selectedDay && !selectedDay.isFuture && (
+            <div style={{ marginTop: 'var(--space-md)', borderTop: '3px solid var(--border-color)', paddingTop: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Calendar size={16} /> Day {selectedDay.day} — Student Breakdown
+                </h3>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                  {selectedDay.itemsCount} item{selectedDay.itemsCount !== 1 ? 's' : ''} assigned · {selectedDay.totalCompletions}/{selectedDay.itemsCount * selectedDay.studentCount} completions
+                  {selectedDay.itemsCount > 0 && (
+                    <span style={{ marginLeft: 4, fontWeight: 700 }}>({selectedDay.avgCompletionPct}%)</span>
+                  )}
+                </span>
+              </div>
+
+              {/* ── Materials assigned for this day ── */}
+              {selectedDay.items && selectedDay.items.length > 0 && (
+                <div style={{ marginBottom: 'var(--space-md)', border: '2px solid var(--border-color)', background: 'var(--bg-tertiary)', padding: 'var(--space-sm) var(--space-md)' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <FileText size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Materials for this day ({selectedDay.items.length} item{selectedDay.items.length !== 1 ? 's' : ''})
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {selectedDay.items.map((item, i) => {
+                      const subColors = { dsa: '#e11d48', dbms: '#3b82f6', os: '#22c55e', programming: '#a855f7' };
+                      const subLabels = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'PROG' };
+                      return (
+                        <div key={i} style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          fontSize: '0.78rem', padding: '4px 6px',
+                          background: i % 2 === 0 ? 'var(--bg-surface)' : 'transparent',
+                          border: '1px solid var(--gray-300)'
+                        }}>
+                          <span style={{
+                            fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase',
+                            padding: '1px 5px', border: '2px solid var(--border-color)',
+                            background: subColors[item.subject] || 'var(--gray-300)',
+                            color: '#fff', flexShrink: 0
+                          }}>
+                            {subLabels[item.subject] || item.subject}
+                          </span>
+                          <span style={{
+                            fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase',
+                            padding: '1px 4px', border: '1px solid var(--border-color)',
+                            background: 'var(--bg-surface)', color: 'var(--text-secondary)', flexShrink: 0
+                          }}>
+                            {item.targetType}
+                          </span>
+                          <span style={{ fontWeight: 600, flex: 1, minWidth: 0 }}>
+                            {item.targetTitle || item.targetSlug}
+                          </span>
+                          {item.instruction && (
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontStyle: 'italic', flexShrink: 0 }}>
+                              "{item.instruction}"
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Helper map: studentId → student object */}
+              {(() => {
+                const studentMap = {};
+                enrolledStudents.forEach(s => { studentMap[s._id] = s; });
+
+                const completedAllStudents = (selectedDay.completedAllIds || []).map(id => studentMap[id]).filter(Boolean);
+                const partialStudents = (selectedDay.partialIds || []).map(id => studentMap[id]).filter(Boolean);
+                const noneStudents = (selectedDay.noneIds || []).map(id => studentMap[id]).filter(Boolean);
+                const hasData = completedAllStudents.length > 0 || partialStudents.length > 0 || noneStudents.length > 0;
+
+                if (selectedDay.itemsCount === 0) {
+                  return <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No items scheduled this day (rest day).</p>;
+                }
+                if (!hasData) {
+                  return <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No student data available for this day.</p>;
+                }
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {/* Completed all */}
+                    {completedAllStudents.length > 0 && (
+                      <div style={{ border: '2px solid #16a34a', background: '#f0fdf4', padding: 6 }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#166534', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <CheckCircle size={14} /> Completed All — {completedAllStudents.length} student{completedAllStudents.length !== 1 ? 's' : ''}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {completedAllStudents.map(s => (
+                            <Link key={s._id} to={`/coordinator/students/${s._id}`} style={{
+                              fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px',
+                              border: '2px solid #16a34a', background: '#fff', textDecoration: 'none', color: '#166534'
+                            }}>
+                              {s.displayName || s.username}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Partial */}
+                    {partialStudents.length > 0 && (
+                      <div style={{ border: '2px solid #eab308', background: '#fefce8', padding: 6 }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#854d0e', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <AlertCircle size={14} /> Partially Completed — {partialStudents.length} student{partialStudents.length !== 1 ? 's' : ''}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {partialStudents.map(s => (
+                            <Link key={s._id} to={`/coordinator/students/${s._id}`} style={{
+                              fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px',
+                              border: '2px solid #eab308', background: '#fff', textDecoration: 'none', color: '#854d0e'
+                            }}>
+                              {s.displayName || s.username}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* None */}
+                    {noneStudents.length > 0 && (
+                      <div style={{ border: '2px solid #dc2626', background: '#fef2f2', padding: 6 }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#991b1b', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <AlertCircle size={14} /> Completed None — {noneStudents.length} student{noneStudents.length !== 1 ? 's' : ''}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {noneStudents.map(s => (
+                            <Link key={s._id} to={`/coordinator/students/${s._id}`} style={{
+                              fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px',
+                              border: '2px solid #dc2626', background: '#fff', textDecoration: 'none', color: '#991b1b'
+                            }}>
+                              {s.displayName || s.username}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Plan Picker Modal ── */}
       {showPlanPicker && (
@@ -739,13 +1043,14 @@ export default function CoordinatorBatchDetail() {
                   <th style={{ padding: '8px 10px', fontWeight: 700, color: 'var(--text-primary)' }}>
                     <BookOpen size={13} style={{ verticalAlign: 'middle', marginRight: 2 }} /> Course
                   </th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, color: 'var(--text-primary)' }}>Plan Pace</th>
                   <th style={{ padding: '8px 10px', fontWeight: 700, color: 'var(--text-primary)' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {enrolledStudents.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{
+                    <td colSpan={7} style={{
                       padding: 'var(--space-lg)', textAlign: 'center', color: 'var(--text-tertiary)'
                     }}>
                       No students in this batch yet.
@@ -762,7 +1067,11 @@ export default function CoordinatorBatchDetail() {
                           )} />
                       </td>
                       <td style={{ padding: '6px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {s.displayName || s.username}
+                        <Link to={`/coordinator/students/${s._id}`} style={{ fontWeight: 600, textDecoration: 'none', color: 'inherit' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = 'inherit'; }}>
+                          {s.displayName || s.username}
+                        </Link>
                       </td>
                       <td style={{ padding: '6px 10px', color: 'var(--text-secondary)' }}>
                         {s.email || '—'}
@@ -782,6 +1091,29 @@ export default function CoordinatorBatchDetail() {
                         ) : (
                           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem' }}>—</span>
                         )}
+                      </td>
+                      <td style={{ padding: '6px 10px' }}>
+                        {(() => {
+                          const pp = s.progress?.planProgress;
+                          if (!pp) return <span style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem' }}>—</span>;
+                          const paceColors = { ahead: '#16a34a', 'on-track': '#2563eb', behind: '#dc2626', 'just-started': 'var(--text-tertiary)' };
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{
+                                fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
+                                padding: '2px 6px', border: '2px solid #000',
+                                color: paceColors[pp.paceStatus] || 'var(--text-tertiary)'
+                              }}>
+                                {pp.paceStatus === 'just-started' ? 'Started' : pp.paceStatus}
+                              </span>
+                              {pp.paceStatus !== 'just-started' && (
+                                <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                                  {pp.completedCount}/{pp.expectedCount}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td style={{ padding: '6px 10px' }}>
                         <button className="btn btn--sm btn--danger"

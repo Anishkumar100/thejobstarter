@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { useCoachingCenterStore } from '../stores/useCoachingCenterStore.js';
 import Loader from '../components/ui/Loader.jsx';
 import Modal from '../components/ui/Modal.jsx';
-import { Shield, RefreshCw, ArrowLeft, Users, Layers, Trash2, CheckSquare, BookOpen, AlertCircle, CheckCircle } from 'lucide-react';
+import { Shield, RefreshCw, ArrowLeft, Users, Layers, Trash2, CheckSquare, BookOpen, AlertCircle, CheckCircle, Eye, Edit3, ExternalLink } from 'lucide-react';
 
 export default function AdminCoachingCenterDetail() {
   const { id } = useParams();
@@ -28,6 +28,8 @@ export default function AdminCoachingCenterDetail() {
   const [courseOfferings, setCourseOfferings] = useState([]);
   const [courseOfferingsLoading, setCourseOfferingsLoading] = useState(false);
   const [courseChangeConfirm, setCourseChangeConfirm] = useState(null); /* { userId, courseOfferingId, currentCourseId, currentCourseName } */
+  const [plans, setPlans] = useState([]);
+  const [plansLoading, setPlansLoading] = useState(false);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export default function AdminCoachingCenterDetail() {
       fetchCenterStudents(id);
       fetchBatchesForCenter();
       fetchCourseOfferingsForCenter();
+      fetchCenterPlans();
     }
   }, [currentCenter]);
 
@@ -85,6 +88,25 @@ export default function AdminCoachingCenterDetail() {
       console.error('[ADMIN] Error fetching course offerings:', err.message);
     }
     setCourseOfferingsLoading(false);
+  };
+
+  /*
+   * Fetch plans for this center with batch assignment info
+   */
+  const fetchCenterPlans = async () => {
+    setPlansLoading(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const token = await window.Clerk?.session?.getToken();
+      const res = await fetch(`${API_BASE}/coaching-centers/${id}/plan-assignments`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      const json = await res.json();
+      if (json.data) setPlans(json.data);
+    } catch (err) {
+      console.error('[ADMIN] Error fetching plans:', err.message);
+    }
+    setPlansLoading(false);
   };
 
   /*
@@ -484,8 +506,14 @@ export default function AdminCoachingCenterDetail() {
               </thead>
               <tbody>
                 {batches.map(b => (
-                  <tr key={b._id} style={{ borderBottom: '2px solid var(--gray-300)' }}>
-                    <td style={{ padding: '8px 12px', fontWeight: 600 }}>{b.name}</td>
+                    <tr key={b._id} style={{ borderBottom: '2px solid var(--gray-300)' }}>
+                    <td style={{ padding: '8px 12px', fontWeight: 600 }}>
+                      <Link to={`/admin/batches/${b._id}`} style={{ fontWeight: 600, textDecoration: 'none', color: 'inherit' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'inherit'; }}>
+                        {b.name}
+                      </Link>
+                    </td>
                     <td style={{ padding: '8px 12px', fontFamily: 'monospace', letterSpacing: '0.1em' }}>{b.code}</td>
                     <td style={{ padding: '8px 12px' }}>
                       <span style={{
@@ -499,6 +527,104 @@ export default function AdminCoachingCenterDetail() {
                     <td style={{ padding: '8px 12px' }}>{b.expectedStudents || '—'}</td>
                     <td style={{ padding: '8px 12px', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
                       {new Date(b.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Plans */}
+      <div className="admin-card" style={{ marginTop: 'var(--space-xl)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-md)' }}>
+          <BookOpen size={18} />
+          <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>
+            Plans ({plans.length})
+          </h2>
+        </div>
+
+        {plansLoading ? (
+          <Loader text="Loading plans..." />
+        ) : plans.length === 0 ? (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
+            No plans created for this centre yet. Coordinators can create plans from the Plans page.
+          </p>
+        ) : (
+          <div className="table-wrap" style={{ overflowX: 'auto' }}>
+            <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '3px solid var(--black)', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 12px', fontWeight: 700 }}>Name</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 700 }}>Duration</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 700 }}>Status</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 700 }}>Items</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 700 }}>Assigned Batch(es)</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 700 }}>Created By</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 700 }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plans.map(p => (
+                  <tr key={p._id} style={{ borderBottom: '2px solid var(--gray-300)' }}>
+                    <td style={{ padding: '8px 12px' }}>
+                      <Link to={`/admin/plans/${p._id}`} style={{ fontWeight: 600 }}>
+                        {p.name}
+                      </Link>
+                    </td>
+                    <td style={{ padding: '8px 12px' }}>{p.durationDays} days</td>
+                    <td style={{ padding: '8px 12px' }}>
+                      <span style={{
+                        padding: '2px 8px', border: '2px solid var(--black)',
+                        background: p.status === 'published' ? 'var(--success-bg)' : p.status === 'draft' ? 'var(--gray-100)' : '#fef3c7',
+                        fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase'
+                      }}>
+                        {p.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px' }}>{p.items?.length || 0}</td>
+                    <td style={{ padding: '8px 12px' }}>
+                      {p.assignedBatches && p.assignedBatches.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {p.assignedBatches.map(ab => (
+                            <Link key={ab.batchPlanId} to={`/admin/batches/${ab.batch?._id}`}
+                              style={{
+                                fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3,
+                                padding: '2px 6px', border: '2px solid var(--black)', background: 'var(--gray-100)',
+                                textDecoration: 'none', color: 'inherit', width: 'fit-content'
+                              }}>
+                              <Layers size={10} /> {ab.batch?.name || 'Unknown'}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px 12px' }}>
+                      <span style={{ fontSize: '0.8rem' }}>{p.createdBy?.displayName || p.createdBy?.username || '—'}</span>
+                      {p.createdBy?.email && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', display: 'block' }}>{p.createdBy.email}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px 12px' }}>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <Link to={`/admin/plans/${p._id}`} className="btn btn--sm"
+                          style={{ fontSize: '0.6rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                          <Eye size={10} /> View
+                        </Link>
+                        <Link to={`/admin/plans/${p._id}/edit`} className="btn btn--sm"
+                          style={{ fontSize: '0.6rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                          <Edit3 size={10} /> Edit
+                        </Link>
+                        {p.assignedBatches && p.assignedBatches.length > 0 && (
+                          <Link to={`/admin/batches/${p.assignedBatches[0].batch?._id}`} className="btn btn--sm"
+                            style={{ fontSize: '0.6rem', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                            <ExternalLink size={10} /> Batch
+                          </Link>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -295,7 +295,7 @@ export default function CoordinatorStudentsList() {
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: 750 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: 900 }}>
               <thead>
                 <tr style={{ borderBottom: '3px solid #000' }}>
                   <th style={{ padding: '8px 10px', width: 36 }}>
@@ -308,12 +308,13 @@ export default function CoordinatorStudentsList() {
                   {[
                     { key: 'name', label: 'Student' },
                     { key: 'college', label: 'College' },
-                    { key: 'joined', label: 'Joined' },
-                  { key: null, label: 'Batch' },
-                  { key: null, label: 'Course', width: '100px' },
-                  { key: null, label: 'DSA / DBMS / OS / PROG', width: '260px' },
-                    { key: 'progress', label: 'Overall', width: '80px' },
-                    { key: null, label: 'Action', width: '80px' },
+                    { key: null, label: 'Batch / Course' },
+                    { key: null, label: 'Plan', width: '130px' },
+                    { key: null, label: 'Plan Progress', width: '280px' },
+                    { key: null, label: 'Behind', width: '70px' },
+                    { key: null, label: 'Subject Progress', width: '200px' },
+                    { key: 'progress', label: 'Overall', width: '70px' },
+                    { key: null, label: 'Action', width: '70px' },
                   ].map(col => (
                     <th key={col.label} style={{ padding: '8px 10px', fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', cursor: col.key ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap', width: col.width || undefined }}
                       onClick={() => col.key && toggleSort(col.key)}>
@@ -329,6 +330,10 @@ export default function CoordinatorStudentsList() {
                   const dbmsC = computeSubjectCounts(student.progress, 'dbms');
                   const osC = computeSubjectCounts(student.progress, 'os');
                   const progC = computeSubjectCounts(student.progress, 'programming');
+                  const pp = student.progress?.planProgress;
+                  const planCompletionPct = pp?.expectedCount > 0 ? Math.round((pp.completedCount / pp.expectedCount) * 100) : 0;
+                  const behindItems = pp?.itemsBehind?.length || 0;
+                  const paceColors = { ahead: '#16a34a', 'on-track': '#2563eb', behind: '#dc2626', 'just-started': 'var(--text-tertiary)' };
                   return (
                     <tr key={student._id} style={{ borderBottom: '2px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'var(--bg-tertiary)' }}>
                       <td style={{ padding: '8px 10px' }} onClick={e => e.stopPropagation()}>
@@ -343,7 +348,7 @@ export default function CoordinatorStudentsList() {
                         />
                       </td>
                       <td style={{ padding: '8px 10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Link to={`/coordinator/students/${student._id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}>
                           {student.avatar ? (
                             <img src={student.avatar} alt="" style={{ width: 28, height: 28, border: '2px solid #000', objectFit: 'cover', flexShrink: 0 }} />
                           ) : (
@@ -352,41 +357,90 @@ export default function CoordinatorStudentsList() {
                             </div>
                           )}
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{student.displayName || student.username || 'Unknown'}</div>
-                            <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>@{student.username}</div>
+                            <div style={{ fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{student.displayName || student.username || 'Unknown'}</div>
+                            <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>@{student.username} · {student.college || '—'}</div>
                           </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '8px 10px', fontSize: '0.72rem', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.college || '\u2014'}</td>
-                      <td style={{ padding: '8px 10px', fontSize: '0.7rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{student.coachingCenterJoinedAt ? new Date(student.coachingCenterJoinedAt).toLocaleDateString() : '\u2014'}</td>
-                      <td style={{ padding: '8px 10px', fontSize: '0.72rem', fontWeight: 600 }}>
-                        {student.batch?.name ? (
-                          <span style={{
-                            padding: '2px 6px', border: '2px solid var(--black)',
-                            background: student.batch.status === 'active' ? 'var(--success-bg)' : 'var(--gray-100)',
-                            fontSize: '0.68rem', whiteSpace: 'nowrap'
-                          }}>
-                            {student.batch.name}
-                          </span>
-                        ) : (
-                          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem' }}>—</span>
-                        )}
+                        </Link>
                       </td>
                       <td style={{ padding: '8px 10px', fontSize: '0.72rem', fontWeight: 600 }}>
-                        {student.courseOffering?.name ? (
-                          <span style={{
-                            padding: '2px 6px', border: '2px solid var(--black)',
-                            background: 'var(--bg-tertiary)',
-                            fontSize: '0.68rem', whiteSpace: 'nowrap'
-                          }}>
-                            {student.courseOffering.name}
+                        {student.college ? (
+                          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <span>{student.college}</span>
+                            <span style={{ color: 'var(--text-tertiary)', fontSize: '0.62rem' }}>
+                              {student.coachingCenterJoinedAt ? `Joined ${new Date(student.coachingCenterJoinedAt).toLocaleDateString()}` : ''}
+                            </span>
                           </span>
                         ) : (
                           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem' }}>—</span>
                         )}
                       </td>
                       <td style={{ padding: '8px 10px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 130 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {student.batch?.name ? (
+                            <span style={{ padding: '1px 5px', border: '2px solid #000', background: student.batch.status === 'active' ? 'var(--success-bg)' : 'var(--gray-100)', fontSize: '0.65rem', fontWeight: 600, whiteSpace: 'nowrap', display: 'inline-block' }}>
+                              {student.batch.name}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-tertiary)', fontSize: '0.65rem' }}>No batch</span>
+                          )}
+                          {student.courseOffering?.name && (
+                            <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)' }}>{student.courseOffering.name}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        {pp ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Link to={`/coordinator/plans/${pp.planId}`} style={{ fontSize: '0.65rem', fontWeight: 600, textDecoration: 'none', color: 'var(--accent)' }}
+                              onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline'; }}
+                              onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
+                              {pp.planName || 'Plan'}
+                            </Link>
+                            <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)' }}>
+                              Day {pp.currentDayOffset}/{pp.durationDays}
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        {pp ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 140 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <div style={{ flex: 1, height: 8, background: '#e5e7eb', border: '2px solid #000', position: 'relative', overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${planCompletionPct}%`, background: planCompletionPct >= 60 ? '#16a34a' : planCompletionPct >= 30 ? '#eab308' : '#dc2626', transition: 'width 0.3s' }} />
+                              </div>
+                              <span style={{ fontWeight: 700, fontSize: '0.65rem', minWidth: 30, textAlign: 'right' }}>{planCompletionPct}%</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
+                              <span style={{
+                                fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
+                                padding: '1px 5px', border: '2px solid #000',
+                                color: paceColors[pp.paceStatus] || 'var(--text-tertiary)'
+                              }}>
+                                {pp.paceStatus === 'just-started' ? 'Started' : pp.paceStatus}
+                              </span>
+                              <span style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)' }}>
+                                {pp.completedCount}/{pp.expectedCount} done
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                        {pp && behindItems > 0 ? (
+                          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#dc2626' }}>
+                            {behindItems} behind
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.65rem' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 120 }}>
                           {[
                             { label: 'DSA', c: dsaC, color: '#6366f1' },
                             { label: 'DBMS', c: dbmsC, color: '#14b8a6' },
@@ -395,18 +449,18 @@ export default function CoordinatorStudentsList() {
                           ].map(sub => {
                             const p = sub.c.total > 0 ? Math.round((sub.c.completed / sub.c.total) * 100) : 0;
                             return (
-                              <div key={sub.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <span style={{ fontSize: '0.58rem', fontWeight: 600, width: 28, flexShrink: 0 }}>{sub.label}</span>
-                                <div style={{ flex: 1, height: 5, background: '#e5e7eb', border: '1px solid #000' }}>
+                              <div key={sub.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <span style={{ fontSize: '0.5rem', fontWeight: 700, width: 24, flexShrink: 0, textAlign: 'right' }}>{sub.label}</span>
+                                <div style={{ flex: 1, height: 4, background: '#e5e7eb', border: '1px solid #000' }}>
                                   <div style={{ height: '100%', width: `${p}%`, background: sub.color }} />
                                 </div>
-                                <span style={{ fontSize: '0.58rem', fontWeight: 700, minWidth: 26, textAlign: 'right' }}>{p}%</span>
+                                <span style={{ fontSize: '0.52rem', fontWeight: 700, minWidth: 22, textAlign: 'right' }}>{p}%</span>
                               </div>
                             );
                           })}
                         </div>
                       </td>
-                      <td style={{ padding: '8px 10px', fontWeight: 700, fontSize: '0.85rem' }}>{pct}%</td>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, fontSize: '0.85rem', textAlign: 'center' }}>{pct}%</td>
                       <td style={{ padding: '8px 10px' }}>
                         <Link to={`/coordinator/students/${student._id}`} className="btn btn--sm" style={{ fontSize: '0.6rem', padding: '3px 8px', border: '2px solid #000', whiteSpace: 'nowrap' }}>
                           <UserIcon size={12} style={{ marginRight: 3, verticalAlign: 'middle' }} /> View

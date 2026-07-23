@@ -572,6 +572,47 @@ are genuinely different numbers and both matter — a student could be
 doing great generally but behind on their center's specific 60-day
 sprint, or vice versa.
 
+### Phase 14 Retrofit — Pre-flight fixes
+
+Bugs and UI gaps in Phase 14 that must be fixed before Phase 15 work begins,
+since Phase 15's tracking layer depends on plan data being visible and correct.
+
+**1. Admin center detail — plans section (`AdminCoachingCenterDetail.jsx`):**
+The page currently shows center metadata, batches, and students — no plan
+data. Add a **Plans** section listing all plans created by this center's
+coordinator(s): plan name, duration, status (draft/published/archived), item
+count, created date, last updated. Each plan links to the plan builder for
+editing. Requires extending the center detail endpoint (or a new
+`GET /api/coaching-centers/:id/plans` route) to return plans scoped to the
+center, including `createdBy` populated with `displayName` and `email`.
+
+**2. Plans list — filters (admin + coordinator):** `AdminPlanList.jsx` has
+only a status filter. Add: subject filter (dsa/dbms/os/programming), date
+range filter (created between X and Y), center filter (admin only —
+coordinator is already scoped to own center).
+
+**3. Plans list — card detail (`AdminPlanList.jsx`):** Each plan card must
+show the creator's email and the associated coaching center name. The
+`GET /plans` and `GET /coordinator/plans` endpoints must populate
+`createdBy` with `displayName` + `email` and `coachingCenter` with `name`.
+
+**4. Batch detail — `%NaN` bug (`CoordinatorBatchDetail.jsx`, and the new
+`AdminBatchDetail.jsx` from below):** When a plan is assigned but
+`currentDay` is 0 (plan starts today or `startDate` is in the future), the
+progress calculation `(currentDay / totalDays) * 100` produces `NaN`. Fix:
+guard the division — if `totalDays === 0` or `currentDay < 1`, show `0%`
+and display a note: *"Plan starts on [startDate]. Progress will appear once
+the plan is underway."* Also suppress the behind-schedule flag until
+`currentDay >= 3`.
+
+**5. Assign batches from plans list (`AdminPlanList.jsx` and coordinator
+equivalent):** Each plan card should have an **Assign to Batch** button that
+opens a quick modal: select a batch (dropdown scoped to the user's centers),
+pick a start date (date picker), confirm. Calls the existing
+`POST /api/plans/batches/:id/assign-plan` endpoint. The modal must show the
+currently assigned plan for the selected batch (if any) with a warning:
+*"This batch already has an active plan. Assigning will replace it."*
+
 **New function — add to `services/progressService.js` (or a new sibling
 file `planProgressService.js` if it keeps `progressService.js` from
 growing unwieldy — your call, but don't duplicate the subject-totals
@@ -641,13 +682,58 @@ landing views), top to bottom:**
 Keep this on one screen — don't make a coordinator switch tabs or views
 to see general vs. plan-based information.
 
+**UI — coordinator batch detail, student table with progress columns:**
+the existing `CoordinatorBatchDetail.jsx` student table (name, email,
+college, course) must add a **Plan Pace** column showing each student's
+`paceStatus` (ahead/on-track/behind/just-started) as a colored badge, and
+a **Completed / Expected** count (e.g. "12 / 18 items"). The backend
+endpoint that serves the batch student roster must include per-student
+plan progress data — either by extending `getBatchesWithPlans` to return
+per-student data, or by adding a new
+`GET /api/coordinator/batches/:id/students-with-progress` endpoint that
+joins the roster with the `getPlanProgress` output per student. Use the
+latter if the roster query is already paginated; the former if it's not
+worth a separate endpoint. Sort students by pace (behind first).
+
+**UI — admin batch detail (`AdminBatchDetail.jsx`):** this page does not
+exist yet. Create it at `client/src/pages/AdminBatchDetail.jsx` under
+`/admin/batches/:id`. It must show:
+- Batch header (name, code, student count, status)
+- Active plan section — plan name, "Day X of Y" with progress bar,
+  start date, assign/change/unassign plan buttons (same as
+  `CoordinatorBatchDetail.jsx`)
+- Enrolled students table with **Plan Pace** column (+ colored badge)
+  and **Completed / Expected** per student
+- Unassigned students section (students from this center not in any batch
+  or in a different batch)
+- Needs Attention section for this batch (students flagged with reasons)
+Route must be registered in `App.jsx` within the Admin route block.
+
+**UI — admin dashboard, plan/batch progress cards:** the current
+`AdminDashboard.jsx` (content stats only) must add a **Batches & Plans**
+section above the existing content stats, showing:
+- Total active plans across all centers (count)
+- Total batches running a plan (count)
+- Behind-schedule batches (count)
+- A list of recent/active batches (name, center, plan name, current day,
+  behind status) linked to the new `/admin/batches/:id` detail page
+Add a new endpoint `GET /api/admin/batch-plan-stats` that returns
+`{ activePlans, activeBatchPlans, behindCount, recentBatches: [...] }`
+scoped to all centers (admin-unrestricted).
+
 **Acceptance criteria:** a student not in any batch, or in a batch with
 no active plan, sees only their general progress — the plan-progress
 block doesn't appear or error. A student behind their plan's expected
 pace shows up in Needs Attention with the correct reason text, whether
 the item they're behind on is DSA, DBMS, OS, or Programming Concepts. A
 coordinator's roster row shows one leading stat plus the Needs Attention
-reason, not two full stat blocks, per the layout guidance above.
+reason, not two full stat blocks, per the layout guidance above. An
+admin can view any batch's detail page at `/admin/batches/:id`, see the
+plan progress per student (pace status + completed/expected counts),
+and assign/unassign plans. The admin dashboard shows a batch/plan
+summary section with counts and the most-active batches. The coordinator
+batch detail student table includes plan pace and completed/expected
+columns, sorted by pace (behind first).
 
 ---
 
@@ -787,7 +873,7 @@ notification — not just the coordinator dashboard.
 - **Phase 12 (Batches):** Completed
 - **Phase 13 (Needs Attention):** Completed — all 3 automated checks (inactivity, bottom 15%, quiz avg <50%) implemented with `needsAttentionService.js`, wired into coordinator dashboard, admin center detail, and student notifications. Additional session fixes below.
 - **Phase 14 (Placement Plans):** Completed — `Plan` + `BatchPlan` models, full CRUD controller/routes (admin + coordinator-scoped), content hierarchy & search APIs, assign/unassign batch plan endpoints, batch progress endpoint. Frontend: `AdminPlanBuilder.jsx` (two-column builder with sticky left column, responsive mobile stack, hierarchy browser, day planner, inline instructions, save/publish), `AdminPlanList.jsx` (search, filter, create/edit/delete/publish), `CoordinatorBatchDetail.jsx` (plan picker modal, progress bar), `CoordinatorDashboard.jsx` (batch progress cards). Route paths documented in `phase14.md` need alignment: assign/unassign live at `/api/plans/batches/:id/...` (not `/api/batches/:id/...` as spec states). Student-facing plan view deferred to Phase 16.
-- **Phase 15 (Dual progress):** Not started
+- **Phase 15 (Dual progress):** Not started — Pre-flight: admin center detail plans section, plans list filters (subject/date/center), card creator email + center name, `%NaN` progress guard, assign-to-batch from plans list. Core: per-student plan pace engine, student dashboard, coordinator roster with plan columns, admin batch detail page (`AdminBatchDetail.jsx`), admin dashboard batch/plan stats section, coordinator batch detail student table with progress columns
 - **Phase 16 (Daily tasks):** Not started
 
 ### Session Fixes (Post-Phase-13)

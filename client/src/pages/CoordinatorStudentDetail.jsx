@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
 import Modal from '../components/ui/Modal.jsx';
-import { ArrowLeft, ExternalLink, Save, Trash2, TrendingUp, User, BookOpen, Database, Cpu, Target, Award, BarChart3, Brain, GraduationCap, Mail, Calendar, Edit3, ClipboardList, Layers } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Save, Trash2, TrendingUp, User, BookOpen, Database, Cpu, Target, Award, BarChart3, Brain, GraduationCap, Mail, Calendar, Edit3, ClipboardList, Layers, Clock, AlertCircle, CheckCircle, FileText } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip, ResponsiveContainer, LabelList, Cell
 } from 'recharts';
@@ -26,6 +26,9 @@ export default function CoordinatorStudentDetail() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
+  /* Plan day-by-day breakdown */
+  const [planBreakdown, setPlanBreakdown] = useState(null);
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -43,6 +46,17 @@ export default function CoordinatorStudentDetail() {
       })
       .catch(err => { setError(err.message); setLoading(false); });
   }, [userId]);
+
+  /* Fetch plan day-by-day breakdown */
+  useEffect(() => {
+    if (!student?.progress?.planProgress?.planId || !student?.batch?._id) return;
+    const pp = student.progress.planProgress;
+    setBreakdownLoading(true);
+    apiRequest(`/plans/${pp.planId}/day-progress/${student.batch._id}/${userId}`)
+      .then(res => setPlanBreakdown(res.data))
+      .catch(err => console.error('[COORD] Day breakdown error:', err.message))
+      .finally(() => setBreakdownLoading(false));
+  }, [student?._id, student?.progress?.planProgress?.planId]);
 
   const handleChange = (e) => { setForm(p => ({ ...p, [e.target.name]: e.target.value })); setSaveSuccess(false); };
 
@@ -406,6 +420,100 @@ export default function CoordinatorStudentDetail() {
         )}
       </div>
 
+      {/* ═══ PLAN PROGRESS — Day-by-day breakdown ═══ */}
+      {student?.progress?.planProgress && (
+        <div style={{ ...CARD, marginBottom: 'var(--space-lg)', borderLeft: '6px solid var(--accent)' }}>
+          <h2 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FileText size={16} /> Plan Progress: {student.progress.planProgress.planName}
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 'var(--space-md)' }}>
+            <span style={{
+              fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase',
+              padding: '2px 8px', border: '2px solid #000',
+              color: student.progress.planProgress.paceStatus === 'behind' ? '#dc2626'
+                : student.progress.planProgress.paceStatus === 'ahead' ? '#16a34a'
+                : student.progress.planProgress.paceStatus === 'on-track' ? '#2563eb'
+                : 'var(--text-tertiary)'
+            }}>
+              {student.progress.planProgress.paceStatus === 'just-started' ? 'Started' : student.progress.planProgress.paceStatus}
+            </span>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Clock size={14} />
+              Day {student.progress.planProgress.currentDayOffset}/{student.progress.planProgress.durationDays}
+            </span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+              {student.progress.planProgress.completedCount}/{student.progress.planProgress.expectedCount} items done
+            </span>
+          </div>
+          {/* Progress bar */}
+          {student.progress.planProgress.durationDays > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--space-md)' }}>
+              <div style={{ flex: 1, height: 12, background: 'var(--bg-tertiary)', border: '2px solid #000', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${Math.min(100, Math.round((student.progress.planProgress.currentDayOffset / student.progress.planProgress.durationDays) * 100))}%`,
+                  background: student.progress.planProgress.paceStatus === 'behind' ? '#dc2626' : 'var(--success)',
+                  transition: 'width 0.4s ease'
+                }} />
+              </div>
+              <span style={{ fontWeight: 700, fontSize: '0.78rem' }}>
+                {Math.round((student.progress.planProgress.currentDayOffset / student.progress.planProgress.durationDays) * 100)}%
+              </span>
+            </div>
+          )}
+
+          {/* Day-by-day breakdown */}
+          {breakdownLoading ? (
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Loading day breakdown...</p>
+          ) : planBreakdown?.days ? (
+            <div>
+              <h3 style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: 8 }}>Day-by-Day Completion</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 8 }}>
+                {planBreakdown.days.map(d => (
+                  <div key={d.day} title={`Day ${d.day}: ${d.completedCount}/${d.itemsCount} items${d.isCurrent ? ' (Current)' : d.isPast ? ' (Past)' : ' (Future)'}`}
+                    style={{
+                      width: 24, height: 24,
+                      border: d.isCurrent ? '3px solid #000' : '2px solid var(--gray-300)',
+                      background: d.isFuture ? 'var(--bg-tertiary)'
+                        : d.itemsCount === 0 ? '#f0f0f0'
+                        : d.completedCount === d.itemsCount ? '#16a34a'
+                        : d.completedCount > 0 ? '#facc15'
+                        : '#fee2e2',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.55rem', fontWeight: 700,
+                      color: d.isFuture ? 'var(--text-tertiary)' : '#000'
+                    }}>
+                    {d.day}
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 12, fontSize: '0.65rem', color: 'var(--text-tertiary)', flexWrap: 'wrap' }}>
+                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#16a34a', marginRight: 3, border: '1px solid #000' }} /> Complete</span>
+                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#facc15', marginRight: 3, border: '1px solid #000' }} /> Partial</span>
+                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#fee2e2', marginRight: 3, border: '1px solid #000' }} /> Behind</span>
+                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#f0f0f0', marginRight: 3, border: '1px solid var(--gray-300)' }} /> No items</span>
+                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: 'var(--bg-tertiary)', marginRight: 3, border: '1px solid var(--gray-300)' }} /> Future</span>
+              </div>
+            </div>
+          ) : student.progress.planProgress.itemsBehind && student.progress.planProgress.itemsBehind.length > 0 ? (
+            <div>
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>
+                {student.progress.planProgress.itemsBehind.length} item(s) behind schedule:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 150, overflowY: 'auto' }}>
+                {student.progress.planProgress.itemsBehind.slice(0, 8).map((item, i) => (
+                  <div key={i} style={{ fontSize: '0.72rem', padding: '2px 6px', border: '1px solid var(--gray-300)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <AlertCircle size={10} style={{ color: '#dc2626', flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600 }}>{item.targetTitle || item.targetType}</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>(Day {item.dayOffset})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+
       {/* ═══ LINKS + SKILLS ═══ */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
         {student.externalLinks?.length > 0 && (
@@ -439,7 +547,7 @@ export default function CoordinatorStudentDetail() {
       {/* ═══ PROGRESS ═══ */}
       <div style={{ ...CARD, marginBottom: 'var(--space-lg)' }}>
         <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <TrendingUp size={16} /> Progress Dashboard
+          <TrendingUp size={16} /> General Progress Dashboard
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>

@@ -7,7 +7,7 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { requireCoordinator } from '../middleware/coordinatorOnly.js';
 import { getStudents, getStats, getStudentById, updateStudent, removeStudent, exportCoordinatorCsv, getCoordinatorBatches, createCoordinatorBatch, updateCoordinatorBatch, deleteCoordinatorBatch, assignStudentToBatch, removeStudentFromBatch, bulkAssignStudentsToBatch, bulkRemoveStudentsFromBatch, getCoordinatorCourseOfferings, createCoordinatorCourseOffering, updateCoordinatorCourseOffering, deleteCoordinatorCourseOffering, updateStudentCourse } from '../controllers/coordinatorController.js';
-import { getCoordinatorPlans, getCoordinatorPlanById, createCoordinatorPlan, updateCoordinatorPlan, deleteCoordinatorPlan, getBatchesWithPlans } from '../controllers/planController.js';
+import { getCoordinatorPlans, getCoordinatorPlanById, createCoordinatorPlan, updateCoordinatorPlan, deleteCoordinatorPlan, getBatchesWithPlans, getBatchStudentsWithProgress, getCoordinatorPlanAssignments } from '../controllers/planController.js';
 
 const router = Router();
 
@@ -39,11 +39,15 @@ router.patch('/students/:userId/course', requireAuth, requireCoordinator, update
 /* ── Plan routes (scoped to own center) ── */
 router.get('/plans', requireAuth, requireCoordinator, getCoordinatorPlans);
 router.get('/plans/:id', requireAuth, requireCoordinator, getCoordinatorPlanById);
+router.get('/plans/:id/assignments', requireAuth, requireCoordinator, getCoordinatorPlanAssignments);
 router.post('/plans', requireAuth, requireCoordinator, createCoordinatorPlan);
 router.put('/plans/:id', requireAuth, requireCoordinator, updateCoordinatorPlan);
 router.delete('/plans/:id', requireAuth, requireCoordinator, deleteCoordinatorPlan);
 
 /* ── Batch progress (for dashboard) ── */
 router.get('/batches/progress', requireAuth, requireCoordinator, getBatchesWithPlans);
+
+/* ── Batch students with progress (for batch detail) ── */
+router.get('/batches/:id/students-with-progress', requireAuth, requireCoordinator, getBatchStudentsWithProgress);
 
 export default router;

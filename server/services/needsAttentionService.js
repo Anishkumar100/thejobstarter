@@ -91,6 +91,12 @@ export function computeNeedsAttention(students, lastActivityMap) {
       reasons.push(`Quiz avg ${overallQuizAvg}%`);
     }
 
+    /* Check 4: Behind plan pace */
+    const pp = p?.planProgress;
+    if (pp && pp.paceStatus === 'behind' && pp.currentDayOffset >= 3) {
+      reasons.push(`Behind plan pace (${pp.completedCount}/${pp.expectedCount} items)`);
+    }
+
     student.needsAttention = reasons.length > 0;
     student.attentionReasons = reasons;
   }

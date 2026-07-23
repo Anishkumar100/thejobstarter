@@ -17,6 +17,8 @@ import Problem from '../models/Problem.js';
 import DbmsLesson from '../models/DbmsLesson.js';
 import DbmsSubtopic from '../models/DbmsSubtopic.js';
 import DbmsProblem from '../models/DbmsProblem.js';
+import User from '../models/User.js';
+import { getPlanProgress } from './planProgressService.js';
 import OsLesson from '../models/OsLesson.js';
 import OsSubtopic from '../models/OsSubtopic.js';
 import OsProblem from '../models/OsProblem.js';
@@ -206,7 +208,17 @@ export async function getProgressSummary(userId) {
   const summary = {};
 
   const subjects = ['dsa', 'dbms', 'os', 'programming'];
-  const [quizStats] = await Promise.all([getQuizStats(userId)]);
+
+  /* Look up user's batch for plan progress */
+  const userLookup = await User.findById(userId).select('batch').lean();
+  const batchId = userLookup?.batch || null;
+
+  const [quizStats, planProgress] = await Promise.all([
+    getQuizStats(userId),
+    getPlanProgress(userId, batchId)
+  ]);
+
+  summary.planProgress = planProgress;
 
   for (const subject of subjects) {
     const [totals, completed] = await Promise.all([
@@ -228,7 +240,7 @@ export async function getProgressSummary(userId) {
     };
   }
 
-  console.log('[PROGRESS] Summary computed for user:', userId, JSON.stringify(summary));
+  console.log('[PROGRESS] Summary computed for user:', userId);
   return summary;
 }
 

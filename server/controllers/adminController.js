@@ -17,6 +17,10 @@ import Newsletter from '../models/Newsletter.js';
 import Topic from '../models/Topic.js';
 import Subtopic from '../models/Subtopic.js';
 import DbmsMeta from '../models/DbmsMeta.js';
+import Plan from '../models/Plan.js';
+import BatchPlan from '../models/BatchPlan.js';
+import Batch from '../models/Batch.js';
+import CoachingCenter from '../models/CoachingCenter.js';
 import { getProgressSummary, deriveStatus } from '../services/progressService.js';
 
 
@@ -278,6 +282,71 @@ export async function deleteUser(req, res) {
     res.json({ success: true });
   } catch (error) {
     console.error('[ADMIN] Error deleting user:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * GET /api/admin/batch-plan-stats
+ * Returns summary stats about batches and plans across all centers.
+ * Used by AdminDashboard to show the Batches & Plans section.
+ */
+export async function getBatchPlanStats(req, res) {
+  try {
+    console.log('[ADMIN] Fetching batch/plan stats...');
+
+    const [
+      activePlans, activeBatchPlans, allBatches, totalStudents,
+      totalCenters, totalPlansAll, totalBatches
+    ] = await Promise.all([
+      Plan.countDocuments({ status: 'published' }),
+      BatchPlan.countDocuments({ status: 'active' }),
+      Batch.find({ status: 'active' }).populate('coachingCenter', 'name').sort({ createdAt: -1 }).limit(20).lean(),
+      User.countDocuments({}),
+      CoachingCenter.countDocuments({}),
+      Plan.countDocuments({}),
+      Batch.countDocuments({})
+    ]);
+
+    /* Count students that belong to centers (have a batch assigned) */
+    const centerStudents = await User.countDocuments({ batch: { $ne: null } });
+
+    /* Compute behind status for each batch */
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    let behindCount = 0;
+    const batchPlans = await BatchPlan.find({ status: 'active' }).populate('plan', 'name durationDays').lean();
+    const planMap = {};
+    for (const bp of batchPlans) {
+      if (!bp.plan) continue;
+      const startDate = new Date(bp.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      const currentDay = Math.max(0, Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      const expected = Math.round((currentDay / bp.plan.durationDays) * 100);
+      if (currentDay >= 3 && expected > 0 && expected < 40) behindCount++;
+      planMap[bp.batch.toString()] = {
+        planName: bp.plan.name,
+        currentDay,
+        totalDays: bp.plan.durationDays,
+        pct: bp.plan.durationDays > 0 ? Math.round((currentDay / bp.plan.durationDays) * 100) : 0,
+        startDate: bp.startDate
+      };
+    }
+
+    const recentBatches = allBatches.map(b => ({
+      _id: b._id,
+      name: b.name,
+      code: b.code,
+      centerName: b.coachingCenter?.name || 'Unknown',
+      plan: planMap[b._id.toString()] || null,
+      studentCount: 0,
+      behind: planMap[b._id.toString()] ? (planMap[b._id.toString()].pct < 40 && planMap[b._id.toString()].currentDay >= 3) : false
+    }));
+
+    console.log('[ADMIN] Batch/plan stats:', { activePlans, activeBatchPlans, behindCount, totalCenters, totalPlansAll, totalBatches });
+    res.json({ data: { activePlans, activeBatchPlans, behindCount, recentBatches, totalStudents, totalCenters, totalPlansAll, totalBatches, centerStudents } });
+  } catch (error) {
+    console.error('[ADMIN] Error fetching batch/plan stats:', error.message);
     res.status(500).json({ error: error.message });
   }
 }

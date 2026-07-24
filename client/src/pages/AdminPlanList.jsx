@@ -39,24 +39,23 @@ export default function AdminPlanList() {
   const [planAssignments, setPlanAssignments] = useState({});
   const [assignmentsLoading, setAssignmentsLoading] = useState(false);
 
-  /* Fetch batch assignments for all visible plans */
+  /* Fetch batch assignments for all visible plans (scoped to coordinator's center) */
   useEffect(() => {
     const fetchAssignments = async () => {
       if (plans.length === 0) return;
       setAssignmentsLoading(true);
       const results = {};
       try {
-        /* Fetch assignments for each plan in parallel (limited to avoid overwhelming) */
         const batchSize = 10;
         for (let i = 0; i < plans.length; i += batchSize) {
-          const batch = plans.slice(i, i + batchSize);
-          const promises = batch.map(p =>
-            apiRequest(`/plans/${p._id}/assignments`).catch(() => ({ data: [] }))
+          const slice = plans.slice(i, i + batchSize);
+          const promises = slice.map(p =>
+            apiRequest(`${isAdmin ? '/plans' : '/coordinator/plans'}/${p._id}/assignments`).catch(() => ({ data: [] }))
           );
           const responses = await Promise.all(promises);
           responses.forEach((res, idx) => {
             if (res.data && res.data.length > 0) {
-              results[batch[idx]._id] = res.data;
+              results[slice[idx]._id] = res.data;
             }
           });
         }
@@ -67,7 +66,7 @@ export default function AdminPlanList() {
       setAssignmentsLoading(false);
     };
     fetchAssignments();
-  }, [plans]);
+  }, [plans, isAdmin]);
 
   /* Assign-to-batch modal state */
   const [assignModal, setAssignModal] = useState(null); /* { plan } or null */
@@ -78,12 +77,14 @@ export default function AdminPlanList() {
   const [existingPlanForBatch, setExistingPlanForBatch] = useState(null);
   const [batchesLoading, setBatchesLoading] = useState(false);
 
-  /* Fetch batches for the assign modal */
+  /* Fetch batches for the assign modal (scoped to coordinator's center) */
   const fetchBatchesForAssign = async () => {
     setBatchesLoading(true);
     try {
-      const res = await apiRequest('/batches');
-      setAvailableBatches(res.data || []);
+      const res = await apiRequest(isAdmin ? '/batches' : '/coordinator/batches');
+      const allBatches = res.data || [];
+      /* For each batch, also fetch student count if available */
+      setAvailableBatches(allBatches);
     } catch (err) {
       console.error('[PLANS] Error fetching batches:', err.message);
     }
@@ -485,9 +486,20 @@ export default function AdminPlanList() {
                 onChange={e => setAssignBatchId(e.target.value)}
                 style={{ width: '100%', padding: '8px 10px', fontSize: '0.85rem', marginBottom: 'var(--space-md)' }}>
                 <option value="">— Choose a batch —</option>
-                {availableBatches.filter(b => b.status === 'active').map(b => (
-                  <option key={b._id} value={b._id}>{b.name} ({b.code}){b.coachingCenter?.name ? ` — ${b.coachingCenter.name}` : ''}</option>
-                ))}
+                {availableBatches.filter(b => b.status === 'active').map(b => {
+                  /* Check if this batch already has an active plan assigned */
+                  const hasPlan = Object.entries(planAssignments).some(([planId, assigns]) =>
+                    assigns.some(a => a.batch?._id === b._id || a.batch === b._id)
+                  );
+                  const courseInfo = b.courseOffering?.name ? ` [${b.courseOffering.name}]` : '';
+                  const studentInfo = b.studentCount != null ? ` (${b.studentCount} students)` : '';
+                  const planLabel = hasPlan ? ' [has plan]' : '';
+                  return (
+                    <option key={b._id} value={b._id}>
+                      {b.name} ({b.code}){courseInfo}{studentInfo}{planLabel}
+                    </option>
+                  );
+                })}
               </select>
             )}
 

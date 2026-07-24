@@ -837,30 +837,54 @@ export async function getDayProgressBreakdown(req, res) {
       progressDocs.map(d => `${d.subject}:${d.targetType}:${d.targetSlug}`)
     );
 
-    /* Build day-by-day breakdown */
+    /* Build day-by-day breakdown with per-item details */
     const days = [];
+    let totalItemsAssigned = 0;
+    let totalItemsCompleted = 0;
     for (let d = 1; d <= Math.max(plan.durationDays, currentDayOffset); d++) {
       const items = dayGroups[d] || [];
-      const completed = items.filter(item =>
-        completedSet.has(`${item.subject}:${item.targetType}:${item.targetSlug}`)
-      ).length;
+      const itemsWithStatus = items.map(item => {
+        const done = completedSet.has(`${item.subject}:${item.targetType}:${item.targetSlug}`);
+        return {
+          dayOffset: item.dayOffset,
+          subject: item.subject,
+          targetType: item.targetType,
+          targetTitle: item.targetTitle || item.targetSlug,
+          targetSlug: item.targetSlug,
+          instruction: item.instruction || '',
+          subtopicTitle: item.subtopicTitle || '',
+          lessonTitle: item.lessonTitle || '',
+          completed: done
+        };
+      });
+      const completedCount = itemsWithStatus.filter(i => i.completed).length;
+      if (d <= currentDayOffset) {
+        totalItemsAssigned += items.length;
+        totalItemsCompleted += completedCount;
+      }
       days.push({
         day: d,
         itemsCount: items.length,
-        completedCount: completed,
+        completedCount,
+        completedPct: items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0,
         isCurrent: d === currentDayOffset,
         isFuture: d > currentDayOffset,
-        isPast: d < currentDayOffset
+        isPast: d < currentDayOffset,
+        items: itemsWithStatus
       });
     }
 
-    console.log('[PLAN] Day breakdown built:', days.length, 'days');
+    console.log('[PLAN] Day breakdown built:', days.length, 'days, completed:', totalItemsCompleted, '/', totalItemsAssigned);
     res.json({
       data: {
         planName: plan.name,
+        planDescription: plan.description || '',
         durationDays: plan.durationDays,
         currentDayOffset,
         startDate: batchPlan.startDate,
+        totalItemsAssigned,
+        totalItemsCompleted,
+        overallPct: totalItemsAssigned > 0 ? Math.round((totalItemsCompleted / totalItemsAssigned) * 100) : 0,
         days
       }
     });
@@ -1039,7 +1063,9 @@ export async function getBatchDayProgress(req, res) {
           targetType: item.targetType,
           targetTitle: item.targetTitle,
           targetSlug: item.targetSlug,
-          instruction: item.instruction || ''
+          instruction: item.instruction || '',
+          subtopicTitle: item.subtopicTitle || '',
+          lessonTitle: item.lessonTitle || ''
         })),
         isCurrent: d === currentDayOffset,
         isFuture: d > currentDayOffset,

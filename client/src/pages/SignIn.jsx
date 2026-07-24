@@ -19,7 +19,7 @@ function SignedInRedirect() {
 }
 
 const FEATURES = [
-  { icon: <CodeIcon size={18} />, text: 'Curated DSA, DBMS & OS resources' },
+  { icon: <CodeIcon size={18} />, text: 'Curated DSA, DBMS, OS & Programming resources' },
   { icon: <BookOpen01Icon size={18} />, text: 'Step-by-step problem solutions with code' },
   { icon: <UserGroupIcon size={18} />, text: 'Community Q&A with expert answers' }
 ];

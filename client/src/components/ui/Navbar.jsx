@@ -3,7 +3,7 @@ import { useAuthStore } from '../../stores/useAuthStore.js';
 import { useThemeStore } from '../../stores/useThemeStore.js';
 import { useNotificationStore } from '../../stores/useNotificationStore.js';
 import { useState, useEffect, useRef } from 'react';
-import { Menu, X, Moon, Sun, MessageCircle, User, Settings, LogOut, Bell } from 'lucide-react';
+import { Menu, X, Moon, Sun, MessageCircle, User, Settings, LogOut, Bell, LayoutDashboard } from 'lucide-react';
 import BrandLogo from './BrandLogo.jsx';
 
 const NAV_LINKS = [
@@ -118,6 +118,16 @@ export default function Navbar() {
                       <span className="navbar__notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
                     )}
                   </Link>
+                  {user.coachingCenter && (
+                    <Link
+                      to="/dashboard"
+                      className="navbar__dropdown-item"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      <LayoutDashboard size={16} />
+                      <span>Dashboard</span>
+                    </Link>
+                  )}
                   <Link
                     to={`/users/${user.username}`}
                     className="navbar__dropdown-item"

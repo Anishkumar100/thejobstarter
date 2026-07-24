@@ -16,8 +16,7 @@ import FeedbackSection from '../components/users/FeedbackSection.jsx';
 import { useUser } from '@clerk/clerk-react';
 import Loader from '../components/ui/Loader.jsx';
 import { MessageQuestionIcon, Cancel01Icon, Clock01Icon, Download01Icon } from 'hugeicons-react';
-import { AlertCircle, CheckCircle, FileText, Clock, Layers, Building2 } from 'lucide-react';
-import { apiRequest } from '../api/client.js';
+import { Layers, Building2 } from 'lucide-react';
 
 export default function UserProfile() {
   const { username } = useParams();
@@ -29,9 +28,6 @@ export default function UserProfile() {
   const [activities, setActivities] = useState([]);
   const [myQuestions, setMyQuestions] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
-  /* Plan day breakdown for plan progress */
-  const [userPlanBreakdown, setUserPlanBreakdown] = useState(null);
-  const [userBdLoading, setUserBdLoading] = useState(false);
   const isOwnProfile = !!(clerkUser?.id && currentProfile?.clerkId === clerkUser.id);
   console.log('[UserProfile] Render — isOwnProfile:', isOwnProfile, '| clerkUser?.id:', clerkUser?.id, '| profile.clerkId:', currentProfile?.clerkId, '| param username:', username, '| progressSummary:', !!progressSummary, '| progressLoading:', progressLoading);
 
@@ -49,17 +45,6 @@ export default function UserProfile() {
         .catch(err => console.error('[UserProfile] Error fetching activity:', err.message));
     }
   }, [currentProfile?._id]);
-
-  /* Fetch plan day breakdown when planProgress is available */
-  useEffect(() => {
-    const pp = progressSummary?.planProgress;
-    if (!pp?.planId || !currentProfile?.batch?._id) return;
-    setUserBdLoading(true);
-    apiRequest(`/plans/${pp.planId}/day-progress/${currentProfile.batch._id}/${currentProfile._id}`)
-      .then(res => setUserPlanBreakdown(res.data))
-      .catch(err => console.error('[UP] Day breakdown error:', err.message))
-      .finally(() => setUserBdLoading(false));
-  }, [progressSummary?.planProgress?.planId, currentProfile?.batch?._id, currentProfile?._id]);
 
   /* Fetch own questions if this is the user's own profile */
   useEffect(() => {
@@ -277,123 +262,46 @@ export default function UserProfile() {
                   {/* ═════ CENTRE & BATCH INFO ═════ */}
                   {currentProfile && (currentProfile.batch || currentProfile.coachingCenter) && (
                     <div style={{
-                      padding: 'var(--space-sm) var(--space-md)',
+                      padding: 'var(--space-md) var(--space-lg)',
                       marginBottom: 'var(--space-md)',
                       border: '3px solid var(--border-color)',
                       boxShadow: 'var(--shadow)',
-                      background: 'var(--bg-tertiary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 16,
-                      flexWrap: 'wrap',
-                      fontSize: '0.82rem'
+                      background: 'var(--bg-secondary)'
                     }}>
-                      {currentProfile.coachingCenter && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Building2 size={14} />
-                          <strong>{currentProfile.coachingCenter.name || 'Centre'}</strong>
-                        </span>
-                      )}
-                      {currentProfile.batch && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Layers size={14} />
-                          Batch: <strong>{currentProfile.batch.name || '—'}</strong>
-                          {currentProfile.batch.code && (
-                            <code style={{ background: 'var(--bg-surface)', padding: '1px 4px', border: '1px solid var(--border-color)', fontSize: '0.7rem', fontFamily: 'monospace' }}>
-                              {currentProfile.batch.code}
-                            </code>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ═════ PLAN PROGRESS ═════ */}
-                  {progressSummary.planProgress && (() => {
-                    const pp = progressSummary.planProgress;
-                    const paceColors = { ahead: 'var(--success)', 'on-track': '#2563eb', behind: '#dc2626', 'just-started': 'var(--text-tertiary)' };
-                    const pct = pp.expectedCount > 0 ? Math.round((pp.completedCount / pp.expectedCount) * 100) : 0;
-                    return (
-                      <div style={{
-                        padding: 'var(--space-md) var(--space-lg)',
-                        marginBottom: 'var(--space-md)',
-                        border: '3px solid var(--border-color)',
-                        boxShadow: 'var(--shadow)',
-                        background: 'var(--bg-secondary)'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                            <FileText size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                            Plan Progress: {pp.planName}
-                          </div>
-                          <span style={{
-                            fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase',
-                            padding: '2px 8px', border: '2px solid var(--border-color)',
-                            color: paceColors[pp.paceStatus] || 'var(--text-tertiary)'
-                          }}>
-                            {pp.paceStatus === 'just-started' ? 'Just started' : pp.paceStatus}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', fontSize: '0.82rem', marginBottom: 8 }}>
+                        {currentProfile.coachingCenter && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Building2 size={14} />
+                            <strong>{currentProfile.coachingCenter.name || 'Centre'}</strong>
                           </span>
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                          <Clock size={12} style={{ verticalAlign: 'middle', marginRight: 2 }} />
-                          Day {pp.currentDayOffset} of {pp.durationDays} · Started {new Date(pp.startDate).toLocaleDateString()}
-                        </div>
-                        {pp.paceStatus === 'just-started' && pp.currentDayOffset < 3 ? (
-                          <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-                            Plan just started — progress data will appear soon.
-                          </p>
-                        ) : (
-                          <>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                              <div style={{ flex: 1, height: 14, background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${pct}%`, background: pp.paceStatus === 'behind' ? '#dc2626' : 'var(--success)', transition: 'width 0.4s ease' }} />
-                              </div>
-                              <span style={{ fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                                {pp.completedCount}/{pp.expectedCount}
-                              </span>
-                            </div>
-                            {/* Day-by-day breakdown */}
-                            {userBdLoading ? (
-                              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Loading day breakdown...</p>
-                            ) : userPlanBreakdown?.days ? (
-                              <div style={{ marginTop: 8 }}>
-                                <div style={{ fontSize: '0.72rem', fontWeight: 700, marginBottom: 6 }}>Day-by-Day Completion</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                                  {userPlanBreakdown.days.map(d => (
-                                    <div key={d.day} title={`Day ${d.day}: ${d.completedCount}/${d.itemsCount} items${d.isCurrent ? ' (Current)' : d.isPast ? ' (Past)' : ' (Future)'}`}
-                                      style={{
-                                        width: 22, height: 22,
-                                        border: d.isCurrent ? '3px solid #000' : '2px solid var(--gray-300)',
-                                        background: d.isFuture ? 'var(--bg-tertiary)'
-                                          : d.itemsCount === 0 ? '#f0f0f0'
-                                          : d.completedCount === d.itemsCount ? '#16a34a'
-                                          : d.completedCount > 0 ? '#facc15'
-                                          : '#fee2e2',
-                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '0.5rem', fontWeight: 700
-                                      }}>
-                                      {d.day}
-                                    </div>
-                                  ))}
-                                </div>
-                                <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: '0.6rem', color: 'var(--text-tertiary)', flexWrap: 'wrap' }}>
-                                  <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#16a34a', marginRight: 2, border: '1px solid #000' }} /> Done</span>
-                                  <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#facc15', marginRight: 2, border: '1px solid #000' }} /> Partial</span>
-                                  <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#fee2e2', marginRight: 2, border: '1px solid #000' }} /> Missed</span>
-                                </div>
-                              </div>
-                            ) : pp.itemsBehind && pp.itemsBehind.length > 0 ? (
-                              <div style={{ marginTop: 6, fontSize: '0.72rem' }}>
-                                <span style={{ color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <AlertCircle size={12} /> {pp.itemsBehind.length} item(s) behind schedule
-                                </span>
-                              </div>
-                            ) : null}
-                          </>
+                        )}
+                        {currentProfile.batch && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Layers size={14} />
+                            Batch: <strong>{currentProfile.batch.name || '—'}</strong>
+                            {currentProfile.batch.code && (
+                              <code style={{ background: 'var(--bg-surface)', padding: '1px 4px', border: '1px solid var(--border-color)', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                                {currentProfile.batch.code}
+                              </code>
+                            )}
+                          </span>
                         )}
                       </div>
-                    );
-                  })()}
+                      <div style={{
+                        fontSize: '0.82rem',
+                        padding: '10px 14px',
+                        border: '2px solid var(--border-color)',
+                        background: '#fff7ed',
+                        lineHeight: 1.5
+                      }}>
+                        Please look inside your{' '}
+                        <Link to="/dashboard" style={{ fontWeight: 700, textDecoration: 'underline' }}>
+                          Dashboard
+                        </Link>{' '}
+                        to complete assignments, tasks and master in basics and get your job.
+                      </div>
+                    </div>
+                  )}
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-md)' }}>
                     {['dsa', 'dbms', 'os', 'programming'].map(subject => {

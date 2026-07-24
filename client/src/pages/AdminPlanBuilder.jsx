@@ -183,7 +183,9 @@ export default function AdminPlanBuilder() {
         targetSlug: item.slug,
         targetTitle: item.title,
         targetId: item._id,
-        instruction: ''
+        instruction: '',
+        subtopicTitle: item.subtopicTitle || '',
+        lessonTitle: item.lessonTitle || ''
       }];
     });
     /* Auto-expand the day */
@@ -564,7 +566,7 @@ export default function AdminPlanBuilder() {
                         <button className="btn btn--sm"
                           onClick={e => {
                             e.stopPropagation();
-                            addItemToDay({ ...sub, _type: 'subtopic' });
+                            addItemToDay({ ...sub, _type: 'subtopic', lessonTitle: lesson.title });
                           }}
                           style={{
                             padding: '2px 6px', fontSize: '0.6rem', flexShrink: 0,
@@ -601,7 +603,7 @@ export default function AdminPlanBuilder() {
                             </span>
                           )}
                           <button className="btn btn--sm"
-                            onClick={() => addItemToDay({ ...prob, _type: 'problem' })}
+                            onClick={() => addItemToDay({ ...prob, _type: 'problem', subtopicTitle: sub.title, lessonTitle: lesson.title })}
                             style={{
                               padding: '1px 5px', fontSize: '0.55rem', flexShrink: 0,
                               border: '2px solid var(--border-color)'
@@ -776,6 +778,16 @@ export default function AdminPlanBuilder() {
                                       {item.subject === 'programming' ? 'PROG' : item.subject.toUpperCase()}
                                     </span>
                                   </div>
+                                  {/* Parent context path for problems and subtopics */}
+                                  {(item.targetType === 'problem' && (item.subtopicTitle || item.lessonTitle)) ? (
+                                    <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: 1 }}>
+                                      {item.lessonTitle}{item.subtopicTitle ? ` → ${item.subtopicTitle}` : ''}
+                                    </div>
+                                  ) : item.targetType === 'subtopic' && item.lessonTitle ? (
+                                    <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: 1 }}>
+                                      {item.lessonTitle}
+                                    </div>
+                                  ) : null}
                                   {/* Instruction field */}
                                   <input className="input" placeholder="Instructions for students (optional)"
                                     value={instr}

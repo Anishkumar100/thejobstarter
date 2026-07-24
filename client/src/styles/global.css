@@ -71,6 +71,16 @@
   --code-tab-bg: #44403c;
   --code-tab-active: #e11d48;
 
+  /* Subject badges */
+  --badge-dsa-bg: #eef2ff;
+  --badge-dsa-text: #4338ca;
+  --badge-dbms-bg: #ccfbf1;
+  --badge-dbms-text: #0f766e;
+  --badge-os-bg: #fef3c7;
+  --badge-os-text: #b45309;
+  --badge-prog-bg: #f3e8ff;
+  --badge-prog-text: #7e22ce;
+
   /* Misc */
   --skeleton: #ece8e0;
   --overlay: rgba(28, 25, 23, 0.6);
@@ -133,6 +143,16 @@
   --code-header-bg: #171717;
   --code-tab-bg: #262626;
   --code-tab-active: #fb923c;
+
+  /* Subject badges */
+  --badge-dsa-bg: #1e1b4b;
+  --badge-dsa-text: #a5b4fc;
+  --badge-dbms-bg: #022c22;
+  --badge-dbms-text: #6ee7b7;
+  --badge-os-bg: #2d1b00;
+  --badge-os-text: #fcd34d;
+  --badge-prog-bg: #2e0b3a;
+  --badge-prog-text: #d8b4fe;
 
   /* Misc */
   --skeleton: #292524;

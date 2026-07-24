@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
@@ -318,6 +318,49 @@ export default function CoordinatorBatchDetail() {
     return counts;
   })();
 
+  /* ── Student performance sections pagination ── */
+  const PER_PAGE_BATCH = 20;
+  const [topPage, setTopPage] = useState(1);
+  const [onTrackPage, setOnTrackPage] = useState(1);
+  const [behindPage, setBehindPage] = useState(1);
+  const [topFilter, setTopFilter] = useState('all');
+
+  /* Enrich enrolled students with computed fields (same as CoordinatorStudentsList) */
+  const enrichedStudents = useMemo(() => {
+    return enrolledStudents.map(s => {
+      const prog = s.progress;
+      let total = 0, completed = 0;
+      for (const sub of ['dsa', 'dbms', 'os', 'programming']) {
+        const so = prog?.[sub]?.overall;
+        if (so) { total += so.total; completed += so.completed; }
+      }
+      const overallPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const pp = prog?.planProgress;
+      const planCompletionPct = pp?.expectedCount > 0 ? Math.round((pp.completedCount / pp.expectedCount) * 100) : 0;
+      const behindItems = pp?.itemsBehind?.length || 0;
+      return { ...s, _ov: overallPct, _pp: planCompletionPct, _bi: behindItems };
+    });
+  }, [enrolledStudents]);
+
+  /* Derive performance segments */
+  const topCandidates = enrichedStudents.filter(s => s.progress?.planProgress?.paceStatus && s.progress?.planProgress?.paceStatus !== 'just-started').sort((a, b) => b._pp - a._pp);
+  const onTrackStudents = enrichedStudents.filter(s => s.progress?.planProgress?.paceStatus === 'on-track');
+  const behindStudents = enrichedStudents.filter(s => s.progress?.planProgress?.paceStatus === 'behind');
+
+  /* Top performer filter */
+  const filteredTop = useMemo(() => {
+    if (topFilter === 'all') return topCandidates;
+    const lo = Number(topFilter.split('-')[0]), hi = Number(topFilter.split('-')[1]);
+    return topCandidates.filter(s => s._pp >= lo && s._pp <= hi);
+  }, [topCandidates, topFilter]);
+
+  const topTotalPages = Math.max(1, Math.ceil(filteredTop.length / PER_PAGE_BATCH));
+  const paginatedTop = filteredTop.slice((topPage - 1) * PER_PAGE_BATCH, topPage * PER_PAGE_BATCH);
+  const onTrackTotalPages = Math.max(1, Math.ceil(onTrackStudents.length / PER_PAGE_BATCH));
+  const paginatedOnTrack = onTrackStudents.slice((onTrackPage - 1) * PER_PAGE_BATCH, onTrackPage * PER_PAGE_BATCH);
+  const behindTotalPages = Math.max(1, Math.ceil(behindStudents.length / PER_PAGE_BATCH));
+  const paginatedBehind = behindStudents.slice((behindPage - 1) * PER_PAGE_BATCH, behindPage * PER_PAGE_BATCH);
+
   /* ── Single-student remove from batch (per-row action) ── */
 
   const handleSingleRemove = async (student) => {
@@ -479,7 +522,7 @@ export default function CoordinatorBatchDetail() {
         </div>
       </div>
 
-      {/* ═══ PLAN SECTION ═══ */}
+      {/* ═══ PLAN SECTION — RICH METRICS ═══ */}
       <div style={{ ...CARD, marginBottom: 'var(--space-lg)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
           <h2 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)' }}>
@@ -510,7 +553,8 @@ export default function CoordinatorBatchDetail() {
           <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>Loading plan...</p>
         ) : activePlan ? (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+            {/* Plan header info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <Link to={`/coordinator/plans/${activePlan.plan?._id}`} style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', textDecoration: 'none', cursor: 'pointer' }}
                 onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline'; }}
                 onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}>
@@ -524,42 +568,83 @@ export default function CoordinatorBatchDetail() {
                 Active
               </span>
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-              Started {new Date(activePlan.startDate).toLocaleDateString()} · Day {activePlan.currentDay} of {activePlan.totalDays}
-            </div>
-            {/* Progress bar — guard against NaN when totalDays=0 or currentDay<1 */}
+            {activePlan.plan?.description && (
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginBottom: 6 }}>{activePlan.plan.description}</p>
+            )}
+
+            {/* Metric summary grid */}
             {(() => {
               const total = Number(activePlan.totalDays) || 1;
               const current = Math.max(0, Number(activePlan.currentDay) || 0);
-              const pct = current > 0 && total > 0 ? Math.round((current / total) * 100) : 0;
-              return current < 1 ? (
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-                  Plan starts on {new Date(activePlan.startDate).toLocaleDateString()}. Progress will appear once the plan is underway.
-                </p>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{
-                    flex: 1, height: 14,
-                    background: 'var(--bg-tertiary)',
-                    border: '2px solid var(--border-color)',
-                    position: 'relative', overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${pct}%`,
-                      background: 'var(--success)',
-                      transition: 'width 0.4s ease'
-                    }} />
+              const timePct = current > 0 && total > 0 ? Math.round((current / total) * 100) : 0;
+              const started = current >= 1;
+              const withPlan = enrichedStudents.filter(s => s.progress?.planProgress).length;
+              const avgPct = withPlan > 0 ? Math.round(enrichedStudents.reduce((sum, s) => sum + (s._pp || 0), 0) / withPlan) : 0;
+              return (
+                <>
+                  {/* Time-elapsed progress bar */}
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 2 }}>
+                      <span>Day {current}/{total}</span>
+                      <span>Time Elapsed: {timePct}%</span>
+                    </div>
+                    <div style={{ height: 12, background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${timePct}%`, background: 'var(--success)', transition: 'width 0.4s ease' }} />
+                    </div>
                   </div>
-                  <span style={{ fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                    {pct}%
-                  </span>
-                </div>
+
+                  {/* Stat counters */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, marginBottom: 6 }}>
+                    <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-primary)' }}>{started ? current : 0}</div>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Days Elapsed</div>
+                      <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>Plan day {current} of {total} total</div>
+                    </div>
+                    <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-primary)' }}>{withPlan}/{enrolledStudents.length}</div>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>With Plan Data</div>
+                      <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>Students with recorded plan progress</div>
+                    </div>
+                    <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: avgPct >= 60 ? '#16a34a' : avgPct >= 30 ? '#eab308' : '#dc2626' }}>{avgPct}%</div>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Avg Completion</div>
+                      <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>Mean items completed out of assigned so far</div>
+                    </div>
+                    <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-primary)' }}>{
+                        (() => {
+                          const ahead = enrolledStudents.filter(s => s.progress?.planProgress?.paceStatus === 'ahead').length;
+                          const onTrack = enrolledStudents.filter(s => s.progress?.planProgress?.paceStatus === 'on-track').length;
+                          return `${ahead + onTrack}`;
+                        })()
+                      }</div>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>On Track</div>
+                      <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>Students ahead or on-track with plan pace</div>
+                    </div>
+                    <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: '#dc2626' }}>{
+                        enrolledStudents.filter(s => s.progress?.planProgress?.paceStatus === 'behind').length
+                      }</div>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Behind</div>
+                      <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>Behind schedule on plan progress</div>
+                    </div>
+                    <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
+                      <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-tertiary)' }}>{
+                        enrolledStudents.filter(s => !s.progress?.planProgress?.paceStatus || s.progress?.planProgress?.paceStatus === 'just-started').length
+                      }</div>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>No Data / Just Started</div>
+                      <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>No plan progress tracked yet</div>
+                    </div>
+                  </div>
+
+                  {!started && (
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic', marginTop: 4 }}>
+                      Plan starts on {new Date(activePlan.startDate).toLocaleDateString()}. Progress will appear once the plan is underway.
+                    </p>
+                  )}
+                </>
               );
             })()}
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: 6, borderTop: '2px solid var(--gray-300)', paddingTop: 6 }}>
-              This progress bar shows elapsed <strong>time</strong> (days passed ÷ total plan days). For student-level completion, see the <strong>Pace Distribution</strong> card and <strong>Day-by-Day Progress</strong> section below. Click the plan name to view the full plan structure.
-            </p>
           </div>
         ) : (
           <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -571,10 +656,16 @@ export default function CoordinatorBatchDetail() {
       {/* Plan Progress Distribution */}
       {activePlan && enrolledStudents.length > 0 && (
         <div style={{ ...CARD, marginBottom: 'var(--space-md)', padding: 'var(--space-sm) var(--space-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 4 }}>
+            <BarChart3 size={14} />
             <h3 style={{ fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <BarChart3 size={14} /> Pace Distribution
+              Pace Distribution
             </h3>
+          </div>
+          <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginBottom: 6, borderLeft: '2px solid var(--gray-500)', paddingLeft: 6 }}>
+            Pace reflects how each student is tracking against plan expectations. Ahead ≥90%, On-track ≥60%, Behind &lt;60% of items completed relative to what should be done by this day.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
             {[
               { key: 'ahead', label: 'Ahead', color: '#16a34a' },
               { key: 'on-track', label: 'On Track', color: '#2563eb' },
@@ -595,6 +686,185 @@ export default function CoordinatorBatchDetail() {
               ) : null;
             })}
           </div>
+        </div>
+      )}
+
+      {/* ═══ STUDENT PERFORMANCE SECTIONS ═══ */}
+      {activePlan && enrichedStudents.length > 0 && (
+        <div style={{ marginBottom: 'var(--space-lg)' }}>
+          {/* ── Top Performing Students ── */}
+          {topCandidates.length > 0 && (
+            <div style={{ ...CARD, marginBottom: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <TrendingUp size={18} />
+                  <h2 style={{ fontSize: '1rem', fontWeight: 900 }}>Top Performing Students</h2>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', border: '2px solid var(--border-color)', background: '#f5f5f5' }}>{topCandidates.length} total</span>
+                </div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <select value={topFilter} onChange={e => { setTopFilter(e.target.value); setTopPage(1); }}
+                    style={{ fontSize: '0.68rem', padding: '3px 6px', border: '2px solid var(--border-color)', background: 'var(--bg-surface)', fontFamily: 'inherit' }}>
+                    <option value="all">All ranges</option>
+                    <option value="0-49">0–49%</option>
+                    <option value="50-69">50–69%</option>
+                    <option value="70-89">70–89%</option>
+                    <option value="90-100">90–100%</option>
+                  </select>
+                  {topTotalPages > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem' }}>
+                      <button onClick={() => setTopPage(p => Math.max(1, p - 1))} disabled={topPage === 1}
+                        style={{ background: 'none', border: 'none', cursor: topPage === 1 ? 'default' : 'pointer', opacity: topPage === 1 ? 0.4 : 1, padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700 }}>&lt;</button>
+                      <span>{topPage}/{topTotalPages}</span>
+                      <button onClick={() => setTopPage(p => Math.min(topTotalPages, p + 1))} disabled={topPage === topTotalPages}
+                        style={{ background: 'none', border: 'none', cursor: topPage === topTotalPages ? 'default' : 'pointer', opacity: topPage === topTotalPages ? 0.4 : 1, padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700 }}>&gt;</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {paginatedTop.length === 0 ? (
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', padding: 'var(--space-md)', textAlign: 'center' }}>No students match this range.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {paginatedTop.map((s, idx) => {
+                    const pp = s.progress?.planProgress;
+                    return (
+                      <Link key={s._id} to={`/coordinator/students/${s._id}`} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', textDecoration: 'none', color: 'var(--text-primary)',
+                        border: '2px solid var(--border-color)', background: idx % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-tertiary)',
+                        transition: 'transform 0.12s', fontSize: '0.82rem'
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 var(--border-color)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                        <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-tertiary)', minWidth: 20 }}>#{idx + 1 + (topPage - 1) * PER_PAGE_BATCH}</span>
+                        {s.avatar ? (
+                          <img src={s.avatar} alt="" style={{ width: 26, height: 26, border: '2px solid var(--border-color)', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 26, height: 26, border: '2px solid var(--border-color)', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.65rem', fontWeight: 700 }}>{s.displayName?.[0] || s.username?.[0] || '?'}</div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontWeight: 700 }}>{s.displayName || s.username}</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 6 }}>{s.college || '—'}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <span style={{
+                            fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 6px',
+                            border: '2px solid var(--border-color)', color: '#16a34a'
+                          }}>{pp?.paceStatus}</span>
+                          <div style={{ width: 50, height: 6, background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)' }}>
+                            <div style={{ height: '100%', width: `${s._pp}%`, background: s._pp >= 60 ? '#16a34a' : s._pp >= 30 ? '#eab308' : '#dc2626' }} />
+                          </div>
+                          <span style={{ fontWeight: 800, fontSize: '0.8rem', minWidth: 32, textAlign: 'right' }}>{s._pp}%</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── On Track Students ── */}
+          {onTrackStudents.length > 0 && (
+            <div style={{ ...CARD, marginBottom: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <CheckCircle size={18} color="#2563eb" />
+                  <h2 style={{ fontSize: '1rem', fontWeight: 900 }}>On Track</h2>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', border: '2px solid var(--border-color)', background: '#dbeafe', color: '#1e40af' }}>{onTrackStudents.length} students</span>
+                </div>
+                {onTrackTotalPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem' }}>
+                    <button onClick={() => setOnTrackPage(p => Math.max(1, p - 1))} disabled={onTrackPage === 1}
+                      style={{ background: 'none', border: 'none', cursor: onTrackPage === 1 ? 'default' : 'pointer', opacity: onTrackPage === 1 ? 0.4 : 1, padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700 }}>&lt;</button>
+                    <span>{onTrackPage}/{onTrackTotalPages}</span>
+                    <button onClick={() => setOnTrackPage(p => Math.min(onTrackTotalPages, p + 1))} disabled={onTrackPage === onTrackTotalPages}
+                      style={{ background: 'none', border: 'none', cursor: onTrackPage === onTrackTotalPages ? 'default' : 'pointer', opacity: onTrackPage === onTrackTotalPages ? 0.4 : 1, padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700 }}>&gt;</button>
+                  </div>
+                )}
+              </div>
+              {onTrackStudents.length === 0 ? (
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No students on track.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {paginatedOnTrack.map((s, idx) => {
+                    const pp = s.progress?.planProgress;
+                    return (
+                      <Link key={s._id} to={`/coordinator/students/${s._id}`} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', textDecoration: 'none', color: 'var(--text-primary)',
+                        border: '2px solid var(--border-color)', background: idx % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-tertiary)', fontSize: '0.82rem'
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 var(--border-color)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                        {s.avatar ? (
+                          <img src={s.avatar} alt="" style={{ width: 26, height: 26, border: '2px solid var(--border-color)', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 26, height: 26, border: '2px solid var(--border-color)', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.65rem', fontWeight: 700 }}>{s.displayName?.[0] || '?'}</div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontWeight: 700 }}>{s.displayName || s.username}</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 4 }}>{s.college || '—'}</span>
+                        </div>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-tertiary)', flexShrink: 0 }}>Day {pp?.currentDayOffset}/{pp?.durationDays} · {s._pp}% · {pp?.completedCount}/{pp?.expectedCount}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Behind Students ── */}
+          {behindStudents.length > 0 && (
+            <div style={{ ...CARD, marginBottom: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <AlertCircle size={18} color="#dc2626" />
+                  <h2 style={{ fontSize: '1rem', fontWeight: 900 }}>Behind Schedule</h2>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', border: '2px solid var(--border-color)', background: '#fef2f2', color: '#991b1b' }}>{behindStudents.length} students</span>
+                </div>
+                {behindTotalPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem' }}>
+                    <button onClick={() => setBehindPage(p => Math.max(1, p - 1))} disabled={behindPage === 1}
+                      style={{ background: 'none', border: 'none', cursor: behindPage === 1 ? 'default' : 'pointer', opacity: behindPage === 1 ? 0.4 : 1, padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700 }}>&lt;</button>
+                    <span>{behindPage}/{behindTotalPages}</span>
+                    <button onClick={() => setBehindPage(p => Math.min(behindTotalPages, p + 1))} disabled={behindPage === behindTotalPages}
+                      style={{ background: 'none', border: 'none', cursor: behindPage === behindTotalPages ? 'default' : 'pointer', opacity: behindPage === behindTotalPages ? 0.4 : 1, padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700 }}>&gt;</button>
+                  </div>
+                )}
+              </div>
+              {behindStudents.length === 0 ? (
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No students behind.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {paginatedBehind.map((s, idx) => {
+                    const pp = s.progress?.planProgress;
+                    return (
+                      <Link key={s._id} to={`/coordinator/students/${s._id}`} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', textDecoration: 'none', color: 'var(--text-primary)',
+                        border: '2px solid #dc2626', background: idx % 2 === 0 ? '#fef2f2' : '#fff', fontSize: '0.82rem'
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 #dc2626'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                        {s.avatar ? (
+                          <img src={s.avatar} alt="" style={{ width: 26, height: 26, border: '2px solid #dc2626', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 26, height: 26, border: '2px solid #dc2626', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.65rem', fontWeight: 700 }}>{s.displayName?.[0] || '?'}</div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontWeight: 700 }}>{s.displayName || s.username}</span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 4 }}>{s.college || '—'}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#dc2626' }}>{s._pp}% done · {s._bi} overdue</span>
+                          <AlertCircle size={14} color="#dc2626" />
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -725,9 +995,33 @@ export default function CoordinatorBatchDetail() {
                           }}>
                             {item.targetType}
                           </span>
-                          <span style={{ fontWeight: 600, flex: 1, minWidth: 0 }}>
-                            {item.targetTitle || item.targetSlug}
-                          </span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600 }}>{item.targetTitle || item.targetSlug}</div>
+                              {/* Full hierarchy path: Subject > Lesson > Subtopic > Problem */}
+                              {(() => {
+                                const subName = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming' }[item.subject] || item.subject?.toUpperCase();
+                                const labels = [];
+                                if (item.targetType === 'lesson') {
+                                  labels.push(`Subject: ${subName}  |  Lesson: ${item.targetTitle}`);
+                                } else if (item.targetType === 'subtopic') {
+                                  labels.push(`Subject: ${subName}`);
+                                  if (item.lessonTitle) labels.push(`Lesson: ${item.lessonTitle}`);
+                                  labels.push(`Subtopic: ${item.targetTitle}`);
+                                } else if (item.targetType === 'problem') {
+                                  labels.push(`Subject: ${subName}`);
+                                  if (item.lessonTitle) labels.push(`Lesson: ${item.lessonTitle}`);
+                                  if (item.subtopicTitle) labels.push(`Subtopic: ${item.subtopicTitle}`);
+                                  labels.push(`Problem: ${item.targetTitle}`);
+                                }
+                                return (
+                                  <div style={{ fontSize: '0.55rem', color: 'var(--text-tertiary)', marginTop: 1, fontFamily: 'monospace', lineHeight: 1.5 }}>
+                                    {labels.map((l, i) => (
+                                      <span key={i}>{i > 0 && <span style={{ margin: '0 3px', opacity: 0.35 }}>|</span>}{l}</span>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                            </div>
                           {item.instruction && (
                             <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontStyle: 'italic', flexShrink: 0 }}>
                               "{item.instruction}"

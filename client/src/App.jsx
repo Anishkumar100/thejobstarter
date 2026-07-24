@@ -126,6 +126,7 @@ import CoordinatorProfile from './pages/CoordinatorProfile.jsx';
 import CoordinatorLayout from './components/coordinator/CoordinatorLayout.jsx';
 import AdminPlanList from './pages/AdminPlanList.jsx';
 import AdminPlanBuilder from './pages/AdminPlanBuilder.jsx';
+import StudentDashboard from './pages/StudentDashboard.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 import './styles/tailwind.css';
@@ -199,6 +200,13 @@ function AuthSync() {
             }
             if (json.data.displayName && json.data.displayName !== (clerkUser.fullName || clerkUser.username)) {
               serverUpdates.displayName = json.data.displayName;
+            }
+            /* Store coaching center and batch info for dashboard/navbar access */
+            if (json.data.coachingCenter) {
+              serverUpdates.coachingCenter = json.data.coachingCenter;
+            }
+            if (json.data.batch) {
+              serverUpdates.batch = json.data.batch;
             }
             if (Object.keys(serverUpdates).length > 0) {
               updateUser(serverUpdates);
@@ -283,6 +291,7 @@ function AppRoutes() {
       <Route path="/users/:username/followers" element={<ProtectedRoute><AppLayout><FollowersPage /></AppLayout></ProtectedRoute>} />
       <Route path="/settings/profile" element={<ProtectedRoute><AppLayout><EditProfile /></AppLayout></ProtectedRoute>} />
       <Route path="/settings/progress/:subject" element={<ProtectedRoute><AppLayout><SubjectProgressDetail /></AppLayout></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><AppLayout><StudentDashboard /></AppLayout></ProtectedRoute>} />
 
       <Route path="/coordinator" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorDashboard /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/general-stats" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorGeneralStats /></CoordinatorLayout></CoordinatorRoute>} />

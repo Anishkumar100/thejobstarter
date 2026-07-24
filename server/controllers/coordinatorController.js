@@ -205,9 +205,15 @@ export async function getCoordinatorBatches(req, res) {
     console.log('[COORD] Fetching batches for center:', centerId);
     const batches = await Batch.find({ coachingCenter: centerId })
       .populate('courseOffering', 'name')
-      .sort({ createdAt: -1 });
-    console.log('[COORD] Batches fetched:', batches.length);
-    res.json({ data: batches });
+      .sort({ createdAt: -1 })
+      .lean();
+    /* Enrich each batch with student count (users in this coaching center assigned to this batch) */
+    const enriched = await Promise.all(batches.map(async b => {
+      const studentCount = await User.countDocuments({ coachingCenter: centerId, batch: b._id });
+      return { ...b, studentCount };
+    }));
+    console.log('[COORD] Batches fetched:', enriched.length);
+    res.json({ data: enriched });
   } catch (error) {
     console.error('[COORD] Error fetching batches:', error.message);
     res.status(500).json({ error: error.message });

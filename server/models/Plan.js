@@ -13,7 +13,9 @@ const planItemSchema = new mongoose.Schema({
   targetSlug: { type: String, required: true },          /* Slug of the content item */
   targetTitle: { type: String, required: true },          /* Denormalized for display */
   targetId: { type: mongoose.Schema.Types.ObjectId },     /* Direct ref for future stats */
-  instruction: { type: String, default: '' }              /* Teacher's note to students */
+  instruction: { type: String, default: '' },              /* Teacher's note to students */
+  subtopicTitle: { type: String, default: '' },            /* Parent subtopic title for context (problems only) */
+  lessonTitle: { type: String, default: '' }               /* Parent lesson title for context (subtopics & problems) */
 }, { _id: false });
 
 const planSchema = new mongoose.Schema({

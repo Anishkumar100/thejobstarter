@@ -30,15 +30,15 @@ router.put('/:id', requireAuth, requireAdmin, updatePlan);
 router.delete('/:id', requireAuth, requireAdmin, deletePlan);
 
 /* ── Plan assignments (which batches use this plan) ── */
-router.get('/:id/assignments', requireAuth, getPlanAssignments);
+router.get('/:id/assignments', requireAuth, requireAdmin, getPlanAssignments);
 
-/* ── Day-by-day progress breakdown ── */
+/* ── Day-by-day progress breakdown (controller handles fine-grained auth) ── */
 router.get('/:planId/day-progress/:batchId/:userId', requireAuth, getDayProgressBreakdown);
 router.get('/:planId/day-progress/:batchId', requireAuth, getBatchDayProgress);
 
-/* ── Batch plan assignment (used by admin) ── */
-router.post('/batches/:id/assign-plan', requireAuth, assignPlanToBatch);
-router.delete('/batches/:id/unassign-plan', requireAuth, unassignPlanFromBatch);
+/* ── Batch plan assignment (admin only — coordinators use /api/coordinator routes) ── */
+router.post('/batches/:id/assign-plan', requireAuth, requireAdmin, assignPlanToBatch);
+router.delete('/batches/:id/unassign-plan', requireAuth, requireAdmin, unassignPlanFromBatch);
 router.get('/batches/:id/active-plan', requireAuth, getActivePlanForBatch);
 
 export default router;

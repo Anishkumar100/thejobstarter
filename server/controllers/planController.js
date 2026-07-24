@@ -15,6 +15,7 @@ import ProgrammingSubtopic from '../models/ProgrammingSubtopic.js';
 import ProgrammingProblem from '../models/ProgrammingProblem.js';
 import User from '../models/User.js';
 import Progress from '../models/Progress.js';
+import clerk from '../config/clerk.js';
 import { getPlanProgress } from '../services/planProgressService.js';
 
 /*
@@ -548,6 +549,24 @@ export async function getActivePlanForBatch(req, res) {
     const { id } = req.params;
     console.log('[PLAN] Fetching active plan for batch:', id);
 
+    /* Authorization: only admin or coordinator can access */
+    const authUser = await clerk.users.getUser(req.userId);
+    const authRole = authUser.publicMetadata?.role;
+    if (authRole !== 'admin' && authRole !== 'coordinator') {
+      console.log('[PLAN] Access denied — not admin or coordinator');
+      return res.status(403).json({ error: 'Access denied. Admin or coordinator role required.' });
+    }
+
+    /* Admin bypasses center scoping entirely. Coordinator must own this batch's center. */
+    if (authRole === 'coordinator') {
+      const coordinatorUser = await User.findOne({ clerkId: req.userId }).select('coordinatorFor').lean();
+      const batch = await Batch.findById(id).select('coachingCenter').lean();
+      if (!batch || !coordinatorUser?.coordinatorFor ||
+          batch.coachingCenter.toString() !== coordinatorUser.coordinatorFor.toString()) {
+        return res.status(403).json({ error: 'Access denied. Not your center.' });
+      }
+    }
+
     const batchPlan = await BatchPlan.findOne({ batch: id, status: 'active' })
       .populate('plan');
 
@@ -804,6 +823,29 @@ export async function getDayProgressBreakdown(req, res) {
     const { planId, batchId, userId } = req.params;
     console.log('[PLAN] Day progress breakdown:', { planId, batchId, userId });
 
+    /* Authorization: must be the target user's own data OR admin/coordinator */
+    const authedUser = await User.findOne({ clerkId: req.userId }).select('_id batch').lean();
+    const clerkUser = await clerk.users.getUser(req.userId);
+    const authRole = clerkUser.publicMetadata?.role;
+    const isSelf = authedUser?._id?.toString() === userId;
+
+    if (!isSelf) {
+      if (authRole === 'admin') {
+        /* Admin can access any user's data */
+      } else if (authRole === 'coordinator') {
+        /* Coordinator must belong to the same center as the batch */
+        const batch = await Batch.findById(batchId).select('coachingCenter').lean();
+        const coordUser = await User.findOne({ clerkId: req.userId }).select('coordinatorFor').lean();
+        if (!batch || !coordUser || coordUser.coordinatorFor?.toString() !== batch.coachingCenter?.toString()) {
+          console.log('[PLAN] Access denied — coordinator not linked to this batch\'s center');
+          return res.status(403).json({ error: 'Access denied. You do not manage this batch.' });
+        }
+      } else {
+        console.log('[PLAN] Access denied — not target user, admin, or coordinator');
+        return res.status(403).json({ error: 'Access denied. You can only view your own progress.' });
+      }
+    }
+
     const plan = await Plan.findById(planId).lean();
     if (!plan || !plan.items) return res.status(404).json({ error: 'Plan not found' });
 
@@ -950,6 +992,23 @@ export async function getBatchDayProgress(req, res) {
   try {
     const { planId, batchId } = req.params;
     console.log('[PLAN] Batch day progress breakdown:', { planId, batchId });
+
+    /* Authorization: only admin or coordinator of this batch's center can access */
+    const authUser = await clerk.users.getUser(req.userId);
+    const authRole = authUser.publicMetadata?.role;
+    if (authRole !== 'admin') {
+      if (authRole === 'coordinator') {
+        const batch = await Batch.findById(batchId).select('coachingCenter').lean();
+        const coordUser = await User.findOne({ clerkId: req.userId }).select('coordinatorFor').lean();
+        if (!batch || !coordUser || coordUser.coordinatorFor?.toString() !== batch.coachingCenter?.toString()) {
+          console.log('[PLAN] Access denied — coordinator not linked to this batch\'s center');
+          return res.status(403).json({ error: 'Access denied. You do not manage this batch.' });
+        }
+      } else {
+        console.log('[PLAN] Access denied — not admin or coordinator');
+        return res.status(403).json({ error: 'Access denied. Admin or coordinator role required.' });
+      }
+    }
 
     const plan = await Plan.findById(planId).lean();
     if (!plan || !plan.items) return res.status(404).json({ error: 'Plan not found' });

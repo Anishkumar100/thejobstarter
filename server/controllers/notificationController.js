@@ -137,12 +137,19 @@ export async function getNotifications(req, res) {
 export async function markNotificationRead(req, res) {
   try {
     console.log('[NOTIFICATION] Marking as read:', req.params.id);
-    const notification = await Notification.findByIdAndUpdate(
-      req.params.id,
-      { read: true },
-      { new: true }
-    );
+    const currentUser = await findOrCreateUser(req.userId);
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
+
+    const notification = await Notification.findById(req.params.id);
     if (!notification) return res.status(404).json({ error: 'Notification not found' });
+
+    /* Ownership check: only the recipient can mark their notification as read */
+    if (notification.user.toString() !== currentUser._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    notification.read = true;
+    await notification.save();
     console.log('[NOTIFICATION] Marked as read:', req.params.id);
     res.json({ data: notification });
   } catch (error) {
@@ -178,8 +185,18 @@ export async function markAllRead(req, res) {
 export async function deleteNotification(req, res) {
   try {
     console.log('[NOTIFICATION] Deleting:', req.params.id);
-    const notification = await Notification.findByIdAndDelete(req.params.id);
+    const currentUser = await findOrCreateUser(req.userId);
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
+
+    const notification = await Notification.findById(req.params.id);
     if (!notification) return res.status(404).json({ error: 'Notification not found' });
+
+    /* Ownership check: only the recipient can delete their notification */
+    if (notification.user.toString() !== currentUser._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    await Notification.findByIdAndDelete(req.params.id);
     console.log('[NOTIFICATION] Deleted:', req.params.id);
     res.json({ success: true });
   } catch (error) {

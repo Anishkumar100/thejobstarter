@@ -170,6 +170,18 @@ export async function deleteQuestion(req, res) {
     const question = await Question.findById(req.params.id);
     if (!question) return res.status(404).json({ error: 'Question not found' });
 
+    /* Authorization: author can delete own question, admin can delete any */
+    const currentUser = await User.findOne({ clerkId: req.userId });
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
+
+    const clerkUser = await clerk.users.getUser(req.userId);
+    const isAdmin = clerkUser.publicMetadata?.role === 'admin';
+    const isAuthor = question.author._id.toString() === currentUser._id.toString();
+
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
     /* Clean up associated data */
     await Answer.deleteMany({ question: question._id });
     await Notification.deleteMany({ questionId: question._id });

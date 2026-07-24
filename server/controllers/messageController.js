@@ -93,12 +93,20 @@ export async function sendMessage(req, res) {
 export async function markAsRead(req, res) {
   try {
     console.log('[MESSAGE] Marking message as read:', req.params.id);
-    const message = await Message.findByIdAndUpdate(
-      req.params.id,
-      { read: true },
-      { new: true }
-    );
+    const clerkUser = await User.findOne({ clerkId: req.userId });
+    if (!clerkUser) return res.status(404).json({ error: 'User not found' });
+
+    const message = await Message.findById(req.params.id);
     if (!message) return res.status(404).json({ error: 'Message not found' });
+
+    /* Ownership check: only sender or receiver can mark this message as read */
+    if (message.sender.toString() !== clerkUser._id.toString() &&
+        message.receiver.toString() !== clerkUser._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    message.read = true;
+    await message.save();
     console.log('[MESSAGE] Message marked as read:', req.params.id);
     res.json({ data: message });
   } catch (error) {

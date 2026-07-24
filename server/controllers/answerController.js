@@ -7,6 +7,7 @@
 import Answer from '../models/Answer.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
+import clerk from '../config/clerk.js';
 
 /*
  * POST /api/qa/:id/answers
@@ -82,8 +83,20 @@ export async function updateAnswer(req, res) {
 export async function deleteAnswer(req, res) {
   try {
     console.log('[QA] Deleting answer:', req.params.aid);
-    const answer = await Answer.findByIdAndDelete(req.params.aid);
+    const answer = await Answer.findById(req.params.aid);
     if (!answer) return res.status(404).json({ error: 'Answer not found' });
+
+    /* Authorization: author can delete own answer, admin can delete any */
+    const currentUser = await User.findOne({ clerkId: req.userId });
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
+
+    const clerkUser = await clerk.users.getUser(req.userId);
+    const isAdmin = clerkUser.publicMetadata?.role === 'admin';
+    const isAuthor = answer.author._id.toString() === currentUser._id.toString();
+
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
 
     /* Delete the notification tied to this answer */
     await Notification.deleteMany({ answerId: answer._id });
@@ -91,6 +104,8 @@ export async function deleteAnswer(req, res) {
 
     const Question = (await import('../models/Question.js')).default;
     await Question.findByIdAndUpdate(req.params.id, { $pull: { answers: req.params.aid } });
+
+    await Answer.findByIdAndDelete(req.params.aid);
     console.log('[QA] Answer deleted:', req.params.aid);
     res.json({ success: true });
   } catch (error) {

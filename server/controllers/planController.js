@@ -485,6 +485,12 @@ export async function assignPlanToBatch(req, res) {
       return res.status(404).json({ error: 'Plan not found' });
     }
 
+    /* Cross-centre check: plan and batch must belong to the same coaching centre */
+    if (batch.coachingCenter.toString() !== plan.coachingCenter.toString()) {
+      console.log('[PLAN] Cross-centre assignment rejected:', { batchCentre: batch.coachingCenter, planCentre: plan.coachingCenter });
+      return res.status(400).json({ error: 'Plan and batch must belong to the same coaching centre' });
+    }
+
     /* Retire any existing active plan for this batch */
     await BatchPlan.updateMany(
       { batch: id, status: 'active' },
@@ -520,16 +526,33 @@ export async function unassignPlanFromBatch(req, res) {
     const { id } = req.params;
     console.log('[PLAN] Unassigning plan from batch:', id);
 
-    const batchPlan = await BatchPlan.findOneAndUpdate(
-      { batch: id, status: 'active' },
-      { status: 'completed' },
-      { new: true }
-    );
+    /* Verify batch exists and get its centre */
+    const batch = await Batch.findById(id).select('coachingCenter').lean();
+    if (!batch) {
+      console.log('[PLAN] Batch not found:', id);
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+
+    /* Find the active BatchPlan with populated plan for centre check */
+    const batchPlan = await BatchPlan.findOne({ batch: id, status: 'active' })
+      .populate('plan', 'coachingCenter')
+      .lean();
 
     if (!batchPlan) {
       console.log('[PLAN] No active plan found for batch:', id);
       return res.status(404).json({ error: 'No active plan found for this batch' });
     }
+
+    /* Cross-centre check: plan and batch must belong to the same coaching centre */
+    if (batchPlan.plan && batch.coachingCenter.toString() !== batchPlan.plan.coachingCenter.toString()) {
+      console.log('[PLAN] Cross-centre unassign rejected:', { batchCentre: batch.coachingCenter, planCentre: batchPlan.plan.coachingCenter });
+      return res.status(400).json({ error: 'Plan and batch belong to different centres' });
+    }
+
+    await BatchPlan.findOneAndUpdate(
+      { batch: id, status: 'active' },
+      { status: 'completed' }
+    );
 
     console.log('[PLAN] Plan unassigned from batch:', id);
     res.json({ data: { message: 'Plan unassigned successfully' } });

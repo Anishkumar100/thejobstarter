@@ -1171,3 +1171,116 @@ export async function getBatchDayProgress(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+/*
+ * POST /api/coordinator/batches/:id/assign-plan
+ * Assign a plan to a batch, scoped to the coordinator's center.
+ * Verifies both batch and plan belong to the coordinator's center before proceeding.
+ */
+export async function assignCoordinatorPlanToBatch(req, res) {
+  try {
+    const { id } = req.params;
+    const { planId, startDate } = req.body;
+
+    console.log('[PLAN] Coordinator assigning plan to batch:', { batchId: id, planId, startDate });
+
+    if (!planId || !startDate) {
+      return res.status(400).json({ error: 'planId and startDate are required' });
+    }
+
+    /* Verify batch belongs to coordinator's center */
+    const batch = await Batch.findById(id).select('coachingCenter name').lean();
+    if (!batch) {
+      console.log('[PLAN] Batch not found:', id);
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+    if (batch.coachingCenter.toString() !== req.coordinatorCenterId.toString()) {
+      console.log('[PLAN] Cross-centre assign rejected — batch not in coordinator centre');
+      return res.status(403).json({ error: 'Access denied — batch not in your centre' });
+    }
+
+    /* Verify plan belongs to coordinator's center */
+    const plan = await Plan.findById(planId).select('coachingCenter name').lean();
+    if (!plan) {
+      console.log('[PLAN] Plan not found:', planId);
+      return res.status(404).json({ error: 'Plan not found' });
+    }
+    if (plan.coachingCenter.toString() !== req.coordinatorCenterId.toString()) {
+      console.log('[PLAN] Cross-centre assign rejected — plan not in coordinator centre');
+      return res.status(403).json({ error: 'Access denied — plan not in your centre' });
+    }
+
+    /* Retire any existing active plan for this batch */
+    await BatchPlan.updateMany(
+      { batch: id, status: 'active' },
+      { status: 'completed' }
+    );
+
+    /* Create the new BatchPlan */
+    const batchPlan = await BatchPlan.create({
+      batch: id,
+      plan: planId,
+      startDate: new Date(startDate),
+      status: 'active'
+    });
+
+    const populated = await BatchPlan.findById(batchPlan._id)
+      .populate('plan', 'name durationDays status')
+      .populate('batch', 'name');
+
+    console.log('[PLAN] Coordinator assigned plan to batch:', populated.batch?.name, '→', populated.plan?.name);
+    res.status(201).json({ data: populated });
+  } catch (error) {
+    console.error('[PLAN] Error assigning plan (coordinator):', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * DELETE /api/coordinator/batches/:id/unassign-plan
+ * Remove the active plan from a batch, scoped to the coordinator's center.
+ */
+export async function unassignCoordinatorPlanFromBatch(req, res) {
+  try {
+    const { id } = req.params;
+    console.log('[PLAN] Coordinator unassigning plan from batch:', id);
+
+    /* Verify batch belongs to coordinator's center */
+    const batch = await Batch.findById(id).select('coachingCenter').lean();
+    if (!batch) {
+      console.log('[PLAN] Batch not found:', id);
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+    if (batch.coachingCenter.toString() !== req.coordinatorCenterId.toString()) {
+      console.log('[PLAN] Cross-centre unassign rejected — batch not in coordinator centre');
+      return res.status(403).json({ error: 'Access denied — batch not in your centre' });
+    }
+
+    /* Find the active BatchPlan with populated plan for centre check */
+    const batchPlan = await BatchPlan.findOne({ batch: id, status: 'active' })
+      .populate('plan', 'coachingCenter')
+      .lean();
+
+    if (!batchPlan) {
+      console.log('[PLAN] No active plan found for batch:', id);
+      return res.status(404).json({ error: 'No active plan found for this batch' });
+    }
+
+    /* Cross-centre check: plan must belong to same centre */
+    if (batchPlan.plan && batch.coachingCenter.toString() !== batchPlan.plan.coachingCenter.toString()) {
+      console.log('[PLAN] Cross-centre unassign rejected:', { batchCentre: batch.coachingCenter, planCentre: batchPlan.plan.coachingCenter });
+      return res.status(400).json({ error: 'Plan and batch belong to different centres' });
+    }
+
+    await BatchPlan.findOneAndUpdate(
+      { batch: id, status: 'active' },
+      { status: 'completed' }
+    );
+
+    console.log('[PLAN] Coordinator unassigned plan from batch:', id);
+    res.json({ data: { message: 'Plan unassigned successfully' } });
+  } catch (error) {
+    console.error('[PLAN] Error unassigning plan (coordinator):', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}

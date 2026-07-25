@@ -128,7 +128,7 @@ export default function CoordinatorBatchDetail() {
       return;
     }
     try {
-      const res = await apiRequest(`/plans/batches/${id}/assign-plan`, {
+      const res = await apiRequest(`/coordinator/batches/${id}/assign-plan`, {
         method: 'POST',
         body: JSON.stringify({ planId: selectedPlanId, startDate })
       });
@@ -143,7 +143,7 @@ export default function CoordinatorBatchDetail() {
   const handleUnassignPlan = async () => {
     if (!confirm('Remove the active plan from this batch?')) return;
     try {
-      await apiRequest(`/plans/batches/${id}/unassign-plan`, { method: 'DELETE' });
+      await apiRequest(`/coordinator/batches/${id}/unassign-plan`, { method: 'DELETE' });
       setActivePlan(null);
     } catch (err) {
       alert(err.message || 'Failed to unassign plan');

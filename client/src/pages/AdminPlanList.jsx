@@ -112,7 +112,7 @@ export default function AdminPlanList() {
     if (!assignModal || !assignBatchId || !assignStartDate) return;
     setAssigning(true);
     try {
-      await apiRequest(`/plans/batches/${assignBatchId}/assign-plan`, {
+      await apiRequest(`${isAdmin ? '/plans' : '/coordinator'}/batches/${assignBatchId}/assign-plan`, {
         method: 'POST',
         body: JSON.stringify({ planId: assignModal.plan._id, startDate: assignStartDate })
       });

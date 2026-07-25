@@ -4,7 +4,8 @@ import { Helmet } from 'react-helmet-async';
 import { useCoachingCenterStore } from '../stores/useCoachingCenterStore.js';
 import Loader from '../components/ui/Loader.jsx';
 import Modal from '../components/ui/Modal.jsx';
-import { Shield, RefreshCw, ArrowLeft, Users, Layers, Trash2, CheckSquare, BookOpen, AlertCircle, CheckCircle, Eye, Edit3, ExternalLink } from 'lucide-react';
+import { Shield, RefreshCw, ArrowLeft, Users, Layers, Trash2, CheckSquare, BookOpen, AlertCircle, CheckCircle, Eye, Edit3, ExternalLink, Upload } from 'lucide-react';
+import { uploadMedia } from '../api/mediaApi.js';
 
 export default function AdminCoachingCenterDetail() {
   const { id } = useParams();
@@ -30,6 +31,7 @@ export default function AdminCoachingCenterDetail() {
   const [courseChangeConfirm, setCourseChangeConfirm] = useState(null); /* { userId, courseOfferingId, currentCourseId, currentCourseName } */
   const [plans, setPlans] = useState([]);
   const [plansLoading, setPlansLoading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -266,6 +268,32 @@ export default function AdminCoachingCenterDetail() {
     setSaving(false);
   };
 
+  /*
+   * Open file picker, upload selected image to ImageKit, set logo URL
+   */
+  const handleLogoUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setUploadingLogo(true);
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const res = await uploadMedia(reader.result, `center-logo-${Date.now()}`);
+          setForm(prev => ({ ...prev, logo: res.url }));
+        } catch (err) {
+          console.error('[COACHING] Logo upload failed:', err.message);
+        }
+        setUploadingLogo(false);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -446,8 +474,18 @@ export default function AdminCoachingCenterDetail() {
             <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Address</label>
             <textarea className="input" name="address" value={form.address} onChange={handleChange} rows={2} />
 
-            <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Logo URL</label>
-            <input className="input" name="logo" value={form.logo} onChange={handleChange} />
+            <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Logo</label>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input className="input" name="logo" value={form.logo} onChange={handleChange} placeholder="ImageKit URL or paste link" style={{ flex: 1 }} />
+              <button type="button" className="btn btn--sm" onClick={handleLogoUpload} disabled={uploadingLogo} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                <Upload size={14} /> {uploadingLogo ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+            {form.logo && (
+              <div style={{ marginTop: 6 }}>
+                <img src={form.logo} alt="Logo preview" style={{ maxWidth: 120, maxHeight: 60, border: '3px solid var(--black)' }} />
+              </div>
+            )}
 
             <div style={{ marginTop: 'var(--space-md)' }}>
               <button className="btn btn--primary" onClick={handleSave} disabled={saving}>

@@ -17,9 +17,7 @@ export default function AdminProgrammingAllSubtopics() {
   }, []);
 
   useEffect(() => {
-    const filters = {};
-    if (filterLesson) filters.lesson = filterLesson;
-    fetchSubtopics(filters);
+    fetchSubtopics(filterLesson);
   }, [filterLesson, refresh]);
 
   const handleDelete = async (id) => {

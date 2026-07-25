@@ -9,6 +9,7 @@ import Loader from '../components/ui/Loader.jsx';
 export default function ProgrammingList() {
   const { lessons, loading, error, fetchLessons } = useProgrammingStore();
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [heroImage, setHeroImage] = useState('');
 
   useEffect(() => { fetchLessons(); }, []);
@@ -39,12 +40,24 @@ export default function ProgrammingList() {
       if (!map[cat]) map[cat] = [];
       map[cat].push(l);
     });
-    return Object.entries(map).map(([value, items]) => ({
+    return Object.entries(map)
+      .filter(([value]) => !selectedCategory || value === selectedCategory)
+      .map(([value, items]) => ({
+        value,
+        label: value.charAt(0).toUpperCase() + value.slice(1),
+        lessons: items
+      }));
+  }, [filtered, selectedCategory]);
+
+  /* Category filter pills */
+  const categoryPills = useMemo(() => {
+    const seen = {};
+    lessons.forEach(l => { const cat = l.category || 'core'; if (!seen[cat]) seen[cat] = true; });
+    return Object.entries(seen).map(([value]) => ({
       value,
-      label: value.charAt(0).toUpperCase() + value.slice(1),
-      lessons: items
+      label: value.charAt(0).toUpperCase() + value.slice(1)
     }));
-  }, [filtered]);
+  }, [lessons]);
 
   return (
     <div>
@@ -84,6 +97,37 @@ export default function ProgrammingList() {
             />
           </div>
         </div>
+
+        {/* Category filter pills */}
+        {categoryPills.length > 1 && (
+          <div style={{
+            display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => setSelectedCategory(null)}
+              style={{
+                fontSize: '0.72rem', fontWeight: 700, padding: '6px 16px', cursor: 'pointer',
+                border: '3px solid #000',
+                background: !selectedCategory ? '#000' : 'var(--bg-surface)',
+                color: !selectedCategory ? '#fff' : 'var(--text-primary)',
+                transition: 'transform 0.12s'
+              }}
+            >All</button>
+            {categoryPills.map(c => (
+              <button
+                key={c.value}
+                onClick={() => setSelectedCategory(c.value)}
+                style={{
+                  fontSize: '0.72rem', fontWeight: 700, padding: '6px 16px', cursor: 'pointer',
+                  border: '3px solid #000',
+                  background: selectedCategory === c.value ? '#000' : 'var(--bg-surface)',
+                  color: selectedCategory === c.value ? '#fff' : 'var(--text-primary)',
+                  transition: 'transform 0.12s'
+                }}
+              >{c.label}</button>
+            ))}
+          </div>
+        )}
 
         {loading && <Loader text="LOADING LESSONS..." />}
 

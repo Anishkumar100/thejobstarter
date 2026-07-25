@@ -15,6 +15,7 @@ export default function OsList() {
   const { lessons, lessonsLoading, lessonsError, fetchLessons } = useOsStore();
   const { categories, fetchAllMeta } = useOsMetaStore();
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [heroImage, setHeroImage] = useState('');
 
   /* Fetch all OS lessons on mount */
@@ -49,21 +50,41 @@ export default function OsList() {
     );
   }, [lessons, search]);
 
-  /* Group filtered lessons by category */
+  /* Group filtered lessons by category — derive from data, labels from meta */
   const grouped = useMemo(() => {
     const map = {};
     filtered.forEach(l => {
-      if (!map[l.category]) map[l.category] = [];
+      if (!map[l.category]) { map[l.category] = []; }
       map[l.category].push(l);
     });
-    const result = categories
-      .filter(c => {
-        const match = map[c.value];
-        return match;
-      })
-      .map(c => ({ value: c.value, label: c.label, lessons: map[c.value] }));
-    return result;
-  }, [filtered, categories]);
+    const entries = Object.entries(map);
+    if (selectedCategory) {
+      return entries
+        .filter(([value]) => value === selectedCategory)
+        .map(([value, lessons]) => {
+          const meta = categories.find(c => c.value === value);
+          return { value, label: meta?.label || value.charAt(0).toUpperCase() + value.slice(1), lessons };
+        });
+    }
+    return entries.map(([value, lessons]) => {
+      const meta = categories.find(c => c.value === value);
+      return { value, label: meta?.label || value.charAt(0).toUpperCase() + value.slice(1), lessons };
+    });
+  }, [filtered, categories, selectedCategory]);
+
+  /* Category filter pills — derived directly from lessons, labels from meta store */
+  const categoryPills = useMemo(() => {
+    const catMap = {};
+    lessons.forEach(l => {
+      if (!l.category) return;
+      if (!catMap[l.category]) catMap[l.category] = { count: 0 };
+      catMap[l.category].count++;
+    });
+    return Object.entries(catMap).map(([value]) => {
+      const meta = categories.find(c => c.value === value);
+      return { value, label: meta?.label || value.charAt(0).toUpperCase() + value.slice(1) };
+    });
+  }, [lessons, categories]);
 
   return (
     <div>
@@ -103,6 +124,37 @@ export default function OsList() {
             />
           </div>
         </div>
+
+        {/* Category filter pills */}
+        {categoryPills.length > 1 && (
+          <div style={{
+            display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => setSelectedCategory(null)}
+              style={{
+                fontSize: '0.72rem', fontWeight: 700, padding: '6px 16px', cursor: 'pointer',
+                border: '3px solid #000',
+                background: !selectedCategory ? '#000' : 'var(--bg-surface)',
+                color: !selectedCategory ? '#fff' : 'var(--text-primary)',
+                transition: 'transform 0.12s'
+              }}
+            >All</button>
+            {categoryPills.map(c => (
+              <button
+                key={c.value}
+                onClick={() => setSelectedCategory(c.value)}
+                style={{
+                  fontSize: '0.72rem', fontWeight: 700, padding: '6px 16px', cursor: 'pointer',
+                  border: '3px solid #000',
+                  background: selectedCategory === c.value ? '#000' : 'var(--bg-surface)',
+                  color: selectedCategory === c.value ? '#fff' : 'var(--text-primary)',
+                  transition: 'transform 0.12s'
+                }}
+              >{c.label}</button>
+            ))}
+          </div>
+        )}
 
         {lessonsLoading && <Loader text="LOADING LESSONS..." />}
         {lessonsError && <div className="error-text">{lessonsError}</div>}

@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/useAuthStore.js';
 import { useProgressMessageStore } from '../stores/useProgressMessageStore.js';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
+import SuspendedGate from '../components/ui/SuspendedGate.jsx';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip,
   ResponsiveContainer, LabelList, Cell
@@ -142,6 +143,12 @@ export default function StudentDashboard() {
     return { t, d, sa, activeDays: activeDays.length, fullDays: fullDays.length };
   }, [userPlanBreakdown]);
 
+  /* ── Current day data ── */
+  const currentDayData = useMemo(() => {
+    if (!userPlanBreakdown?.days) return null;
+    return userPlanBreakdown.days.find(d => d.isCurrent) || null;
+  }, [userPlanBreakdown]);
+
   /* ── Chart data builders ── */
   const chartData = useMemo(() => {
     if (!userPlanBreakdown?.days) return { typeData: [], subjData: [], trend: [] };
@@ -244,8 +251,9 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: 1200, margin: '0 auto' }}>
-      <Helmet><title>My Dashboard — TheJobStarter</title></Helmet>
+    <SuspendedGate>
+      <div style={{ padding: '20px', maxWidth: 1200, margin: '0 auto' }}>
+        <Helmet><title>My Dashboard — TheJobStarter</title></Helmet>
 
       {/* ═══════════════════════════════════════════════ */}
       {/*  HEADER                                        */}
@@ -354,6 +362,93 @@ export default function StudentDashboard() {
       {/* ═══════════════════════════════════════════════ */}
       {pp && !progressLoading && (
         <>
+          {/* ════════════════════════════════════════════════ */}
+          {/*  TODAY'S TASKS CARD — prominent on entry       */}
+          {/* ════════════════════════════════════════════════ */}
+          {currentDayData && currentDayData.itemsCount > 0 && (
+            <div style={{
+              border: `3px solid ${
+                currentDayData.completedCount === currentDayData.itemsCount ? 'var(--success)' :
+                currentDayData.completedCount > 0 ? 'var(--warning)' : 'var(--error)'
+              }`,
+              boxShadow: `8px 8px 0 ${
+                currentDayData.completedCount === currentDayData.itemsCount ? 'var(--success)' :
+                currentDayData.completedCount > 0 ? 'var(--warning)' : 'var(--error)'
+              }`,
+              padding: '24px 28px', marginBottom: 28,
+              background: SURF, display: 'flex',
+              alignItems: 'center', justifyContent: 'space-between',
+              flexWrap: 'wrap', gap: 16
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                <div style={{
+                  width: 72, height: 72,
+                  border: `4px solid ${B}`, boxShadow: SH(6),
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  background:
+                    currentDayData.completedCount === currentDayData.itemsCount ? 'var(--success)' :
+                    currentDayData.completedCount > 0 ? 'var(--warning)' : 'var(--error)',
+                  flexShrink: 0, lineHeight: 1.1
+                }}>
+                  <span style={{ fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase', color: '#000', opacity: 0.7 }}>Day</span>
+                  <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#000' }}>
+                    {currentDayData.day}
+                  </span>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
+                    letterSpacing: '0.1em', color: TXT3, marginBottom: 2
+                  }}>
+                    Today's Tasks — Day {currentDayData.day}
+                  </div>
+                  <h2 style={{
+                    fontSize: '1.3rem', fontWeight: 900, margin: 0,
+                    color:
+                      currentDayData.completedCount === currentDayData.itemsCount ? 'var(--success)' :
+                      currentDayData.completedCount > 0 ? 'var(--warning)' : 'var(--error)',
+                    textTransform: 'uppercase'
+                  }}>
+                    {currentDayData.completedCount === currentDayData.itemsCount ? '✓ All Completed' :
+                     currentDayData.completedCount > 0 ? '⚠ Partially Done' : '✗ Not Started'}
+                  </h2>
+                  <p style={{ fontSize: '0.82rem', color: TXT2, margin: '4px 0 0', lineHeight: 1.5 }}>
+                    {currentDayData.completedCount} of {currentDayData.itemsCount} items done ({currentDayData.completedPct}%)
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 120 }}>
+                  <div style={{
+                    height: 14, background: TERT, border: `3px solid ${B}`, overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      height: '100%', width: `${currentDayData.completedPct}%`,
+                      background:
+                        currentDayData.completedPct >= 100 ? 'var(--success)' :
+                        currentDayData.completedPct >= 50 ? 'var(--warning)' : 'var(--error)',
+                      transition: 'width 0.4s ease'
+                    }} />
+                  </div>
+                </div>
+                <button onClick={() => {
+                  const dayEl = document.getElementById('today-tasks-section');
+                  if (dayEl) { dayEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+                }} style={{
+                  fontSize: '0.65rem', fontWeight: 700, padding: '8px 18px',
+                  border: `3px solid ${B}`, cursor: 'pointer',
+                  background: 'var(--bg-inverse)', color: 'var(--text-inverse)',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  boxShadow: SH(4), transition: 'transform 0.12s'
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = SH(6); }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = SH(4); }}>
+                  VIEW DETAILS
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ─────────────────────────────────────────────── */}
           {/*  SECTION 1 — OVERVIEW STATS                    */}
           {/* ─────────────────────────────────────────────── */}
@@ -502,7 +597,7 @@ export default function StudentDashboard() {
             </div>
 
             {/* ═══ DAY GRID ═══ */}
-            <div style={{
+            <div id="today-tasks-section" style={{
               borderTop: `2px solid ${B}`, paddingTop: 20, marginTop: 4
             }}>
               <h3 style={{
@@ -1218,5 +1313,6 @@ export default function StudentDashboard() {
         </>
       )}
     </div>
+    </SuspendedGate>
   );
 }

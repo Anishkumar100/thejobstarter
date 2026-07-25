@@ -12,6 +12,7 @@
  */
 import { createClerkClient } from '@clerk/backend';
 import User from '../models/User.js';
+import CoachingCenter from '../models/CoachingCenter.js';
 
 const clerk = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY,
@@ -34,6 +35,13 @@ export async function requireCoordinator(req, res, next) {
     if (!user || !user.coordinatorFor) {
       console.log('[AUTH] User not linked to any center as coordinator');
       return res.status(403).json({ error: 'Coordinator not assigned to any center' });
+    }
+
+    /* Check if the coaching centre is suspended */
+    const center = await CoachingCenter.findById(user.coordinatorFor).select('status').lean();
+    if (center && center.status === 'suspended') {
+      console.log('[AUTH] Centre is suspended — blocking coordinator access');
+      return res.status(403).json({ error: 'Your centre\'s services have been suspended. Please contact support.' });
     }
 
     /* Set the center ID from the user's own document — never from request params */

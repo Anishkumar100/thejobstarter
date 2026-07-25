@@ -118,7 +118,7 @@ export default function AdminDashboard() {
               <div className="admin-stats__num" style={{ color: batchPlanStats.behindCount > 0 ? '#dc2626' : 'inherit' }}>{batchPlanStats.behindCount}</div>
               <div className="admin-stats__label">Behind Schedule</div>
               <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.3 }}>
-                Batches that started a plan ≥3 days ago but have covered less than 40% of plan duration
+                Batches with &ge;1 student behind schedule (&lt;60% of expected items completed)
               </p>
             </div>
           </div>

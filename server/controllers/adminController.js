@@ -20,6 +20,7 @@ import DbmsMeta from '../models/DbmsMeta.js';
 import Plan from '../models/Plan.js';
 import BatchPlan from '../models/BatchPlan.js';
 import Batch from '../models/Batch.js';
+import Progress from '../models/Progress.js';
 import CoachingCenter from '../models/CoachingCenter.js';
 import { getProgressSummary, deriveStatus } from '../services/progressService.js';
 
@@ -311,26 +312,64 @@ export async function getBatchPlanStats(req, res) {
     /* Count students that belong to centers (have a batch assigned) */
     const centerStudents = await User.countDocuments({ batch: { $ne: null } });
 
-    /* Compute behind status for each batch */
+    /* Compute behind status for each batch — count batches with at least one behind student */
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     let behindCount = 0;
-    const batchPlans = await BatchPlan.find({ status: 'active' }).populate('plan', 'name durationDays').lean();
+    const behindBatchIds = new Set();
+    const batchPlans = await BatchPlan.find({ status: 'active' }).populate('plan', 'name durationDays items').lean();
     const planMap = {};
     for (const bp of batchPlans) {
-      if (!bp.plan) continue;
+      if (!bp.plan || !bp.plan.items) continue;
+      const batchId = bp.batch.toString();
       const startDate = new Date(bp.startDate);
       startDate.setHours(0, 0, 0, 0);
       const currentDay = Math.max(0, Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-      const expected = Math.round((currentDay / bp.plan.durationDays) * 100);
-      if (currentDay >= 3 && expected > 0 && expected < 40) behindCount++;
-      planMap[bp.batch.toString()] = {
+      const pct = bp.plan.durationDays > 0 ? Math.round((currentDay / bp.plan.durationDays) * 100) : 0;
+      planMap[batchId] = {
         planName: bp.plan.name,
         currentDay,
         totalDays: bp.plan.durationDays,
-        pct: bp.plan.durationDays > 0 ? Math.round((currentDay / bp.plan.durationDays) * 100) : 0,
+        pct,
         startDate: bp.startDate
       };
+
+      /* Get expected items up to current day */
+      const expectedItems = bp.plan.items.filter(item => item.dayOffset <= currentDay);
+      if (expectedItems.length === 0) continue;
+
+      /* Get all enrolled students for this batch */
+      const students = await User.find({ batch: batchId }).select('_id').lean();
+      if (students.length === 0) continue;
+
+      /* Fetch all progress docs for these students matching expected items */
+      const studentIds = students.map(s => s._id);
+      const allProgress = await Progress.find({
+        user: { $in: studentIds },
+        $or: expectedItems.map(item => ({
+          subject: item.subject,
+          targetType: item.targetType,
+          targetSlug: item.targetSlug
+        }))
+      }).select('user').lean();
+
+      /* Count completions per student */
+      const completionCounts = {};
+      for (const p of allProgress) {
+        const uid = p.user.toString();
+        completionCounts[uid] = (completionCounts[uid] || 0) + 1;
+      }
+
+      /* Batch is behind if any student has < 60% completion (paceStatus === 'behind') */
+      for (const student of students) {
+        const completed = completionCounts[student._id.toString()] || 0;
+        const ratio = completed / expectedItems.length;
+        if (ratio < 0.6) {
+          behindCount++;
+          behindBatchIds.add(batchId);
+          break;
+        }
+      }
     }
 
     const recentBatches = allBatches.map(b => ({
@@ -340,7 +379,7 @@ export async function getBatchPlanStats(req, res) {
       centerName: b.coachingCenter?.name || 'Unknown',
       plan: planMap[b._id.toString()] || null,
       studentCount: 0,
-      behind: planMap[b._id.toString()] ? (planMap[b._id.toString()].pct < 40 && planMap[b._id.toString()].currentDay >= 3) : false
+      behind: behindBatchIds.has(b._id.toString())
     }));
 
     console.log('[ADMIN] Batch/plan stats:', { activePlans, activeBatchPlans, behindCount, totalCenters, totalPlansAll, totalBatches });

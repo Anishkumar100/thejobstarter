@@ -1,6 +1,28 @@
 import { useState, useMemo } from 'react';
 import { useLanguageStore } from '../../stores/useLanguageStore.js';
 
+/*
+ * Render a language tab label — image or plain text fallback.
+ * Uses a per-render key to force fresh state when slugs change.
+ */
+function LangLabel({ langInfo, lang, tabKey }) {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (langInfo?.imageUrl && !imgFailed) {
+    return (
+      <img
+        key={tabKey}
+        src={langInfo.imageUrl}
+        alt={langInfo.name || lang}
+        className="code-block__tab-icon"
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+
+  return <>{langInfo?.name || lang}</>;
+}
+
 export default function CodeBlock({ codeBlocks }) {
   const { languages } = useLanguageStore();
 
@@ -38,11 +60,7 @@ export default function CodeBlock({ codeBlocks }) {
                 className={`code-block__tab ${activeLang === lang ? 'code-block__tab--active' : ''}`}
                 onClick={() => setActiveLang(lang)}
               >
-                {langInfo?.imageUrl ? (
-                  <img src={langInfo.imageUrl} alt={langInfo.name || lang} className="code-block__tab-icon" />
-                ) : (
-                  langInfo?.name || lang
-                )}
+                <LangLabel langInfo={langInfo} lang={lang} tabKey={lang} />
               </button>
             );
           })}

@@ -2,9 +2,10 @@ import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, X, ChevronDown, FileText,
   Building2, Mail, User as UserIcon, Layers, BarChart3,
-  MapPin, Phone, Shield, Circle, BookOpen
+  MapPin, Phone, Shield, Circle, BookOpen, Sun, Moon
 } from 'lucide-react';
 import { useState } from 'react';
+import { useThemeStore } from '../../stores/useThemeStore.js';
 
 /* ── Section data ── */
 const SECTIONS = [
@@ -48,6 +49,7 @@ const SECTIONS = [
 ];
 
 export default function CoordinatorSidebar({ isOpen, onToggle, center, coordinatorName, coordinatorAvatar, coordinatorEmail }) {
+  const { theme, toggleTheme } = useThemeStore();
   /* All sections open by default */
   const [expandedSections, setExpandedSections] = useState(
     SECTIONS.map(() => true)
@@ -210,58 +212,53 @@ export default function CoordinatorSidebar({ isOpen, onToggle, center, coordinat
           </div>
         )}
 
-        {/* ═══ COORDINATOR PROFILE (brutalist block, clickable) ═══ */}
-        <Link
-          to="/coordinator/profile"
-          style={{
-            margin: '0 var(--space-sm) var(--space-md)',
-            padding: 'var(--space-sm)',
-            border: '3px solid #000',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            textDecoration: 'none',
-            color: 'inherit',
-            background: 'var(--bg-surface)',
-            boxShadow: '3px 3px 0 #000',
-            transition: 'all 0.12s ease',
-          }}
-          onClick={() => { if (window.innerWidth < 900) onToggle(); }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'var(--bg-tertiary)';
-            e.currentTarget.style.boxShadow = '5px 5px 0 #000';
-            e.currentTarget.style.transform = 'translate(-1px, -1px)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'var(--bg-surface)';
-            e.currentTarget.style.boxShadow = '3px 3px 0 #000';
-            e.currentTarget.style.transform = 'none';
-          }}
-        >
-          {coordinatorAvatar ? (
-            <img src={coordinatorAvatar} alt="" style={{
-              width: 34, height: 34, border: '2px solid #000',
-              objectFit: 'cover', flexShrink: 0
-            }} />
-          ) : (
-            <div style={{
-              width: 34, height: 34, border: '2px solid #000',
-              background: 'var(--bg-inverse)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <UserIcon size={16} />
-            </div>
-          )}
-          <div style={{ minWidth: 0, fontSize: '0.72rem', flex: 1 }}>
-            <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {coordinatorName}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: '#059669', fontWeight: 600, fontSize: '0.6rem', marginTop: 1 }}>
-              <Shield size={10} /> Coordinator
+        {/* ═══ THEME TOGGLE + PROFILE LINK (compact row) ═══ */}
+        <div style={{
+          margin: '0 var(--space-sm) var(--space-md)',
+          padding: 'var(--space-sm)',
+          border: '3px solid #000',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          background: 'var(--bg-surface)',
+          boxShadow: '3px 3px 0 #000',
+        }}>
+          <button
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32, cursor: 'pointer', flexShrink: 0,
+              border: '2px solid #000', background: 'var(--bg-tertiary)',
+              color: 'var(--text-primary)', fontSize: '0.82rem',
+              transition: 'transform 0.12s'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '2px 2px 0 #000'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </div>
           </div>
-        </Link>
+          <Link
+            to="/coordinator/profile"
+            onClick={() => { if (window.innerWidth < 900) onToggle(); }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: '0.6rem', fontWeight: 700, padding: '4px 10px',
+              border: '2px solid #000', textDecoration: 'none',
+              color: 'inherit', background: 'var(--bg-tertiary)',
+              flexShrink: 0
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-inverse)'; e.currentTarget.style.color = 'var(--text-inverse)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.color = 'inherit'; }}
+          >
+            <UserIcon size={12} /> Profile
+          </Link>
+        </div>
       </aside>
     </>
   );

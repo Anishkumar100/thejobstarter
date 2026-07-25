@@ -321,7 +321,7 @@ export async function getUsers(req, res) {
 export async function getUserByUsername(req, res) {
   try {
     let user = await User.findOne({ username: req.params.username })
-      .populate('coachingCenter', 'name')
+      .populate('coachingCenter', 'name status')
       .populate('batch')
       .populate('courseOffering', 'name');
     /* Auto-create or update username if the authenticated user is requesting their own profile */

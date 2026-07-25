@@ -279,11 +279,6 @@ export default function UserProfile() {
                           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <Layers size={14} />
                             Batch: <strong>{currentProfile.batch.name || '—'}</strong>
-                            {currentProfile.batch.code && (
-                              <code style={{ background: 'var(--bg-surface)', padding: '1px 4px', border: '1px solid var(--border-color)', fontSize: '0.7rem', fontFamily: 'monospace' }}>
-                                {currentProfile.batch.code}
-                              </code>
-                            )}
                           </span>
                         )}
                       </div>

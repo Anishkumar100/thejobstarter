@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import CoordinatorSidebar from './CoordinatorSidebar.jsx';
+import SuspendedGate from '../ui/SuspendedGate.jsx';
 import { Menu, ExternalLink, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ToastContainer from '../ui/Toast.jsx';
@@ -91,7 +92,9 @@ export default function CoordinatorLayout({ children }) {
           coordinatorEmail={coordinatorEmail}
         />
         <main className="admin-main">
-          {children}
+          <SuspendedGate center={center}>
+            {children}
+          </SuspendedGate>
         </main>
       </div>
 

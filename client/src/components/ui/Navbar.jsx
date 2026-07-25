@@ -225,6 +225,12 @@ export default function Navbar() {
                     <div className="navbar__overlay-handle">@{user.username}</div>
                   </div>
                 </Link>
+                {user.coachingCenter && (
+                  <Link to="/dashboard" className="navbar__overlay-msg-btn" onClick={closeMenu} style={{ borderTop: 'none' }}>
+                    <LayoutDashboard size={18} />
+                    Dashboard
+                  </Link>
+                )}
                 <Link to="/messages" className="navbar__overlay-msg-btn" onClick={closeMenu}>
                   <MessageCircle size={18} />
                   Messages

@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
 import Modal from '../components/ui/Modal.jsx';
-import { ArrowLeft, ExternalLink, Save, Trash2, TrendingUp, User, BookOpen, Database, Cpu, Target, Award, BarChart3, Brain, GraduationCap, Mail, Calendar, Edit3, ClipboardList, Layers, Clock, AlertCircle, CheckCircle, FileText, Download, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Save, Trash2, TrendingUp, User, BookOpen, Database, Cpu, Target, Award, BarChart3, Brain, GraduationCap, Mail, Calendar, Edit3, ClipboardList, Layers, Clock, AlertCircle, CheckCircle, FileText, Download, ChevronLeft, ChevronRight, MessageSquare, Shield } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip, ResponsiveContainer, LabelList, Cell
 } from 'recharts';
@@ -298,6 +298,12 @@ export default function CoordinatorStudentDetail() {
                   <Layers size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
                   {student.batch.name}
                 </Link>
+              )}
+              {student.coordinatorFor && (
+                <span style={{ fontSize: '0.7rem', padding: '2px 8px', border: '2px solid #000', background: '#fef3c7', fontWeight: 700 }}>
+                  <Shield size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                  Coordinator
+                </span>
               )}
             </div>
           </div>

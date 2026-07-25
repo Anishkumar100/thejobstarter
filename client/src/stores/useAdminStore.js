@@ -20,10 +20,11 @@ export const useAdminStore = create((set, get) => ({
     }
   },
 
-  fetchUsers: async () => {
+  fetchUsers: async (params = {}) => {
     set({ loading: true, error: null });
     try {
-      const res = await apiRequest('/admin/users');
+      const query = new URLSearchParams(params).toString();
+      const res = await apiRequest(`/admin/users?${query}`);
       set({ users: res.data, loading: false });
     } catch (error) {
       console.error('[ADMIN] Error fetching users:', error.message);

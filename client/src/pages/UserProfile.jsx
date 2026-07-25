@@ -16,7 +16,7 @@ import FeedbackSection from '../components/users/FeedbackSection.jsx';
 import { useUser } from '@clerk/clerk-react';
 import Loader from '../components/ui/Loader.jsx';
 import { MessageQuestionIcon, Cancel01Icon, Clock01Icon, Download01Icon } from 'hugeicons-react';
-import { Layers, Building2 } from 'lucide-react';
+import { Layers, Building2, Shield } from 'lucide-react';
 
 export default function UserProfile() {
   const { username } = useParams();
@@ -260,7 +260,7 @@ export default function UserProfile() {
                   </div>
 
                   {/* ═════ CENTRE & BATCH INFO ═════ */}
-                  {currentProfile && (currentProfile.batch || currentProfile.coachingCenter) && (
+                  {currentProfile && (currentProfile.batch || currentProfile.coachingCenter || currentProfile.coordinatorFor) && (
                     <div style={{
                       padding: 'var(--space-md) var(--space-lg)',
                       marginBottom: 'var(--space-md)',
@@ -279,6 +279,12 @@ export default function UserProfile() {
                           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <Layers size={14} />
                             Batch: <strong>{currentProfile.batch.name || '—'}</strong>
+                          </span>
+                        )}
+                        {currentProfile.coordinatorFor && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', padding: '2px 8px', border: '2px solid #000', background: '#fef3c7', fontWeight: 700 }}>
+                            <Shield size={14} />
+                            Coordinator
                           </span>
                         )}
                       </div>

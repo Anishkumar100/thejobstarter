@@ -102,12 +102,26 @@ export async function getPublicStats(req, res) {
 export async function getAllUsers(req, res) {
   try {
     console.log('[ADMIN] Fetching all users...');
-    const { page = 1, limit = 50, _id } = req.query;
+    const { page = 1, limit = 50, _id, coachingCenter, role } = req.query;
     const query = {};
     if (_id) query._id = _id;
+    if (coachingCenter === 'none') {
+      query.coachingCenter = null;
+    } else if (coachingCenter) {
+      query.coachingCenter = coachingCenter;
+    }
+    if (role === 'coordinator') {
+      query.coordinatorFor = { $ne: null };
+    } else if (role === 'student') {
+      query.coordinatorFor = null;
+    }
     const skip = (page - 1) * limit;
-    const users = await User.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
-    const total = await User.countDocuments();
+    const users = await User.find(query)
+      .populate('coachingCenter', 'name')
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
+    const total = await User.countDocuments(query);
     console.log('[ADMIN] Users fetched:', total);
     res.json({ data: users, total, page: Number(page), totalPages: Math.ceil(total / limit) });
   } catch (error) {

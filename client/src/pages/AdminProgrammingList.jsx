@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useProgrammingStore } from '../stores/useProgrammingStore.js';
@@ -9,6 +9,16 @@ import { BookOpen, Layers, Code2 } from 'lucide-react';
 export default function AdminProgrammingList() {
   const { lessons, loading, fetchLessons, subtopics, fetchSubtopics, total, fetchProblems, deleteLesson } = useProgrammingStore();
   const [refresh, setRefresh] = useState(0);
+  const [categoryFilter, setCategoryFilter] = useState('');
+
+  const categories = useMemo(() => {
+    const cats = [...new Set(lessons.map(l => l.category).filter(Boolean))];
+    return cats.sort();
+  }, [lessons]);
+
+  const filteredLessons = categoryFilter
+    ? lessons.filter(l => l.category === categoryFilter)
+    : lessons;
 
   useEffect(() => {
     fetchLessons();
@@ -32,7 +42,7 @@ export default function AdminProgrammingList() {
     { key: 'actions', label: 'Actions' }
   ];
 
-  const rows = lessons.map(l => ({
+  const rows = filteredLessons.map(l => ({
     ...l,
     actions: (
       <div className="admin-actions" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
@@ -81,8 +91,17 @@ export default function AdminProgrammingList() {
 
       <div className="listing-header">
         <h1 className="listing-header__title">Programming Lessons</h1>
-        <span className="listing-header__count">{lessons.length} lessons</span>
+        <span className="listing-header__count">{filteredLessons.length}{categoryFilter && ` / ${lessons.length}`} lessons</span>
       </div>
+
+      {categories.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 'var(--space-md)', flexWrap: 'wrap' }}>
+          <button className={`btn btn--sm ${!categoryFilter ? 'btn--primary' : ''}`} onClick={() => setCategoryFilter('')}>All</button>
+          {categories.map(cat => (
+            <button key={cat} className={`btn btn--sm ${categoryFilter === cat ? 'btn--primary' : ''}`} onClick={() => setCategoryFilter(cat)}>{cat}</button>
+          ))}
+        </div>
+      )}
 
       {loading && <Loader text="LOADING..." />}
       {!loading && <DataTable columns={columns} rows={rows} />}

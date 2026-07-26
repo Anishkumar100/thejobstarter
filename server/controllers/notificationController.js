@@ -25,6 +25,7 @@ async function findOrCreateUser(clerkId) {
         clerkId,
         username: clerkUser.username || `user_${clerkId.slice(-6)}`,
         displayName: clerkUser.firstName ? `${clerkUser.firstName} ${clerkUser.lastName || ''}`.trim() : clerkUser.emailAddresses?.[0]?.emailAddress || 'User',
+        email: clerkUser.primaryEmailAddress?.emailAddress || '',
         avatar: clerkUser.imageUrl || '',
         joinDate: new Date()
       });

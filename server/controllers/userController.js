@@ -336,6 +336,7 @@ export async function getUserByUsername(req, res) {
           existing.username = req.params.username;
           if (clerkUser.fullName) existing.displayName = clerkUser.fullName;
           if (clerkUser.imageUrl) existing.avatar = clerkUser.imageUrl;
+          if (!existing.email) existing.email = clerkUser.primaryEmailAddress?.emailAddress || '';
           await existing.save();
           user = existing;
         } else {

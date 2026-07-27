@@ -86,7 +86,7 @@ export default function DbmsSubtopic() {
 
   if (!currentSubtopic) return null;
 
-  const { youtubeUrl, pdfUrl, pptxUrl, title, description, explanation } = currentSubtopic;
+  const { youtubeUrl, pdfUrl, pptxUrl, title, description, explanation, problems } = currentSubtopic;
 
   return (
     <div className="subtopic-page">
@@ -177,17 +177,19 @@ export default function DbmsSubtopic() {
             </a>
           )}
 
-          <Link to={`/dbms/${lessonSlug}/${subtopicSlug}/problems`} className="subtopic-sidebar__cta">
-            <div className="subtopic-sidebar__cta-icon">
-              <PlayIcon size={28} />
-            </div>
-            <div className="subtopic-sidebar__cta-body">
-              <span className="subtopic-sidebar__cta-heading">Solve Problems</span>
-              <span className="subtopic-sidebar__cta-sub">Test your understanding</span>
-            </div>
-            <span className="subtopic-sidebar__cta-arrow">→</span>
-            <span className="subtopic-sidebar__cta-corner" />
-          </Link>
+          {problems && problems.length > 0 && (
+            <Link to={`/dbms/${lessonSlug}/${subtopicSlug}/problems`} className="subtopic-sidebar__cta">
+              <div className="subtopic-sidebar__cta-icon">
+                <PlayIcon size={28} />
+              </div>
+              <div className="subtopic-sidebar__cta-body">
+                <span className="subtopic-sidebar__cta-heading">Solve Problems</span>
+                <span className="subtopic-sidebar__cta-sub">Test your understanding</span>
+              </div>
+              <span className="subtopic-sidebar__cta-arrow">→</span>
+              <span className="subtopic-sidebar__cta-corner" />
+            </Link>
+          )}
         </aside>
       </motion.div>
     </div>

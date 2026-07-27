@@ -17,7 +17,7 @@ export default function AdminDbmsLessonEdit() {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
-  const [category, setCategory] = useState('sql');
+  const [category, setCategory] = useState('');
   const [difficulty, setDifficulty] = useState('easy');
   const [order, setOrder] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -27,6 +27,16 @@ export default function AdminDbmsLessonEdit() {
    * Fetch lessons and meta on mount
    */
   useEffect(() => { fetchLessons(); fetchAllMeta(); }, []);
+
+  /* Pick first category from DsaMeta as default for new lessons or if current is stale */
+  useEffect(() => {
+    if (categories.length > 0) {
+      const exists = categories.some(c => c.value === category);
+      if (!category || !exists) {
+        setCategory(categories[0].value);
+      }
+    }
+  }, [categories]);
 
   /*
    * If editing, populate form fields from existing lesson
@@ -39,7 +49,7 @@ export default function AdminDbmsLessonEdit() {
         setSlug(existing.slug);
         setDescription(existing.description);
         setImage(existing.image || '');
-        setCategory(existing.category || 'data-structures');
+        setCategory(existing.category || '');
         setDifficulty(existing.difficulty);
         setOrder(existing.order);
       }

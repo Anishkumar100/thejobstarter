@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 const dsaLessonSchema = new mongoose.Schema({
   title: { type: String, required: true },
   slug: { type: String, required: true, unique: true, index: true },
-  category: { type: String, enum: ['data-structures', 'algorithms', 'techniques'], required: true, index: true },
+  category: { type: String, required: true, index: true },
   description: { type: String, default: '' },
   image: { type: String, default: '' },
   icon: { type: String, default: 'List' },

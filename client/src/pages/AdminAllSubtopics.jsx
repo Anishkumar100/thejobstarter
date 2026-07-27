@@ -70,7 +70,7 @@ export default function AdminAllSubtopics() {
       <div className="listing-header">
         <div>
           <h1 className="listing-header__title">All Subtopics</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Filter by lesson:</label>
             <select
               value={filterLesson}
@@ -93,6 +93,13 @@ export default function AdminAllSubtopics() {
               {subtopics.length} subtopic{subtopics.length !== 1 ? 's' : ''}
             </span>
           </div>
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'flex-start' }}>
+          {filterLesson && lessonMap[filterLesson] ? (
+            <Link to={`/admin/dsa/lessons/${lessonMap[filterLesson]._id}/subtopics/new`} className="btn btn--primary">+ New Subtopic</Link>
+          ) : (
+            <Link to="/admin/dsa/lessons" className="btn">+ Select Lesson First</Link>
+          )}
         </div>
       </div>
 

@@ -17,7 +17,7 @@ export default function AdminDsaLessonEdit() {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
-  const [category, setCategory] = useState('data-structures');
+  const [category, setCategory] = useState('');
   const [difficulty, setDifficulty] = useState('easy');
   const [icon, setIcon] = useState('List');
   const [order, setOrder] = useState(0);
@@ -25,6 +25,16 @@ export default function AdminDsaLessonEdit() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => { fetchLessons(); fetchAllMeta(); }, []);
+
+  /* When API categories load, pick first as default for new lessons or if current category is stale */
+  useEffect(() => {
+    if (categories.length > 0) {
+      const exists = categories.some(c => c.value === category);
+      if (!category || !exists) {
+        setCategory(categories[0].value);
+      }
+    }
+  }, [categories]);
 
   useEffect(() => {
     if (id) {
@@ -34,7 +44,7 @@ export default function AdminDsaLessonEdit() {
         setSlug(existing.slug);
         setDescription(existing.description);
         setImage(existing.image || '');
-        setCategory(existing.category || 'data-structures');
+        setCategory(existing.category || '');
         setDifficulty(existing.difficulty);
         setIcon(existing.icon);
         setOrder(existing.order);

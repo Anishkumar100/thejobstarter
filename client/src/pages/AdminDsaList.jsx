@@ -78,11 +78,11 @@ export default function AdminDsaList() {
           <div style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>+ New Lesson →</div>
         </Link>
 
-        <Link to="/admin/dsa/lessons" className="stat-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: 'var(--space-lg)' }}>
+        <Link to="/admin/dsa/subtopics" className="stat-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: 'var(--space-lg)' }}>
           <Layers size={28} />
           <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{subtopicCount}</div>
           <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Subtopics</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>Manage per lesson →</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>All Subtopics →</div>
         </Link>
 
         <Link to="/admin/dsa/problems" className="stat-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: 'var(--space-lg)' }}>

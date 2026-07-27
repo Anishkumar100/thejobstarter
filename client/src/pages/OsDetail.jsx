@@ -18,6 +18,9 @@ export default function OsDetail() {
   const slug = problemSlug || lessonSlug;
   const { currentProblem, currentLesson, problemsLoading, problemsError, fetchProblemBySlug } = useOsStore();
 
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [quizStatus, setQuizStatus] = useState('');
+
   /* Fetch problem by slug on mount */
   useEffect(() => {
     fetchProblemBySlug(slug);
@@ -139,7 +142,15 @@ export default function OsDetail() {
         {/* Left (60%): Problem content */}
         <div className="pdetail-main">
           <ProblemView problem={p} />
-          <QuizEmbed problemModel="OsProblem" slug={slug} subjectName="OS" subject="os" />
+          <div className="pdetail-quiz-section">
+            <button
+              className={`pdetail-quiz-toggle ${quizOpen ? 'pdetail-quiz-toggle--active' : ''}`}
+              onClick={() => setQuizOpen(v => !v)}
+            >
+              {quizOpen ? '▼' : '▶'} {quizStatus || 'Quiz'}
+            </button>
+            {quizOpen && <QuizEmbed problemModel="OsProblem" slug={slug} subjectName="OS" subject="os" onStatusChange={setQuizStatus} />}
+          </div>
         </div>
 
         {/* Right (40%): Downloads only — no code section for OS */}

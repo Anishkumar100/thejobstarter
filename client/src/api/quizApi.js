@@ -15,6 +15,10 @@ export function submitQuizAttempt(quizId, answers) {
   });
 }
 
+export function retryQuizAttempt(quizId) {
+  return apiRequest(`/quizzes/${quizId}/retry`, { method: 'POST' });
+}
+
 export function createQuiz(data) {
   return apiRequest('/quizzes', {
     method: 'POST',

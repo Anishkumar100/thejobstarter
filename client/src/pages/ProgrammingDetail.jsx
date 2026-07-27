@@ -31,6 +31,8 @@ export default function ProgrammingDetail() {
       : 'Back to Programming';
 
   const [codeRevealed, setCodeRevealed] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [quizStatus, setQuizStatus] = useState('');
 
   if (loading) {
     return (
@@ -121,7 +123,15 @@ export default function ProgrammingDetail() {
       >
         <div className="pdetail-main">
           <ProblemView problem={p} />
-          <QuizEmbed problemModel="ProgrammingProblem" slug={slug} subjectName="Programming" subject="programming" />
+          <div className="pdetail-quiz-section">
+            <button
+              className={`pdetail-quiz-toggle ${quizOpen ? 'pdetail-quiz-toggle--active' : ''}`}
+              onClick={() => setQuizOpen(v => !v)}
+            >
+              {quizOpen ? '▼' : '▶'} {quizStatus || 'Quiz'}
+            </button>
+            {quizOpen && <QuizEmbed problemModel="ProgrammingProblem" slug={slug} subjectName="Programming" subject="programming" onStatusChange={setQuizStatus} />}
+          </div>
         </div>
 
         <aside className="pdetail-codeside">

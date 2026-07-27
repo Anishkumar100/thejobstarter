@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createQuiz, updateQuiz, deleteQuiz, getQuizByProblem, getQuizByProblemId, submitAttempt, getMyAttempts } from '../controllers/quizController.js';
+import { createQuiz, updateQuiz, deleteQuiz, getQuizByProblem, getQuizByProblemId, submitAttempt, getMyAttempts, retryAttempt } from '../controllers/quizController.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/adminOnly.js';
 
@@ -21,5 +21,8 @@ router.get('/my-attempts', requireAuth, getMyAttempts);
 
 /* Student-facing — submit attempt */
 router.post('/:id/attempt', requireAuth, submitAttempt);
+
+/* Student-facing — retry (delete old attempt, preserve progress) */
+router.post('/:id/retry', requireAuth, retryAttempt);
 
 export default router;

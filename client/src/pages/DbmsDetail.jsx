@@ -41,6 +41,8 @@ export default function DbmsDetail() {
       : 'Back to DBMS';
 
   const [codeRevealed, setCodeRevealed] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [quizStatus, setQuizStatus] = useState('');
 
   if (problemsLoading) {
     return (
@@ -143,7 +145,15 @@ export default function DbmsDetail() {
         {/* Left (60%): Problem content */}
         <div className="pdetail-main">
           <ProblemView problem={p} />
-          <QuizEmbed problemModel="DbmsProblem" slug={slug} subjectName="DBMS" subject="dbms" />
+          <div className="pdetail-quiz-section">
+            <button
+              className={`pdetail-quiz-toggle ${quizOpen ? 'pdetail-quiz-toggle--active' : ''}`}
+              onClick={() => setQuizOpen(v => !v)}
+            >
+              {quizOpen ? '▼' : '▶'} {quizStatus || 'Quiz'}
+            </button>
+            {quizOpen && <QuizEmbed problemModel="DbmsProblem" slug={slug} subjectName="DBMS" subject="dbms" onStatusChange={setQuizStatus} />}
+          </div>
         </div>
 
         {/* Right (40%): Code panel + downloads */}

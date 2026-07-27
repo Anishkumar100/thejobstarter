@@ -247,7 +247,8 @@ export async function submitAttempt(req, res) {
       score
     });
 
-    /* Auto-mark the problem as complete — wipe any legacy manual entry first, then create fresh */
+    /* Auto-mark the problem as complete — only on first attempt, skip on retry */
+    let progressSaved = false;
     const Model = { Problem, DbmsProblem, OsProblem, ProgrammingProblem }[quiz.problemModel];
     const subject = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming' }[quiz.problemModel];
     let problemSlug = null, lessonSlug = null, subtopicSlug = null;
@@ -257,11 +258,16 @@ export async function submitAttempt(req, res) {
         problemSlug = problem.slug;
         lessonSlug = problem.lessonSlug;
         subtopicSlug = problem.subtopicSlug;
-        /* Delete any pre-existing manual-completion record */
-        await Progress.deleteOne({ user: user._id, subject, targetType: 'problem', targetSlug: problemSlug });
-        /* Create a fresh record tied to this quiz attempt */
-        await Progress.create({ user: user._id, subject, targetType: 'problem', targetSlug: problemSlug, completedAt: new Date() });
-        console.log('[QUIZ] Problem auto-completed via quiz:', problemSlug);
+        /* Check if progress already exists (e.g. from a prior attempt) */
+        const existingProgress = await Progress.findOne({ user: user._id, subject, targetType: 'problem', targetSlug: problemSlug });
+        if (existingProgress) {
+          console.log('[QUIZ] Progress already exists for problem:', problemSlug, '— skipping (retry)');
+          progressSaved = false;
+        } else {
+          await Progress.create({ user: user._id, subject, targetType: 'problem', targetSlug: problemSlug, completedAt: new Date() });
+          progressSaved = true;
+          console.log('[QUIZ] Problem auto-completed via quiz:', problemSlug);
+        }
       }
     }
 
@@ -272,12 +278,13 @@ export async function submitAttempt(req, res) {
       });
     }
 
-    console.log('[QUIZ] Attempt recorded:', attempt._id, 'score:', score);
+    console.log('[QUIZ] Attempt recorded:', attempt._id, 'score:', score, 'progressSaved:', progressSaved);
     res.json({
       data: {
         score,
         correct,
         total: quiz.questions.length,
+        progressSaved,
         /* Return correct answers after submission so student can review */
         results: quiz.questions.map((q, i) => ({
           text: q.text,
@@ -291,6 +298,30 @@ export async function submitAttempt(req, res) {
   } catch (error) {
     console.error('[QUIZ] Error submitting attempt:', error.message);
     if (error.code === 11000) return res.status(409).json({ error: 'Already attempted this quiz' });
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/quizzes/:id/retry
+ * User: Delete their existing attempt so they can re-take the quiz.
+ * Progress (if already saved) is preserved — not re-recorded on retry.
+ */
+export async function retryAttempt(req, res) {
+  try {
+    console.log('[QUIZ] Retrying attempt for quiz:', req.params.id);
+    const user = await User.findOne({ clerkId: req.userId });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const existing = await QuizAttempt.findOneAndDelete({ user: user._id, quiz: req.params.id });
+    if (!existing) {
+      return res.status(404).json({ error: 'No attempt found for this quiz' });
+    }
+
+    console.log('[QUIZ] Deleted old attempt:', existing._id, 'score:', existing.score);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[QUIZ] Error retrying attempt:', error.message);
     res.status(500).json({ error: error.message });
   }
 }

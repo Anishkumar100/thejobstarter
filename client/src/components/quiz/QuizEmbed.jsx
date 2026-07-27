@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { fetchQuizByProblem, submitQuizAttempt } from '../../api/quizApi.js';
+import { useEffect, useRef, useState } from 'react';
+import { fetchQuizByProblem, submitQuizAttempt, retryQuizAttempt } from '../../api/quizApi.js';
 import { checkItemCompleted, markComplete } from '../../api/progressApi.js';
 import Button from '../ui/Button.jsx';
 import Loader from '../ui/Loader.jsx';
@@ -12,17 +12,20 @@ import MarkdownRenderer from '../ui/MarkdownRenderer.jsx';
  * "Mark Complete" button so the student can mark the problem done
  * without a quiz. Single-shot quiz: once submitted, shows results.
  */
-export default function QuizEmbed({ problemModel, slug, subjectName, subject }) {
+export default function QuizEmbed({ problemModel, slug, subjectName, subject, onStatusChange }) {
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [progressSaved, setProgressSaved] = useState(null);
   const [submitError, setSubmitError] = useState(null);
+  const submittingRef = useRef(false);
   const [showDetails, setShowDetails] = useState(false);
   const [problemCompleted, setProblemCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [checkingCompleted, setCheckingCompleted] = useState(false);
 
   useEffect(() => {
@@ -35,6 +38,12 @@ export default function QuizEmbed({ problemModel, slug, subjectName, subject }) 
         setQuiz(res.data);
         if (res.data?.attempt) {
           setResult(res.data.attempt);
+          /* On revisit, check if progress was saved from a prior attempt */
+          if (subject && slug) {
+            checkItemCompleted(subject, 'problem', slug)
+              .then(cr => setProgressSaved(cr.completed))
+              .catch(() => setProgressSaved(false));
+          }
         }
         setLoading(false);
       })
@@ -55,6 +64,22 @@ export default function QuizEmbed({ problemModel, slug, subjectName, subject }) 
       });
   }, [problemModel, slug, subject]);
 
+  /* Notify parent of quiz status for the collapsible toggle label */
+  useEffect(() => {
+    if (!onStatusChange) return;
+    if (result && progressSaved === true) {
+      onStatusChange(`✅ ${subjectName} Quiz — Progress saved`);
+    } else if (result && progressSaved === false) {
+      onStatusChange(`⚠️ ${subjectName} Quiz — Retry available`);
+    } else if (result) {
+      onStatusChange(`${subjectName} Quiz completed`);
+    } else if (quiz) {
+      onStatusChange(`${subjectName} Quiz`);
+    } else {
+      onStatusChange('');
+    }
+  }, [result, progressSaved, quiz, subjectName, onStatusChange]);
+
   const handleMarkComplete = async () => {
     if (!subject || !slug || completing) return;
     setCompleting(true);
@@ -65,6 +90,24 @@ export default function QuizEmbed({ problemModel, slug, subjectName, subject }) 
       console.error('[QUIZ_EMBED] Error marking problem complete:', err.message);
     }
     setCompleting(false);
+  };
+
+  const handleRetry = async () => {
+    if (!quiz || retrying) return;
+    setRetrying(true);
+    try {
+      await retryQuizAttempt(quiz._id);
+      /* Refetch to get fresh state (no attempt now) */
+      const refreshed = await fetchQuizByProblem(problemModel, slug);
+      setQuiz(refreshed.data);
+      setResult(null);
+      setProgressSaved(null);
+      setAnswers({});
+      setSubmitError(null);
+    } catch (err) {
+      setSubmitError('Failed to retry: ' + err.message);
+    }
+    setRetrying(false);
   };
 
   if (loading) return <div style={{ padding: 'var(--space-lg)', textAlign: 'center' }}><Loader text="Loading quiz..." /></div>;
@@ -200,6 +243,65 @@ export default function QuizEmbed({ problemModel, slug, subjectName, subject }) 
           )}
         </div>
 
+        {/* ── Progress saved badge + Retry action ── */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: '12px', flexWrap: 'wrap',
+          padding: 'var(--space-sm) var(--space-md)',
+          marginBottom: 'var(--space-md)',
+          border: '3px solid var(--border-color)',
+          background: progressSaved === true ? 'var(--success-bg)' : progressSaved === false ? 'var(--error-bg)' : 'var(--bg-tertiary)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600 }}>
+            {progressSaved === true && (
+              <><span style={{ color: 'var(--success-text)' }}>✅</span> Progress saved for this problem</>
+            )}
+            {progressSaved === false && (
+              <><span style={{ color: 'var(--error-text)' }}>⚠️</span> Retrying for practice only — progress won't be re-recorded</>
+            )}
+            {progressSaved === null && (
+              <><span style={{ color: 'var(--text-secondary)' }}>⏳</span> Checking progress status...</>
+            )}
+          </div>
+
+          {/* Retry button — always shown on results view */}
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '8px 16px',
+              border: '3px solid var(--border-color)',
+              background: retrying ? 'var(--bg-tertiary)' : 'var(--accent)',
+              color: retrying ? 'var(--text-secondary)' : '#fff',
+              boxShadow: '3px 3px 0 var(--shadow-color)',
+              cursor: retrying ? 'not-allowed' : 'pointer',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              fontFamily: 'inherit',
+              whiteSpace: 'nowrap',
+              transition: 'background 0.12s, transform 0.12s, box-shadow 0.12s'
+            }}
+            onMouseEnter={e => { if (!retrying) { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '4px 4px 0 var(--shadow-color)'; } }}
+            onMouseLeave={e => { if (!retrying) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '3px 3px 0 var(--shadow-color)'; } }}
+          >
+            {retrying ? 'Retrying...' : '↻ Retry Quiz'}
+          </button>
+        </div>
+
+        {/* Warning text — progress won't re-record on retry */}
+        {(progressSaved === true || progressSaved === false) && (
+          <p style={{
+            fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic',
+            marginBottom: 'var(--space-md)', padding: '0 var(--space-xs)'
+          }}>
+            {progressSaved === true
+              ? 'Retrying is for practice only — your progress has already been saved and won\'t change.'
+              : 'This quiz was already completed. Retrying won\'t update your progress — it\'s for extra practice.'
+            }
+          </p>
+        )}
+
         {/* ── Detailed Breakdown (collapsible) ── */}
         {detailedResults ? (
           <div style={{
@@ -248,8 +350,11 @@ export default function QuizEmbed({ problemModel, slug, subjectName, subject }) 
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const answeredCount = Object.keys(answers).length;
     if (answeredCount < quiz.questions.length) {
+      submittingRef.current = false;
       setSubmitError(`Please answer all ${quiz.questions.length} questions`);
       return;
     }
@@ -259,12 +364,33 @@ export default function QuizEmbed({ problemModel, slug, subjectName, subject }) 
       const orderedAnswers = quiz.questions.map((_, i) => answers[i]);
       const res = await submitQuizAttempt(quiz._id, orderedAnswers);
       setResult(res.data);
+      setProgressSaved(res.data.progressSaved);
     } catch (err) {
       if (err.message === 'Already attempted this quiz') {
-        setSubmitError('You have already attempted this quiz.');
+        /* Already attempted — attempt exists from a concurrent submit; refetch to show results */
+        try {
+          const refreshed = await fetchQuizByProblem(problemModel, slug);
+          if (refreshed.data?.attempt) {
+            setResult(refreshed.data.attempt);
+            setQuiz(refreshed.data);
+            setSubmitError(null);
+            /* Check if progress was saved */
+            if (subject && slug) {
+              checkItemCompleted(subject, 'problem', slug)
+                .then(cr => setProgressSaved(cr.completed))
+                .catch(() => setProgressSaved(false));
+            }
+          } else {
+            setSubmitError('You have already attempted this quiz.');
+          }
+        } catch {
+          setSubmitError('You have already attempted this quiz.');
+        }
       } else {
         setSubmitError(err.message);
       }
+    } finally {
+      submittingRef.current = false;
     }
     setSubmitting(false);
   };

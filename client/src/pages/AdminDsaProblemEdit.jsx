@@ -342,7 +342,9 @@ export default function AdminDsaProblemEdit() {
         </div>
 
         {/* ═══ MCQ QUIZ EDITOR ═══ */}
-        {id && <QuizEditor problemId={id} problemModel="Problem" />}
+        <h3 style={{ marginTop: 'var(--space-lg)' }}>Quiz</h3>
+        {!isNew && <QuizEditor problemId={id} problemModel="Problem" />}
+        {isNew && <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Save the problem first to add a quiz.</p>}
 
         <button type="submit" className="btn btn--primary" style={{ marginTop: 'var(--space-lg)' }}>
           {isNew ? 'Create Problem' : 'Save Changes'}

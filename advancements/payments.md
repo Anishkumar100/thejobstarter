@@ -6,7 +6,7 @@ Dual payment system for the platform:
 
 | System | Model | Price | Mechanism |
 |--------|-------|-------|-----------|
-| **SaaS (Individual)** | ₹99/month recurring for students NOT in a coaching center | Cashfree subscriptions + webhooks | Free tier = first 2 lessons per subject. Paid = full access. |
+| **SaaS (Individual)** | ₹99/month recurring for students NOT in a coaching center | Cashfree subscriptions + webhooks with **auto-pay always enabled** | Free tier = first 2 lessons per subject. Paid = full access. |
 | **Enterprise (Coaching Centers)** | Manual admin management per center | No platform transaction | Existing `CoachingCenter.status` (`active`/`trial`/`suspended`) |
 
 ### Free Tier Rules
@@ -84,7 +84,10 @@ export default mongoose.model('PaymentTransaction', transactionSchema);
 
 ### CoachingCenter Model (`server/models/CoachingCenter.js`) — Add billing fields
 
-```js
+> ⏭️ **Deferred to future phase.** Not implementing yet.
+
+<!--
+Future billing fields for reference:
 billingEmail:     { type: String, default: '' },
 billingPhone:     { type: String, default: '' },
 billingAddress:   { type: String, default: '' },
@@ -94,6 +97,7 @@ lastBilledAt:     { type: Date, default: null },
 nextBillingAt:    { type: Date, default: null },
 paymentStatus:    { type: String, enum: ['paid', 'pending', 'overdue'], default: 'pending' },
 paymentNotes:     { type: String, default: '' }
+-->
 ```
 
 ---
@@ -168,28 +172,39 @@ Frontend                          Backend                         Cashfree
 ### Payment Controller Core Logic
 
 **`createSubscription`:**
+
+> **Auto-pay is always enabled.** The Cashfree subscription is created as recurring from day one. Promo codes only affect the first charge amount — subsequent months are always ₹99.
+
 1. Validate promo code if provided (check active, not expired, not maxed out)
-2. Calculate amount (₹99 - discount if promo)
-3. Call Cashfree Subscription API to create subscription
-4. Store `cashfreeSubscriptionId` on User doc
-5. Return payment link to frontend
+2. Calculate first-charge amount:
+   - No promo: ₹99
+   - `free_month`: first charge = ₹0, subsequent = ₹99
+   - `discount_percent`: first charge = ₹99 × (1 - value/100), subsequent = ₹99
+   - `discount_fixed`: first charge = ₹99 - value (min ₹0), subsequent = ₹99
+3. Call Cashfree Subscription API with `first_charge = calculated_amount`, `recurring_amount = 99`, `interval = 30` days — this sets up auto-pay immediately
+4. If promo applied, store `appliedPromo` on User doc for audit trail
+5. Store `cashfreeSubscriptionId` on User doc
+6. Return payment link to frontend
 
 **`handleWebhook`** (Cashfree webhook):
 1. Verify webhook signature
-2. Extract event type: `PAYMENT_SUCCESS`, `PAYMENT_FAILED`, `SUBSCRIPTION_CANCELLED`
+2. Extract event type: `PAYMENT_SUCCESS`, `PAYMENT_FAILED`, `SUBSCRIPTION_CANCELLED`, `SUBSCRIPTION_CHARGED`
 3. Find user by `cashfreeCustomerId` or metadata
-4. On `PAYMENT_SUCCESS`:
+4. On `PAYMENT_SUCCESS` (first payment or first recurring charge after free month):
    - Set `subscription.status = 'active'`
-   - Set `currentPeriodStart` / `currentPeriodEnd` (month from now)
-   - If promo was applied, increment `PromoCode.usedCount`
+   - Set `currentPeriodStart` / `currentPeriodEnd` (30 days from now)
+   - If promo was applied on first payment only, increment `PromoCode.usedCount`
    - Create `PaymentTransaction` with `status: 'success'`
-5. On `PAYMENT_FAILED`:
+5. On `SUBSCRIPTION_CHARGED` (subsequent recurring charges):
+   - Same as `PAYMENT_SUCCESS` — update `currentPeriodEnd` by +30 days
+   - Create `PaymentTransaction` with type `subscription_renewed`
+6. On `PAYMENT_FAILED`:
    - Set `subscription.status = 'past_due'`
    - Create `PaymentTransaction` with `status: 'failed'`
-6. On `SUBSCRIPTION_CANCELLED`:
+7. On `SUBSCRIPTION_CANCELLED`:
    - Set `subscription.status = 'canceled'`
    - Create `PaymentTransaction`
-7. Return 200 OK to Cashfree
+8. Return 200 OK to Cashfree
 
 **`applyPromo`:**
 1. Validate promo code exists, is active, not expired, not at max uses
@@ -198,6 +213,52 @@ Frontend                          Backend                         Cashfree
    - `discount_percent` → ₹99 × (1 - value/100)
    - `discount_fixed` → ₹99 - value (min ₹0)
 3. Return calculated price and promo details
+
+**`cancelSubscription`:**
+
+```
+Frontend (/settings/subscription)     Backend                    Cashfree
+   │                                     │                         │
+   │  Click "Cancel Subscription"        │                         │
+   │────────────────────────────────────>│                         │
+   │                                     │  Call Cashfree API      │
+   │                                     │  to cancel subscription │
+   │                                     │────────────────────────>│
+   │                                     │    { success }          │
+   │                                     │<────────────────────────│
+   │                                     │                         │
+   │                                     │  Set status = 'canceled'│
+   │                                     │  Create Transaction     │
+   │                                     │  (type: subscription_   │
+   │                                     │   canceled)             │
+   │  { success, message, accessUntil }  │                         │
+   │<────────────────────────────────────│                         │
+```
+
+Before calling the API, frontend shows a confirmation dialog:
+
+```
+┌──────────────────────────────────────┐
+│  Cancel Subscription?                │
+│                                      │
+│  Your access continues until         │
+│  25 Aug 2026. After that, you'll     │
+│  be downgraded to the free tier.     │
+│                                      │
+│  [  No, Keep It  ] [  Yes, Cancel ] │
+└──────────────────────────────────────┘
+```
+
+Backend logic:
+1. Call Cashforce API to cancel the recurring subscription (stops future charges)
+2. Set `user.subscription.status = 'canceled'` (NOT `'expired'`)
+3. Create `PaymentTransaction` with type `subscription_canceled`, status `'success'`
+4. Return `{ success: true, accessUntil: currentPeriodEnd }`
+
+**Status distinction:**
+- `canceled` — User manually canceled. Still has access until `currentPeriodEnd`. No more charges.
+- `expired` — `currentPeriodEnd` passed without an active subscription. No access.
+- A periodic check (webhook or cron) transitions `canceled` → `expired` when `currentPeriodEnd` is in the past.
 
 ### Access Control Utility (`server/utils/accessControl.js`)
 
@@ -576,33 +637,31 @@ export const usePaymentStore = create((set, get) => ({
 | 11 | `client/src/pages/AdminPromoCodes.jsx` |
 | 12 | `client/src/api/paymentApi.js` |
 
-### Modify (21 files)
+### Modify (20 files)
 
 | # | File | Changes |
 |---|------|---------|
 | 1 | `server/models/User.js` | Add `subscription` sub-object |
-| 2 | `server/models/CoachingCenter.js` | Add billing fields |
-| 3 | `server/app.js` | Register payment routes |
-| 4 | `server/controllers/adminController.js` | Add `getPaymentStats`, payment/subscription/promo endpoints |
-| 5 | `server/routes/adminRoutes.js` | Add payment + promo admin routes |
-| 6 | `server/controllers/dsaController.js` | Add `locked` flag to lesson list, gate detail |
-| 7 | `server/controllers/dbmsController.js` | Same |
-| 8 | `server/controllers/osController.js` | Same |
-| 9 | `server/controllers/programmingController.js` | Same |
-| 10 | `server/routes/dsaRoutes.js` | Already has `requireAuth` on all GET endpoints — no change |
-| 11 | `server/routes/dbmsRoutes.js` | Same — already has `requireAuth` |
-| 12 | `server/routes/osRoutes.js` | Same — already has `requireAuth` |
-| 13 | `server/routes/programmingRoutes.js` | **ADD `requireAuth`** to 6 GET endpoints (missing — security gap) |
-| 14 | `client/src/App.jsx` | Add /pricing, /settings/subscription, admin payment routes |
-| 15 | `client/src/components/ui/Navbar.jsx` | Upgrade/Pricing link, Premium badge |
-| 16 | `client/src/stores/useAuthStore.js` | Call `updateUser({ subscription })` after fetching status from payment store (`updateUser` does `{ ...state.user, ...updates }` — works for merging subscription) |
-| 17 | `client/src/components/admin/AdminSidebar.jsx` | Add Payments section |
-| 18 | `client/src/pages/AdminDashboard.jsx` | Revenue stats card |
-| 19 | `client/src/pages/AdminCoachingCenterDetail.jsx` | Billing section |
-| 20 | `client/src/pages/DsaList.jsx` (and DbmsList, OsList, ProgrammingList) | Lock overlay on lesson cards |
-| 21 | `client/src/pages/DsaDetail.jsx` (and DbmsDetail, OsDetail, ProgrammingDetail) | Paywall banner when locked |
+| 2 | `server/app.js` | Register payment routes |
+| 3 | `server/controllers/adminController.js` | Add `getPaymentStats`, payment/subscription/promo endpoints |
+| 4 | `server/routes/adminRoutes.js` | Add payment + promo admin routes |
+| 5 | `server/controllers/dsaController.js` | Add `locked` flag to lesson list, gate detail |
+| 6 | `server/controllers/dbmsController.js` | Same |
+| 7 | `server/controllers/osController.js` | Same |
+| 8 | `server/controllers/programmingController.js` | Same |
+| 9 | `server/routes/dsaRoutes.js` | Already has `requireAuth` on all GET endpoints — no change |
+| 10 | `server/routes/dbmsRoutes.js` | Same — already has `requireAuth` |
+| 11 | `server/routes/osRoutes.js` | Same — already has `requireAuth` |
+| 12 | `server/routes/programmingRoutes.js` | **ADD `requireAuth`** to 6 GET endpoints (missing — security gap) |
+| 13 | `client/src/App.jsx` | Add /pricing, /settings/subscription, admin payment routes |
+| 14 | `client/src/components/ui/Navbar.jsx` | Upgrade/Pricing link, Premium badge |
+| 15 | `client/src/stores/useAuthStore.js` | Call `updateUser({ subscription })` after fetching status from payment store |
+| 16 | `client/src/components/admin/AdminSidebar.jsx` | Add Payments section |
+| 17 | `client/src/pages/AdminDashboard.jsx` | Revenue stats card |
+| 18 | `client/src/pages/DsaList.jsx` (and DbmsList, OsList, ProgrammingList) | Lock overlay on lesson cards |
+| 19 | `client/src/pages/DsaDetail.jsx` (and DbmsDetail, OsDetail, ProgrammingDetail) | Paywall banner when locked |
 
-**Total: ~33 files**
+**Total: ~32 files**
 
 ---
 
@@ -619,15 +678,14 @@ CASHFREE_ENV=sandbox    # or 'production'
 
 ## Implementation Order
 
-1. **Data models** — User, PromoCode, PaymentTransaction, CoachingCenter changes
+1. **Data models** — User, PromoCode, PaymentTransaction changes (CoachingCenter billing deferred)
 2. **Access control** — `server/utils/accessControl.js` first
 3. **Subject controllers** — Add locking to lessons/subtopics/problems across all 4 subjects
 4. **Subject routes** — Add `requireAuth` to programming GET routes (DSA/DBMS/OS already have it)
 5. **Cashfree integration** — Config, payment controller, webhook, routes
 6. **Admin backend** — Payment stats, subscription management, promo CRUD
 7. **Admin frontend** — Payments dashboard, subscribers page, promo codes page
-8. **Coaching Center billing** — Billing section in detail page
-9. **Pricing page** — Public `/pricing` with Cashfree checkout
-10. **Lock UI** — Lesson cards, paywall banners on detail pages
-11. **Navigation** — Upgrade link, Premium badge
-12. **User subscription settings** — `/settings/subscription` page
+8. **Pricing page** — Public `/pricing` with Cashfree checkout
+9. **Lock UI** — Lesson cards, paywall banners on detail pages
+10. **Navigation** — Upgrade link, Premium badge
+11. **User subscription settings** — `/settings/subscription` page

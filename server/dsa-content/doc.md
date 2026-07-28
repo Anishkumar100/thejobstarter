@@ -1,497 +1,353 @@
-# DSA Learning Document — Strings
+# DSA Learning Document — Searching
 
-> A comprehensive, student-friendly guide to Strings — character encoding, immutability, pattern matching, and classic string problems.
-> Master string manipulation, palindrome checking, and anagram detection.
+> A comprehensive, student-friendly guide to Searching — linear search and binary search.
+> Master the divide-and-conquer approach and understand why binary search is exponentially faster than linear search.
 
 ---
 
-# 2. Strings
+# 2. Searching
 
-> **Lesson Overview:** Strings are everywhere in programming — names, passwords, messages, DNA sequences. Learn how they work in memory, why immutability matters, and two essential problem-solving techniques.
-> - **Category:** Fundamentals: Arrays & Strings
+> **Lesson Overview:** Searching is one of the most fundamental operations in programming. Learn two approaches: Linear Search (check every element) and Binary Search (repeatedly cut the search space in half).
+> - **Category:** Searching, Sorting & Hashing
 > - **Difficulty:** Easy
-> - **Problems:** 2
+> - **Problems:** 1
 
 ---
 
-## 2.1 String Basics
+## 2.1 Linear & Binary Search
 
-### What is a String?
+### What is Searching?
 
-Imagine a row of lockers, but instead of holding numbers, each locker holds a single letter. The lockers are numbered 0, 1, 2, 3, and so on — and the sequence of letters they contain, read from left to right, forms a word, a sentence, or any text you want to represent.
+Imagine you have lost your keys somewhere in your house. You have two strategies:
 
-A **string** is exactly that: an ordered sequence of characters stored in contiguous memory. Under the hood, a string is essentially an array of characters, with a few important differences that depend on the programming language you are using.
+1. **The Room-by-Room Method** — Start in one corner and check every single drawer, every shelf, every pocket until you find them. You might find them in the first place you look, or you might check every single spot in the entire house before giving up.
 
-In most languages, the characters are encoded as numbers internally. Every character on your keyboard — and thousands that are not — maps to a numeric code. The most common encodings you will encounter are:
+2. **The Smart Method** — But this only works if you know something about where you lost them. You remember you last had them in either the kitchen or the living room, so you check only those two rooms first. Then you narrow it down further.
 
-- **ASCII** — The original standard, covering 128 characters (English letters, digits, punctuation, control codes). Each character takes 1 byte. A is 65, a is 97, 0 is 48.
-- **Unicode (UTF-8)** — The modern standard covering virtually every writing system on Earth. UTF-8 is backward-compatible with ASCII for the first 128 characters, and uses 1 to 4 bytes per character for everything else.
+Searching in programming is the same idea: given a list of items and a target value, find out whether the target exists in the list, and if so, where.
 
-When you see the string `Hello`, the computer actually stores something like this in memory:
+There are two fundamental approaches, and the one you should use depends entirely on whether your data is **sorted** or not.
 
-```
-Memory: [72] [101] [108] [108] [111]
-Char:    H     e     l     l     o
-Index:   0     1     2     3     4
-```
+### Linear Search — The Room-by-Room Method
 
-Each slot holds the numeric encoding of the character. The computer knows to interpret those bytes as text rather than as integers.
+#### How It Works
 
-### Common String Operations and Their Cost
-
-**Access a Character by Index — O(1)**
-
-Grabbing the character at a specific position (like `s[3]`) is just like array access — the computer calculates the memory address in one step. This is always O(1).
-
-**Find the Length — O(1) in most languages**
-
-Most languages store the length of a string as metadata alongside the string data itself. Asking "how long is this string?" returns a pre-computed value instantly — no counting required.
-
-**Character Comparison — O(1)**
-
-Checking whether two characters are the same is a single integer comparison. `a == a` is just checking whether 97 equals 97 — one step.
-
-**String Equality (Full Comparison) — O(n)**
-
-Comparing whether two strings are identical character-by-character requires checking every position until you find a mismatch. In the worst case (they are equal, or they differ only in the last character), you check all n characters.
+Linear search is the simplest search algorithm. You start at the beginning of the list and check every single element, one after another, until you find what you are looking for or reach the end.
 
 ```text
-FUNCTION strings_equal(a, b):
-    IF lengths of a and b are different:
-        RETURN False
-    FOR i FROM 0 TO length(a) - 1:
-        IF a[i] != b[i]:
-            RETURN False
-    RETURN True
+FUNCTION linear_search(arr, target):
+    FOR i FROM 0 TO length(arr) - 1:
+        IF arr[i] == target:
+            RETURN i          // Found it at index i
+
+    RETURN -1                   // Not found after checking everything
 ```
 
-**Concatenation — O(n + m) or worse**
+#### Trace It
 
-Joining two strings together (`Hello` + `World`) creates a brand new string in memory that combines both. If the original strings are immutable (as they are in Python, Java, JavaScript, and many other languages), the old strings are not modified — a completely new block of memory is allocated, and both strings are copied into it.
+Say you have `[4, 2, 9, 1, 7]` and you are looking for `9`:
 
-This is why building a long string by repeatedly concatenating small pieces is expensive — every `+` operation creates a new string, copies everything, and discards the old one. For k concatenations, this can become O(k * total_length).
-
-**Substring — O(n) for extraction**
-
-Extracting a portion of a string typically creates a new string and copies the characters. Even if the language uses a reference-based optimization (like shared substring in some engines), extraction usually involves a copy.
-
-### Immutability: The Most Important Concept
-
-In many languages — Python, Java, JavaScript, C# — strings are **immutable**. Once a string is created, it can never be changed. Any operation that seems to modify a string actually creates a new one:
-
-```text
-s = "Hello"
-s = s + " World"   // Does NOT modify "Hello" — creates "Hello World" and assigns it to s
-// The original "Hello" is still in memory, waiting to be garbage-collected
+```
+i=0: arr[0] = 4 -> not 9, keep going
+i=1: arr[1] = 2 -> not 9, keep going
+i=2: arr[2] = 9 -> found! Return 2
 ```
 
-This has real practical consequences:
-- Modifying a string in a loop is slow (each iteration creates a new string)
-- String comparisons can be optimized: if two strings are the same object (same reference), they must be equal
-- Strings are thread-safe — since they cannot change, no synchronization is needed
+Only 3 checks out of 5. Lucky.
 
-### The Fix: StringBuilder / String Buffer
+But what if you are looking for `10` (which does not exist)?
 
-Languages provide a mutable alternative for building strings efficiently:
-- Java: `StringBuilder` (not thread-safe, faster) or `StringBuffer` (thread-safe)
-- C#: `StringBuilder`
-- Python: using `list` of strings with `.join()`
-- JavaScript: using array of strings with `.join("")` or template literals
-
-The idea is the same across all of them: maintain a mutable buffer that can grow without creating new objects, and only produce the final string when you are done.
-
-```text
-// Instead of:
-s = ""
-FOR EACH word IN words:
-    s = s + word + ", "     // Creates a new string every iteration
-
-// Use:
-buffer = []
-FOR EACH word IN words:
-    buffer.append(word)
-    buffer.append(", ")
-s = join(buffer, "")         // One allocation at the end
+```
+i=0: 4 != 10
+i=1: 2 != 10
+i=2: 9 != 10
+i=3: 1 != 10
+i=4: 7 != 10
+End of list -> Return -1
 ```
 
-### Strings vs Character Arrays
+You checked every single element — all 5 of them.
 
-If strings are just arrays of characters, why not always use character arrays?
+#### When to Use Linear Search
 
-| Aspect | String | Character Array |
-|---|---|---|
-| Mutability | Immutable (usually) | Mutable |
-| Convenience | Built-in methods (search, split, case conversion) | Manual loop for everything |
-| Performance | Copy on modification | Modify in place |
-| Use when | Text processing, display, comparison | Low-level manipulation, performance-critical |
+- The list is **unsorted** (you have no choice)
+- The list is **very small** (the simplicity outweighs any performance gain)
+- You only need to search **once** (the cost of sorting is not worth it)
 
-### When to Use Strings vs When to Think Differently
+#### Time Complexity
 
-- Use strings for **any text data** — names, sentences, paragraphs, identifiers
-- Think about **immutability** when building strings in loops (use StringBuilder or join)
-- Remember that **string comparison is O(n)** — comparing long strings repeatedly can become a bottleneck
-- Character encoding matters — a character might be 1 byte (ASCII) or up to 4 bytes (UTF-8 emoji)
+- **Best case: O(1)** — the target is the very first element
+- **Worst case: O(n)** — the target is last, or does not exist at all. You check all n elements.
+- **Average case: O(n)** — on average, you check n/2 elements
 
----
+#### Space Complexity
 
-## 2.2 Pattern Matching
+- **O(1)** — you only need a single index variable
 
-### What is Pattern Matching?
+### Binary Search — The Divide-and-Conquer Method
 
-Imagine you have a deck of cards with letters on them, and someone asks: "Does this smaller deck of cards appear somewhere in this larger deck, in the same order?" You slide the smaller deck along the larger one, checking at each position whether the cards match.
+#### How It Works
 
-That is pattern matching in strings: checking whether a **pattern** (a smaller string) appears inside a **text** (a larger string), and if so, at what position.
+Binary search is dramatically faster, but it comes with one crucial requirement: **the data must be sorted**.
 
-In this lesson, we focus on a specific kind of pattern matching: **character frequency matching** — not whether a pattern appears in order, but whether two strings are made of the same characters in the same quantities. This is the essence of anagram detection.
+The idea is simple and powerful:
 
-### Character Frequency: The Core Idea
+1. Look at the middle element of the list
+2. If it is the target, you are done
+3. If the target is smaller than the middle, repeat the process on the **left half** of the list
+4. If the target is larger, repeat on the **right half**
+5. Keep going until you find it or the search space is empty
 
-Every string is built from characters, each of which appears a certain number of times. In `hello`, the character `h` appears once, `e` once, `l` twice, and `o` once. The **frequency** of a character is simply how many times it occurs.
-
-If two strings have identical character frequencies, they are **anagrams** — they contain the same letters in the same quantities, just in a different order.
-
-- `listen` and `silent` — both have one l, one i, one s, one t, one e, one n — anagrams
-- `hello` and `bello` — different first characters — not anagrams
-- `aabbcc` and `abcabc` — each has two a, two b, two c — anagrams
-
-### How to Count Characters: The Frequency Map
-
-The most natural way to count character frequencies is with a **hash map** (also called a dictionary or object):
+At every step, you eliminate **half** of the remaining elements. This is why it is so fast.
 
 ```text
-FUNCTION build_frequency_map(s):
-    freq = empty hash map
-    FOR EACH character c IN s:
-        IF c is in freq:
-            freq[c] = freq[c] + 1
+FUNCTION binary_search(arr, target):
+    left = 0
+    right = length(arr) - 1
+
+    WHILE left <= right:
+        mid = left + (right - left) / 2   // Integer division
+
+        IF arr[mid] == target:
+            RETURN mid                     // Found it
+        ELSE IF arr[mid] < target:
+            left = mid + 1                 // Target is in the right half
         ELSE:
-            freq[c] = 1
-    RETURN freq
+            right = mid - 1                // Target is in the left half
+
+    RETURN -1                              // Not found
 ```
 
-This runs in O(n) time — we visit each character exactly once — and uses O(k) space, where k is the number of distinct characters (at most 26 for lowercase English letters, or 128 for ASCII, or more for Unicode).
+> **Important:** The formula `mid = left + (right - left) / 2` is used instead of `mid = (left + right) / 2` to avoid integer overflow for very large arrays. Both give the same result in practice for most cases.
 
-**Alternative: Fixed-Size Array (for Known Alphabets)**
+#### Trace It
 
-If we know the character set is limited — for example, only lowercase English letters — we can use a fixed-size array instead of a hash map:
+Say you have a sorted array `[2, 5, 8, 12, 16, 23, 38, 45, 56]` and you are looking for `23`:
 
-```text
-FUNCTION build_frequency_array(s):
-    freq = array of size 26, all initialized to 0
-    FOR EACH character c IN s:
-        index = c - a      // a -> 0, b -> 1, ..., z -> 25
-        freq[index] = freq[index] + 1
-    RETURN freq
+```
+Step 1: left=0, right=8, mid=4 -> arr[4]=16
+        16 < 23 -> target is in the right half
+        left becomes 5
+
+Step 2: left=5, right=8, mid=6 -> arr[6]=38
+        38 > 23 -> target is in the left half
+        right becomes 5
+
+Step 3: left=5, right=5, mid=5 -> arr[5]=23
+        23 == 23 -> Found! Return 5
 ```
 
-This is slightly faster (array access is cheaper than hash map lookups) and uses exactly O(1) space — the array is always 26 elements, regardless of how long the string is.
+Only **3 comparisons** to find 23 in a list of 9 elements. Linear search would have taken 6 comparisons.
 
-### Comparing Two Strings by Frequency
+Now say you are looking for `3` (not in the list):
 
-Once we have frequency maps (or arrays) for two strings, comparing them is straightforward:
+```
+Step 1: left=0, right=8, mid=4 -> arr[4]=16
+        16 > 3 -> target is in the left half
+        right becomes 3
 
-```text
-FUNCTION are_anagrams(s, t):
-    IF lengths of s and t are different:
-        RETURN False
-    freq_s = build_frequency_map(s)
-    freq_t = build_frequency_map(t)
-    RETURN freq_s == freq_t
+Step 2: left=0, right=3, mid=1 -> arr[1]=5
+        5 > 3 -> left half
+        right becomes 0
+
+Step 3: left=0, right=0, mid=0 -> arr[0]=2
+        2 < 3 -> right half
+        left becomes 1
+
+Step 4: left=1, right=0 -> left > right, loop exits
+        Return -1
 ```
 
-**Why Length Check First?**
+Only **3 comparisons** to determine that 3 does not exist in a list of 9 elements. Linear search would have checked all 9 before being sure.
 
-If two strings have different lengths, they cannot possibly be anagrams — regardless of what characters they contain. This is a constant-time check that can save us from building frequency maps unnecessarily.
+#### The Magic: Why Binary Search Is So Fast
 
-### Time and Space Analysis
+Every comparison eliminates half the remaining elements. This means the number of steps grows very slowly as the list grows:
 
-| Approach | Time | Space | Notes |
-|---|---|---|---|
-| Brute force (generate all permutations) | O(n!) | O(n) | Impractical — 10! = 3,628,800 |
-| Sort both strings and compare | O(n log n) | O(n) (or O(1) if in-place) | Simple but slower for large n |
-| Frequency map (hash map) | O(n) | O(k) where k = distinct chars | Best general approach |
-| Frequency array (fixed alphabet) | O(n) | O(1) | Best when character set is known |
+| List Size | Linear Search (worst case) | Binary Search (worst case) |
+|---|---|---|
+| 10 | 10 checks | 4 checks |
+| 1,000 | 1,000 checks | 10 checks |
+| 1,000,000 | 1,000,000 checks | 20 checks |
+| 1,000,000,000 | 1,000,000,000 checks | 30 checks |
 
-### Beyond Anagrams: General Pattern Matching
+This is the difference between O(n) and O(log n). For a billion elements, linear search takes a billion steps. Binary search takes just 30.
 
-The ideas you learn here extend beyond anagrams:
+#### When to Use Binary Search
 
-- **Substring search** — does `abc` appear in `xabcy`? Use the sliding window technique.
-- **Character counting with sliding window** — find the longest substring with at most k distinct characters.
-- **Frequency difference** — what is the minimum number of character changes to make two strings anagrams?
+- The data is **sorted** (this is mandatory)
+- The list is **large enough** that O(n) would be too slow
+- You need to search **many times** (it is worth keeping the data sorted)
 
-Each of these builds on the same foundation: efficiently counting and comparing character frequencies.
+#### Time Complexity
+
+- **Best case: O(1)** — the target is at the middle on the first check
+- **Worst case: O(log n)** — you keep halving until only one element remains. For n elements, that is about log2(n) steps.
+- **Average case: O(log n)**
+
+#### Space Complexity
+
+- **O(1)** for the iterative version — just three variables (left, right, mid)
+- **O(log n)** for the recursive version — the call stack grows with each recursive call
+
+### Linear vs Binary: Side by Side
+
+| Aspect | Linear Search | Binary Search |
+|---|---|---|
+| Data requirement | Any data | Must be sorted |
+| Time complexity | O(n) | O(log n) |
+| Space complexity | O(1) | O(1) iterative, O(log n) recursive |
+| Implementation | Trivial | Slightly more complex |
+| Best for | Small or unsorted data | Large sorted data |
+| Real-world example | Finding a name in an unsorted list | Looking up a word in a dictionary |
+
+### The Key Takeaway
+
+Binary search is one of the most important algorithms in computer science because it demonstrates a core principle: **if your data is organized, you can exploit that organization to solve problems exponentially faster.**
+
+The same "divide and conquer" pattern appears again and again — in tree search, in sorting algorithms like Merge Sort and Quick Sort, and in many advanced data structures.
 
 ---
 
 # 3. Problems
 
-## 3.1 Check Palindrome
+## 3.1 Binary Search
 
 **Difficulty:** Easy  
-**Topics:** Strings, Two Pointers  
-**Companies:** Amazon, Google, Microsoft, Apple
+**Topics:** Searching, Binary Search  
+**Companies:** Amazon, Google, Microsoft, Facebook, Apple
 
 ### Problem Statement
 
-You are given a string made up of lowercase English letters. Determine whether it reads the same forward and backward — in other words, whether it is a palindrome.
+You are given a sorted array of integers (sorted in increasing order) and a target integer. Find the index of the target in the array using binary search.
 
-A palindrome is a word, phrase, or sequence that reads the same forwards and backwards. For example, `racecar` reversed is still `racecar`.
+If the target exists in the array, return its index (0-based). If it does not exist, return -1.
 
-Write a function that takes the string and returns `True` if it is a palindrome, and `False` otherwise.
+You must implement the binary search algorithm — do not use a simple linear scan.
+
+For example, given `arr = [-1, 0, 3, 5, 9, 12]` and `target = 9`, the answer is 4 because 9 is at index 4.
 
 ### Examples
 
 | Input | Output | Explanation |
 |---|---|---|
-| `racecar` | True | r-a-c-e-c-a-r reads the same forwards and backwards |
-| `hello` | False | h-e-l-l-o reversed is o-l-l-e-h |
-| `a` | True | A single character is always a palindrome |
-| (empty) | True | An empty string is considered a palindrome |
+| arr = [-1, 0, 3, 5, 9, 12], target = 9 | 4 | mid=2 -> arr[2]=3 < 9, search right; mid=4 -> arr[4]=9, found |
+| arr = [-1, 0, 3, 5, 9, 12], target = 2 | -1 | Eliminates halves until left > right, returns -1 |
+| arr = [5], target = 5 | 0 | Single element: left=0, right=0, mid=0 -> arr[0]=5, found |
+| arr = [], target = 1 | -1 | Empty array: left > right immediately, return -1 |
 
 ### Constraints
 
-- The string length is between 0 and 100,000 characters.
-- The string contains only lowercase English letters (a-z).
+- The array length is between 0 and 100,000 elements.
+- Each element is a 32-bit integer.
+- The array is sorted in strictly increasing order.
 
 ### Approach
 
-#### Step 1 — The Obvious Way: Reverse and Compare
+#### Step 1 — The Linear Search Way (Too Slow)
 
-The simplest way to check for a palindrome is to reverse the string and compare it to the original:
+The naive approach is to scan every element:
 
 ```text
-FUNCTION is_palindrome_reverse(s):
-    reversed_s = reverse(s)
-    RETURN s == reversed_s
+FUNCTION linear_search(arr, target):
+    FOR i FROM 0 TO length(arr) - 1:
+        IF arr[i] == target:
+            RETURN i
+    RETURN -1
 ```
 
-This works, but it creates a copy of the entire string (O(n) extra memory) and requires O(n) time for both reversal and comparison.
+This works, but it is O(n). For 100,000 elements, that is up to 100,000 checks. If you are searching many times, this becomes way too slow.
 
-#### Step 2 — The Two-Pointer Approach (Optimal)
+#### Step 2 — The Binary Search Insight
 
-This is where the two-pointer technique shines:
+Since the array is sorted, we can use the divide-and-conquer approach:
 
-1. Place one pointer at the beginning (index 0) and one at the end (last index)
-2. Compare the characters at these two positions
-3. If they match, move the left pointer right and the right pointer left
-4. If they don't match, return `False` — it is not a palindrome
-5. If the pointers meet or cross without finding a mismatch, return `True`
+1. Start with two pointers: `left` at index 0 and `right` at the last index
+2. Find the middle index: `mid = left + (right - left) / 2`
+3. Compare `arr[mid]` with the target:
+   - **Equal** — found it! Return mid
+   - **Less than target** — the target must be to the right. Move `left` to `mid + 1`
+   - **Greater than target** — the target must be to the left. Move `right` to `mid - 1`
+4. Repeat until left passes right (meaning the search space is empty)
 
-Trace on `racecar`:
+#### Step 3 — Trace the Full Algorithm
 
-```
-Initial:  r  a  c  e  c  a  r
-          L                    R
-Step 1: r == r -> move pointers
-Step 2: a == a -> move pointers
-Step 3: c == c -> move pointers
-Step 4: e (middle) — pointers meet, L == R
-All characters matched -> True
-```
-
-Trace on `hello`:
+Walk through `arr = [-1, 0, 3, 5, 9, 12]`, target = 9:
 
 ```
-Initial:  h  e  l  l  o
-          L              R
-Step 1: h != o -> return False immediately
+Initial: left = 0, right = 5
+
+Iteration 1:
+  mid = 0 + (5 - 0) / 2 = 2
+  arr[2] = 3
+  3 < 9 -> target is in the right half
+  left = mid + 1 = 3
+
+Iteration 2:
+  mid = 3 + (5 - 3) / 2 = 4
+  arr[4] = 9
+  9 == 9 -> found!
+  Return 4
 ```
 
-#### Step 3 — Why This Works
+Only 2 iterations to find the target in a 6-element array. Linear search would have taken 5.
 
-A palindrome requires that every character at position i matches the character at position (n-1-i). By comparing from both ends simultaneously, we check all required pairs. As soon as we find one mismatch, we can stop — the string cannot be a palindrome.
+#### Step 4 — Edge Cases to Watch For
+
+1. **Empty array**: left (0) > right (-1) immediately. The loop never runs. Return -1.
+2. **Single element**: left == right. The loop runs once. If it matches, return the index. If not, left becomes > right and we return -1.
+3. **Target not in array**: Eventually left will pass right and we return -1.
+4. **Target smaller than every element**: After the first comparison, right moves to before mid, and eventually left > right.
+5. **Target larger than every element**: left keeps moving right until it passes right.
+
+#### Step 5 — Handling the Mid Calculation
+
+Always use `mid = left + (right - left) / 2` instead of `mid = (left + right) / 2`. Why? If left and right are very large (close to the maximum integer value), their sum can overflow. The alternative formula avoids this by calculating the offset from left instead.
 
 #### Complexity Analysis
 
-- **Time Complexity: O(n)** — we check at most n/2 pairs of characters.
-- **Space Complexity: O(1)** — only two index variables, regardless of string length.
+- **Time Complexity: O(log n)** — each iteration eliminates half the remaining search space.
+- **Space Complexity: O(1)** — we only use three variables (left, right, mid) regardless of input size.
 
 ### Python Solution
 
 ```python
-def is_palindrome(s):
+def binary_search(arr, target):
     left = 0
-    right = len(s) - 1
+    right = len(arr) - 1
 
-    while left < right:
-        if s[left] != s[right]:
-            return False
-        left += 1
-        right -= 1
+    while left <= right:
+        mid = left + (right - left) // 2
 
-    return True
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return -1
 ```
 
 ### JavaScript Solution
 
 ```javascript
-function isPalindrome(s) {
+function binarySearch(arr, target) {
     let left = 0;
-    let right = s.length - 1;
+    let right = arr.length - 1;
 
-    while (left < right) {
-        if (s[left] !== s[right]) {
-            return false;
-        }
-        left++;
-        right--;
-    }
+    while (left <= right) {
+        const mid = left + Math.floor((right - left) / 2);
 
-    return true;
-}
-```
-
----
-
-## 3.2 Valid Anagram
-
-**Difficulty:** Easy  
-**Topics:** Strings, Hash Map  
-**Companies:** Amazon, Google, Microsoft, Facebook, Uber
-
-### Problem Statement
-
-You are given two strings, `s` and `t`, made up of lowercase English letters. Determine whether `t` is an anagram of `s`.
-
-An anagram is a word or phrase formed by rearranging the letters of another word or phrase, using all original letters exactly once. For example, `listen` and `silent` are anagrams because they contain the same letters: one l, one i, one s, one t, one e, one n.
-
-Write a function that returns `True` if `t` is an anagram of `s`, and `False` otherwise.
-
-### Examples
-
-| Input | Output | Explanation |
-|---|---|---|
-| s = `anagram`, t = `nagaram` | True | Same letters: three a, one n, one g, one r, one m |
-| s = `rat`, t = `car` | False | t vs c — different letters |
-| s = `a`, t = `ab` | False | Different lengths |
-| s = ``, t = `` | True | Both empty — trivially anagrams |
-
-### Constraints
-
-- Each string length is between 0 and 50,000 characters.
-- Both strings contain only lowercase English letters (a-z).
-
-### Approach
-
-#### Step 1 — The Quick Exit: Different Lengths
-
-If `s` and `t` have different lengths, they cannot possibly be anagrams. This is an O(1) check that lets us return `False` immediately.
-
-#### Step 2 — The Frequency Array Approach
-
-Since both strings contain only lowercase English letters (26 possible characters), we can use a fixed-size array of 26 integers instead of a hash map:
-
-1. Create an array of size 26, initialized to 0
-2. For each character in `s`, increment the corresponding position
-3. For each character in `t`, decrement the corresponding position
-4. If every position in the array is 0 at the end, they are anagrams
-
-Trace on `anagram` and `nagaram`:
-
-```
-Initialize: count[26] = [0, 0, 0, ..., 0]
-
-Processing s = "anagram":
-  a -> count[0] = 1
-  n -> count[13] = 1
-  a -> count[0] = 2
-  g -> count[6] = 1
-  r -> count[17] = 1
-  a -> count[0] = 3
-  m -> count[12] = 1
-
-Processing t = "nagaram":
-  n -> count[13] = 0
-  a -> count[0] = 2
-  g -> count[6] = 0
-  a -> count[0] = 1
-  r -> count[17] = 0
-  a -> count[0] = 0
-  m -> count[12] = 0
-
-Final: all zeros -> True (they are anagrams)
-```
-
-#### Step 3 — The Hash Map Approach (General Case)
-
-If the strings could contain any Unicode characters, a fixed-size array won't work. Use a hash map:
-
-```text
-FUNCTION is_anagram(s, t):
-    IF length(s) != length(t):
-        RETURN False
-
-    freq = empty hash map
-    FOR EACH character c IN s:
-        freq[c] = freq[c] + 1
-    FOR EACH character c IN t:
-        IF c NOT IN freq OR freq[c] == 0:
-            RETURN False
-        freq[c] = freq[c] - 1
-    RETURN True
-```
-
-Instead of building a separate map for `t`, we increment for `s` and decrement for `t`. This saves memory and detects mismatches early.
-
-#### Step 4 — Why This Works
-
-Anagram detection is fundamentally about comparing multisets (sets where elements can appear multiple times). By counting each character's occurrences and checking that the counts match, we are effectively asking: "Are these two strings identical as multisets of characters?"
-
-#### Complexity Analysis
-
-- **Time Complexity: O(n)** — we make two passes over strings of length n.
-- **Space Complexity: O(1)** — the array is always 26 elements.
-
-### Python Solution
-
-```python
-def is_anagram(s, t):
-    # Different lengths cannot be anagrams
-    if len(s) != len(t):
-        return False
-
-    # Array of 26 zeros for a through z
-    count = [0] * 26
-
-    # Count characters in s, decrement for t
-    for i in range(len(s)):
-        count[ord(s[i]) - ord("a")] += 1
-        count[ord(t[i]) - ord("a")] -= 1
-
-    # All counts should be zero
-    for c in count:
-        if c != 0:
-            return False
-
-    return True
-```
-
-### JavaScript Solution
-
-```javascript
-function isAnagram(s, t) {
-    // Different lengths cannot be anagrams
-    if (s.length !== t.length) {
-        return false;
-    }
-
-    // Array of 26 zeros for a through z
-    const count = new Array(26).fill(0);
-
-    // Count characters in s, decrement for t
-    for (let i = 0; i < s.length; i++) {
-        count[s.charCodeAt(i) - 97]++;
-        count[t.charCodeAt(i) - 97]--;
-    }
-
-    // All counts should be zero
-    for (const c of count) {
-        if (c !== 0) {
-            return false;
+        if (arr[mid] === target) {
+            return mid;
+        } else if (arr[mid] < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
         }
     }
 
-    return true;
+    return -1;
 }
 ```

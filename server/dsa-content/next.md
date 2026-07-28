@@ -1,90 +1,39 @@
-# Next DSA Content — Arrays
+# Next DSA Content — Searching
 
 ## Category
 
-- Order: 0
-- Name: Fundamentals: Arrays & Strings
-- Slug: `fundamentals-arrays-strings`
+- Order: 1
+- Name: Searching, Sorting & Hashing
+- Slug: `searching-sorting-hashing`
 
 ## Lesson
 
 ```json
 {
-  "title": "Arrays",
-  "slug": "arrays",
-  "category": "fundamentals-arrays-strings",
-  "description": "Arrays are the most fundamental data structure in programming. Learn how they work in memory, how to manipulate them, and three essential problem-solving techniques: Two Pointers, Sliding Window, and Prefix Sum.",
+  "title": "Searching",
+  "slug": "searching",
+  "category": "searching-sorting-hashing",
+  "description": "Learn two fundamental search algorithms: Linear Search (check every element) and Binary Search (divide and conquer on sorted data). Understand when to use each and why Binary Search is exponentially faster.",
   "image": "",
-  "icon": "List",
-  "order": 1,
-  "difficulty": "easy",
-  "problemCount": 4
-}
-```
- 
-## Subtopics (4)
-
-### Array Basics
-
-```json
-{
-  "title": "Array Basics",
-  "slug": "array-basics",
-  "lessonSlug": "arrays",
+  "icon": "Search",
   "order": 0,
-  "description": "Learn what arrays are, how they store data in contiguous memory, and the time complexity of common operations like access, search, insertion, and deletion.",
-  "explanation": "## What is an Array?\n\nImagine a row of lockers in a school hallway. Each locker has a number painted on it — 0, 1, 2, 3, and so on. You know exactly where locker 14 is: it's the 15th locker from the start. You don't have to count — you walk straight to it because the lockers are arranged in a straight line and every locker takes up the same amount of space.\n\nAn array is exactly like that row of lockers — it's a **contiguous block of memory** divided into equally-sized slots, each identified by an index starting from 0.\n\n## How Arrays Work in Memory\n\nWhen you create an array like `[10, 20, 30, 40]`, the computer finds a free block of memory large enough to hold four numbers and places them one right after the other:\n\n```\nMemory:  [10] [20] [30] [40]\nAddress: 100  104  108  112\nIndex:     0    1    2    3\n```\n\nIf each integer takes 4 bytes, the address of element at index `i` is:\n\n```\naddress = base_address + (i x size_of_each_element)\n```\n\nThis is why array access is O(1) — the computer can calculate the exact memory address in a single step, no matter which index you ask for.\n\n## Common Operations and Their Time Complexity\n\n### Access by Index — O(1)\nGrabbing `arr[3]` takes one step. The formula above gives you the exact memory address instantly.\n\n### Search for a Value — O(n)\nIf you want to find whether the number 30 is in the array, you might have to check every single slot until you find it. In the worst case (the value isn't there at all), you check all n elements.\n\n### Insert at the End (Dynamic Array) — O(1) on average\nIf the array has room at the end, inserting is one step. If the array is full, it must create a new, larger block of memory and copy everything over — but this happens rarely enough that the \"amortized\" (averaged-out) cost is still O(1).\n\n### Insert at the Beginning or Middle — O(n)\nTo insert at position 0, every single element must shift one spot to the right to make room. That's n moves for a single insertion.\n\n### Delete from the Beginning or Middle — O(n)\nSame problem in reverse — deleting the first element means everything else shifts left by one.\n\n### Delete from the End — O(1)\nJust remove the last element, nothing shifts.\n\n## Static vs Dynamic Arrays\n\n**Static arrays** have a fixed size set at creation. You can't add more elements than the capacity you declared.\n\n**Dynamic arrays** (like Python lists or JavaScript arrays) automatically grow when you add more elements. Under the hood, they work like this:\n\n1. Allocate an initial capacity (say, 4 slots)\n2. When you try to add a 5th element, allocate a new block of 8 slots, copy the 4 old elements over, then add the new one\n3. The old block is freed — the array has \"grown\"\n\nThis doubling strategy means most insertions are O(1), with an occasional O(n) copy.\n\n## When to Use Arrays\n\n✅ **You need fast access by index** — arr[i] is always O(1)\n✅ **You know roughly how many items you'll store**\n✅ **You iterate through items sequentially**\n✅ **Memory overhead matters** — arrays are the most memory-efficient data structure for storing a sequence\n\n❌ **You frequently insert or delete at the beginning** — a linked list or deque is better\n❌ **You need to search by value often** — a hash table or binary search tree may be better\n\n## Key Takeaway\n\nArrays are the building block of almost every other data structure. Their superpower is O(1) index access, and their weakness is O(n) insertion/deletion anywhere except the end. Mastering array manipulation means understanding how to work around that weakness using techniques like Two Pointers, Sliding Window, and Prefix Sum — which you'll learn next.",
-  "image": "",
-  "youtubeUrl": "",
-  "pdfUrl": "",
-  "pptxUrl": ""
+  "difficulty": "easy",
+  "problemCount": 1
 }
 ```
 
-### Two Pointers
+## Subtopics (1)
+
+### Linear & Binary Search
 
 ```json
 {
-  "title": "Two Pointers",
-  "slug": "two-pointers",
-  "lessonSlug": "arrays",
-  "order": 1,
-  "description": "Learn the two-pointer technique — using two indices to traverse an array from different directions — and discover how it turns O(n^2) brute-force solutions into efficient O(n) ones.",
-  "explanation": "## What is the Two-Pointer Technique?\n\nImagine you and a friend are standing at opposite ends of a long hallway lined with numbered boxes. You both walk toward each other, checking boxes as you go. Between the two of you, you can cover the entire hallway in one pass, meeting somewhere in the middle.\n\nThat's the two-pointer technique in a nutshell: instead of using a single loop variable, you use **two indices** (pointers) that move through the array, often from opposite ends toward each other. This lets you solve problems in O(n) time that would otherwise require O(n^2) with nested loops.\n\n## The Two Main Patterns\n\n### 1. Opposite Direction (Left/Right)\n\nBoth pointers start at opposite ends and move toward each other:\n\n```\n[1, 3, 5, 7, 9]\n ^             ^\nleft         right\n```\n\nAfter each step, either `left` moves right or `right` moves left, depending on some condition. The pointers meet (or cross) in the middle, at which point you're done.\n\n**Example problem:** Given a sorted array, find two numbers that add up to a target.\n\n### 2. Same Direction (Fast/Slow)\n\nBoth pointers start at the same end, but one moves faster than the other. This pattern is useful for finding cycles, removing duplicates, or finding the middle of a linked list.\n\n## Why Two Pointers Work\n\nNested loops often look like this:\n\n```python\nfor i in range(n):\n    for j in range(i + 1, n):\n        # check pair (i, j)\n```\n\nThis checks every possible pair — a classic O(n^2) approach.\n\nTwo pointers eliminate the need for the inner loop by using the fact that **the data is structured** (often sorted) or that **there's a monotonic property** — once a pointer moves past a certain point, those elements are no longer relevant.\n\n## A Concrete Example\n\nSay you have a sorted array `[1, 3, 4, 6, 8, 10]` and you want to find two numbers that sum to 12.\n\n**Brute-force approach:** Check every pair — (1,3), (1,4), ..., (8,10). That's 15 pairs for 6 numbers.\n\n**Two-pointer approach:**\n\n```\nStep 1: left=0(1), right=5(10) → sum=11 → too small, move left\nStep 2: left=1(3), right=5(10) → sum=13 → too big, move right\nStep 3: left=1(3), right=4(8)  → sum=11 → too small, move left\nStep 4: left=2(4), right=4(8)  → sum=12 → found!\n```\n\nOnly 4 steps instead of 15. For n=1000, that's ~999 steps instead of ~500,000.\n\n## When to Use Two Pointers\n\n✅ **The array is sorted** — the most common clue\n✅ **You need to find a pair (or triplet) that satisfies a condition**\n✅ **You need to reverse or rotate in place**\n✅ **The problem involves partitioning or rearranging elements**\n✅ **You're comparing elements from both ends**\n\n## Complexity Analysis\n\n- **Time:** O(n) — each pointer moves at most n times, for a total of at most 2n moves\n- **Space:** O(1) — only two extra variables for the indices\n\n## Key Takeaway\n\nThe two-pointer technique is your first tool for moving from O(n^2) to O(n). Whenever you see a problem involving arrays (especially sorted ones) and pairs, ask yourself: \"Can I use two pointers here instead of nested loops?\"",
-  "image": "",
-  "youtubeUrl": "",
-  "pdfUrl": "",
-  "pptxUrl": ""
-}
-```
-
-### Sliding Window
-
-```json
-{
-  "title": "Sliding Window",
-  "slug": "sliding-window",
-  "lessonSlug": "arrays",
-  "order": 2,
-  "description": "Learn the sliding window technique — maintaining a dynamic subarray that slides across the array — and see how it solves contiguous subarray/substring problems in O(n) time.",
-  "explanation": "## What is a Sliding Window?\n\nImagine you're looking through a train window as the train moves. At any moment, you see a specific stretch of the landscape — that's your \"window.\" As the train moves, the window slides, revealing new scenery on one side and losing old scenery on the other. You never have to re-examine the entire journey at once — just the part visible through the window.\n\nA **sliding window** in programming is the same idea: it's a contiguous subarray (or substring) that moves across the array one element at a time, or expands and contracts based on conditions. Instead of restarting from scratch for every subarray, you **reuse** the computation from the previous window.\n\n## Fixed Window vs Variable Window\n\n### Fixed Window Size\n\nThe window has a constant length k. It slides one step at a time:\n\n```\nArray: [2, 5, 1, 8, 3, 7], k = 3\n\nWindow 1: [2, 5, 1] → sum = 8\nWindow 2: [5, 1, 8] → sum = 14  (added 8, removed 2)\nWindow 3: [1, 8, 3] → sum = 12  (added 3, removed 5)\nWindow 4: [8, 3, 7] → sum = 18  (added 7, removed 1)\n```\n\nNotice: instead of summing all three elements from scratch each time, you just **add the new element** and **subtract the element that just left the window**. That's O(1) per slide instead of O(k).\n\n### Variable Window Size\n\nThe window grows or shrinks based on a condition. This is used when you need to find a subarray that satisfies some property (like \"sum >= target\" or \"all unique characters\"):\n\n```\nStart with both pointers at index 0.\nExpand the right pointer until the condition is met.\nThen contract the left pointer until the condition is broken.\nRepeat until the right pointer reaches the end.\n```\n\nThis is sometimes called the \"expand-shrink\" pattern, and each element enters and leaves the window at most once.\n\n## Why Sliding Windows Work\n\nThe brute-force approach to subarray problems checks every possible subarray:\n\n```python\nfor i in range(n):\n    for j in range(i, n):\n        # consider subarray arr[i..j]\n```\n\nThat's O(n^2) subarrays. For each one, you might need to compute something (like a sum or check for duplicates), potentially making it O(n^3).\n\nThe key insight of sliding window is: **contiguous subarrays that start at different positions are highly overlapping**. Most of the elements in arr[i..j] are also in arr[i+1..j+1]. Instead of recalculating from scratch, just adjust for the elements that entered and left.\n\n## A Concrete Example\n\nSay you have `[1, 3, 2, 6, 1, 4]` and you need the maximum sum of any subarray of size 3.\n\n**Brute force:** Compute sum for [1,3,2]=6, [3,2,6]=11, [2,6,1]=9, [6,1,4]=11 — each sum computed independently = 4 x 3 = 12 operations.\n\n**Sliding window:**\n- First window: sum = 1+3+2 = 6\n- Slide right: subtract 1, add 6 → sum = 6-1+6 = 11 (2 operations, not 3)\n- Slide right: subtract 3, add 1 → sum = 11-3+1 = 9\n- Slide right: subtract 2, add 4 → sum = 9-2+4 = 11\n\nTotal: 3 + 2 + 2 + 2 = 9 operations instead of 12. The savings grow with k and n.\n\n## When to Use Sliding Window\n\n✅ **The problem involves a contiguous subarray or substring**\n✅ **You need to find a subarray that satisfies a condition (max, min, longest, shortest)**\n✅ **The problem mentions \"subarray\" or \"substring\" — that's your cue**\n✅ **The array elements are positive or the condition is monotonic**\n\n## Complexity Analysis\n\n- **Time:** O(n) — each element enters the window once and leaves the window at most once\n- **Space:** O(1) or O(k) depending on what you store in the window\n\n## Key Takeaway\n\nWhenever you read \"contiguous subarray\" or \"substring\" in a problem description, your first thought should be: \"Can I solve this with a sliding window?\" It turns O(n^2) brute-force into clean, O(n) code.",
-  "image": "",
-  "youtubeUrl": "",
-  "pdfUrl": "",
-  "pptxUrl": ""
-}
-```
-
-### Prefix Sum
-
-```json
-{
-  "title": "Prefix Sum",
-  "slug": "prefix-sum",
-  "lessonSlug": "arrays",
-  "order": 3,
-  "description": "Learn the prefix sum technique — precomputing cumulative sums to answer range sum queries in O(1) time — and understand the space-time tradeoff it represents.",
-  "explanation": "## What is Prefix Sum?\n\nImagine you're a teacher grading a stack of quizzes. A student asks, \"What's my total score on questions 5 through 12?\" You could add up questions 5, 6, 7, 8, 9, 10, 11, and 12 individually each time. That's 8 additions per question. If 30 students ask different ranges, you're doing hundreds of additions.\n\nA smarter way: before class starts, compute a **running total** as you go through the answer key. Write down: after question 1 the total is X, after question 2 the total is Y, and so on. Now when a student asks about questions 5-12, you just look up the total through question 12 and subtract the total through question 4. Two lookups, one subtraction — done.\n\nThat's the prefix sum technique.\n\n## How It Works\n\nGiven an array `arr`, the prefix sum array `prefix` is defined as:\n\n```\nprefix[0] = 0\nprefix[i] = sum of arr[0] + arr[1] + ... + arr[i-1]\n```\n\nIn plain English: `prefix[i]` stores the sum of all elements in the array **before** index `i`.\n\nHere's an example:\n\n```\narr    = [3,  1,  4,  1,  5,  9,  2]\nprefix = [0,  3,  4,  8,  9, 14, 23, 25]\nindex    0   1   2   3   4   5   6   7\n```\n\nTo build this:\n- `prefix[0] = 0` (sum of zero elements is 0)\n- `prefix[1] = prefix[0] + arr[0] = 0 + 3 = 3`\n- `prefix[2] = prefix[1] + arr[1] = 3 + 1 = 4`\n- `prefix[3] = prefix[2] + arr[2] = 4 + 4 = 8`\n- ... and so on\n\n## The Magic Formula: Range Sum in O(1)\n\nTo get the sum of elements from index `l` to `r` (inclusive):\n\n```\nsum(l, r) = prefix[r + 1] - prefix[l]\n```\n\nWhy does this work?\n- `prefix[r + 1]` is the sum of all elements from index 0 to r\n- `prefix[l]` is the sum of all elements from index 0 to l-1\n- Subtract the second from the first and you're left with elements from l to r\n\nExample: sum of elements from index 2 to 5 in the array above:\n- prefix[6] = 23 (sum of indices 0 through 5)\n- prefix[2] = 4 (sum of indices 0 through 1)\n- 23 - 4 = 19 = 4 + 1 + 5 + 9 = 19\n\n## The Space-Time Tradeoff\n\nPrefix sum is a classic example of trading **space for time**:\n- **Without prefix sum:** Each range sum query takes O(n) time — you loop from l to r and add up the elements\n- **With prefix sum:** Each query takes O(1) time, but you pay O(n) extra memory to store the prefix array\n\nThis tradeoff is worth it when you need to answer **many** range sum queries on the **same** array.\n\n## Beyond Simple Range Sum\n\nThe prefix sum idea extends beyond just sums. You can build prefix products, prefix XORs, prefix counts — any operation that's **reversible** (you can \"undo\" it) can use the prefix technique.\n\n## A Deeper Application: Subarray Sum Equals K\n\nOne of the most common interview uses of prefix sum goes beyond simple range queries. If you want to count how many subarrays sum to exactly `k`, you can:\n\n1. Build prefix sums while iterating\n2. For each position, check if `currentPrefix - k` has appeared before (using a hashmap)\n3. If it has, that means there's a subarray ending at the current position that sums to k\n\nThis combines prefix sums with hash maps — a very powerful pattern.\n\n## When to Use Prefix Sum\n\n✅ **You need to answer many range sum queries on the same array**\n✅ **You need to find subarrays with a specific sum**\n✅ **The problem involves cumulative or running totals**\n✅ **Operations are reversible (addition, subtraction, XOR)**\n\n## Complexity Analysis\n\n- **Precomputation:** O(n) — one pass to build the prefix array\n- **Each query:** O(1) — one subtraction\n- **Space:** O(n) for the prefix array\n\n## Key Takeaway\n\nPrefix sum is a preprocessing technique that makes range sum queries instant. Whenever you need sums of multiple subarrays, think: \"Can I precompute prefix sums once and answer each query in O(1)?\"",
+  "title": "Linear & Binary Search",
+  "slug": "linear-and-binary-search",
+  "lessonSlug": "searching",
+  "order": 0,
+  "description": "Learn two ways to find an element in a list: Linear Search checks every item one by one; Binary Search repeatedly cuts the list in half, finding targets exponentially faster on sorted data.",
+  "explanation": "## What is Searching?\n\nImagine you've lost your keys somewhere in your house. You have two strategies:\n\n1. **The Room-by-Room Method** — Start in one corner and check every single drawer, every shelf, every pocket until you find them. You might find them in the first place you look, or you might check every single spot in the entire house before giving up.\n\n2. **The Smart Method** — But this only works if you know something about where you lost them. You remember you last had them in either the kitchen or the living room, so you check only those two rooms first. Then you narrow it down further.\n\nSearching in programming is the same idea: given a list of items and a target value, find out whether the target exists in the list, and if so, where.\n\nThere are two fundamental approaches, and the one you should use depends entirely on whether your data is **sorted** or not.\n\n## Linear Search — The Room-by-Room Method\n\n### How It Works\n\nLinear search is the simplest search algorithm. You start at the beginning of the list and check every single element, one after another, until you find what you're looking for or reach the end.\n\n```text\nFUNCTION linear_search(arr, target):\n    FOR i FROM 0 TO length(arr) - 1:\n        IF arr[i] == target:\n            RETURN i          // Found it at index i\n\n    RETURN -1                   // Not found after checking everything\n```\n\n### Trace It\n\nSay you have `[4, 2, 9, 1, 7]` and you're looking for `9`:\n\n```\ni=0: arr[0] = 4 -> not 9, keep going\ni=1: arr[1] = 2 -> not 9, keep going\ni=2: arr[2] = 9 -> found! Return 2\n```\n\nOnly 3 checks out of 5. Lucky.\n\nBut what if you're looking for `10` (which doesn't exist)?\n\n```\ni=0: 4 != 10\ni=1: 2 != 10\ni=2: 9 != 10\ni=3: 1 != 10\ni=4: 7 != 10\nEnd of list -> Return -1\n```\n\nYou checked every single element — all 5 of them.\n\n### When to Use Linear Search\n\n- The list is **unsorted** (you have no choice)\n- The list is **very small** (the simplicity outweighs any performance gain)\n- You only need to search **once** (the cost of sorting isn't worth it)\n\n### Time Complexity\n\n- **Best case: O(1)** — the target is the very first element\n- **Worst case: O(n)** — the target is last, or doesn't exist at all. You check all n elements.\n- **Average case: O(n)** — on average, you check n/2 elements\n\n### Space Complexity\n\n- **O(1)** — you only need a single index variable\n\n## Binary Search — The Divide-and-Conquer Method\n\n### How It Works\n\nBinary search is dramatically faster, but it comes with one crucial requirement: **the data must be sorted**.\n\nThe idea is simple and powerful:\n\n1. Look at the middle element of the list\n2. If it's the target, you're done\n3. If the target is smaller than the middle, repeat the process on the **left half** of the list\n4. If the target is larger, repeat on the **right half**\n5. Keep going until you find it or the search space is empty\n\nAt every step, you eliminate **half** of the remaining elements. This is why it's so fast.\n\n```text\nFUNCTION binary_search(arr, target):\n    left = 0\n    right = length(arr) - 1\n\n    WHILE left <= right:\n        mid = left + (right - left) / 2   // Integer division\n\n        IF arr[mid] == target:\n            RETURN mid                     // Found it\n        ELSE IF arr[mid] < target:\n            left = mid + 1                 // Target is in the right half\n        ELSE:\n            right = mid - 1                // Target is in the left half\n\n    RETURN -1                              // Not found\n```\n\n> **Important:** The formula `mid = left + (right - left) / 2` is used instead of `mid = (left + right) / 2` to avoid integer overflow for very large arrays. Both give the same result in practice for most cases.\n\n### Trace It\n\nSay you have a sorted array `[2, 5, 8, 12, 16, 23, 38, 45, 56]` and you're looking for `23`:\n\n```\nStep 1: left=0, right=8, mid=4 -> arr[4]=16\n        16 < 23 -> target is in the right half\n        left becomes 5\n\nStep 2: left=5, right=8, mid=6 -> arr[6]=38\n        38 > 23 -> target is in the left half\n        right becomes 5\n\nStep 3: left=5, right=5, mid=5 -> arr[5]=23\n        23 == 23 -> Found! Return 5\n```\n\nOnly **3 comparisons** to find 23 in a list of 9 elements. Linear search would have taken 6 comparisons.\n\nNow say you're looking for `3` (not in the list):\n\n```\nStep 1: left=0, right=8, mid=4 -> arr[4]=16\n        16 > 3 -> target is in the left half\n        right becomes 3\n\nStep 2: left=0, right=3, mid=1 -> arr[1]=5\n        5 > 3 -> left half\n        right becomes 0\n\nStep 3: left=0, right=0, mid=0 -> arr[0]=2\n        2 < 3 -> right half\n        left becomes 1\n\nStep 4: left=1, right=0 -> left > right, loop exits\n        Return -1\n```\n\nOnly **3 comparisons** to determine that 3 doesn't exist in a list of 9 elements. Linear search would have checked all 9 before being sure.\n\n### The Magic: Why Binary Search Is So Fast\n\nEvery comparison eliminates half the remaining elements. This means the number of steps grows very slowly as the list grows:\n\n| List Size | Linear Search (worst case) | Binary Search (worst case) |\n|---|---|---|\n| 10 | 10 checks | 4 checks |\n| 1,000 | 1,000 checks | 10 checks |\n| 1,000,000 | 1,000,000 checks | 20 checks |\n| 1,000,000,000 | 1,000,000,000 checks | 30 checks |\n\nThis is the difference between O(n) and O(log n). For a billion elements, linear search takes a billion steps. Binary search takes just 30.\n\n### When to Use Binary Search\n\n- The data is **sorted** (this is mandatory)\n- The list is **large enough** that O(n) would be too slow\n- You need to search **many times** (it's worth keeping the data sorted)\n\n### Time Complexity\n\n- **Best case: O(1)** — the target is at the middle on the first check\n- **Worst case: O(log n)** — you keep halving until only one element remains. For n elements, that's about log₂(n) steps.\n- **Average case: O(log n)**\n\n### Space Complexity\n\n- **O(1)** for the iterative version — just three variables (left, right, mid)\n- **O(log n)** for the recursive version — the call stack grows with each recursive call\n\n## Linear vs Binary: Side by Side\n\n| Aspect | Linear Search | Binary Search |\n|---|---|---|\n| Data requirement | Any data | Must be sorted |\n| Time complexity | O(n) | O(log n) |\n| Space complexity | O(1) | O(1) iterative, O(log n) recursive |\n| Implementation | Trivial | Slightly more complex |\n| Best for | Small or unsorted data | Large sorted data |\n| Real-world example | Finding a name in an unsorted list | Looking up a word in a dictionary |\n\n## The Key Takeaway\n\nBinary search is one of the most important algorithms in computer science because it demonstrates a core principle: **if your data is organized, you can exploit that organization to solve problems exponentially faster.**\n\nThe same \"divide and conquer\" pattern appears again and again — in tree search, in sorting algorithms like Merge Sort and Quick Sort, and in many advanced data structures.",
   "image": "",
   "youtubeUrl": "",
   "pdfUrl": "",
@@ -94,270 +43,20 @@
 
 ---
 
-## Problems (4)
+## Problems (1)
 
-### Reverse an Array
+### Binary Search
 
 ```json
 {
-  "title": "Reverse an Array",
-  "slug": "reverse-an-array",
-  "lessonSlug": "arrays",
-  "subtopicSlug": "array-basics",
+  "title": "Binary Search",
+  "slug": "binary-search",
+  "lessonSlug": "searching",
+  "subtopicSlug": "linear-and-binary-search",
   "difficulty": "easy",
   "topics": [
-    "Arrays"
-  ],
-  "companies": [
-    "Amazon",
-    "Google",
-    "Microsoft",
-    "Apple"
-  ],
-  "problemStatement": "You are given an array of numbers. Your job is to reverse the order of its elements — the first element becomes the last, the last becomes the first, and everything in between swaps accordingly.\n\nFor example, if the input is [1, 2, 3, 4, 5], the result should be [5, 4, 3, 2, 1].\n\nYour task is to do this in-place — meaning you should modify the original array directly, without creating a separate copy.\n\nWrite a function that takes the array and reverses it in-place. The function should return the same array (now reversed).",
-  "examples": [
-    {
-      "input": "[1, 2, 3, 4, 5]",
-      "output": "[5, 4, 3, 2, 1]",
-      "explanation": "Walkthrough:\n- Swap positions 0 and 4: [5, 2, 3, 4, 1]\n- Swap positions 1 and 3: [5, 4, 3, 2, 1]\n- Position 2 is the middle — no swap needed\n- Done"
-    },
-    {
-      "input": "[7, 8, 9]",
-      "output": "[9, 8, 7]",
-      "explanation": "Walkthrough:\n- Swap positions 0 and 2: [9, 8, 7]\n- Position 1 is the middle — done"
-    },
-    {
-      "input": "[42]",
-      "output": "[42]",
-      "explanation": "A single-element array is already reversed — nothing to swap."
-    },
-    {
-      "input": "[]",
-      "output": "[]",
-      "explanation": "An empty array has nothing to reverse."
-    }
-  ],
-  "constraints": [
-    "The array can have anywhere from 0 to 100,000 elements.",
-    "Each element is an integer between -10^9 and 10^9."
-  ],
-  "approach": "## Understanding the Problem\n\nReversing an array is one of the most fundamental problems in programming. It tests whether you understand how array indices work and whether you can manipulate elements in-place.\n\n### Step 1 — The Obvious Way (But Wrong for This Problem)\n\nThe simplest way to reverse an array is to create a new array and copy elements in reverse order:\n\n```text\nFUNCTION reverse_copy(arr):\n    new_arr = []\n    FOR i FROM last_index DOWN TO 0:\n        new_arr.append(arr[i])\n    RETURN new_arr\n```\n\nThis works, but it uses O(n) extra memory — and the problem asks for an in-place solution.\n\n### Step 2 — The Two-Pointer Approach (In-Place)\n\nThis is where the two-pointer technique shines:\n\n1. Place one pointer at the beginning (index 0) and one at the end (last index)\n2. Swap the elements at these two positions\n3. Move the left pointer right by 1 and the right pointer left by 1\n4. Repeat until the pointers meet (or cross)\n\nLet's visualize this with [1, 2, 3, 4, 5]:\n\n```\nInitial:     [1, 2, 3, 4, 5]\n              L              R\n\nAfter swap:  [5, 2, 3, 4, 1]\n                 L        R\n\nAfter swap:  [5, 4, 3, 2, 1]\n                    L\n                    R\n\nPointers meet (L == R at index 2) — we're done!\n```\n\n### Step 3 — When Do We Stop?\n\n- If the array has an odd length (like 5), the middle element stays in place. Pointers meet at the middle.\n- If the array has an even length (like 4), the pointers cross over. We stop when left >= right.\n\n### Step 4 — Why This Works\n\nEach swap places two elements in their correct final position. After the first swap, position 0 and the last position are permanently correct — we never need to touch them again.\n\n### Complexity Analysis\n\n- **Time Complexity: O(n)** — we perform roughly n/2 swaps, each taking constant time.\n- **Space Complexity: O(1)** — only a handful of extra variables, regardless of array size.\n\n### Python Code\n\n```python\ndef reverse_array(arr):\n    left = 0\n    right = len(arr) - 1\n\n    while left < right:\n        arr[left], arr[right] = arr[right], arr[left]\n        left += 1\n        right -= 1\n\n    return arr\n```\n\n### JavaScript Code\n\n```javascript\nfunction reverseArray(arr) {\n    let left = 0;\n    let right = arr.length - 1;\n\n    while (left < right) {\n        [arr[left], arr[right]] = [arr[right], arr[left]];\n        left++;\n        right--;\n    }\n\n    return arr;\n}\n```",
-  "codeBlocks": [
-    {
-      "language": "python",
-      "code": "def reverse_array(arr):\n    left = 0\n    right = len(arr) - 1\n\n    while left < right:\n        arr[left], arr[right] = arr[right], arr[left]\n        left += 1\n        right -= 1\n\n    return arr"
-    },
-    {
-      "language": "javascript",
-      "code": "function reverseArray(arr) {\n    let left = 0;\n    let right = arr.length - 1;\n\n    while (left < right) {\n        [arr[left], arr[right]] = [arr[right], arr[left]];\n        left++;\n        right--;\n    }\n\n    return arr;\n}"
-    }
-  ],
-  "timeComplexity": "O(n)",
-  "spaceComplexity": "O(1)",
-  "youtubeUrl": "",
-  "pdfUrl": "",
-  "pptxUrl": "",
-  "media": []
-}
-```
-
-**Quiz — 5 MCQs**
-
-```json
-{
-  "questions": [
-    {
-      "text": "What is the time complexity of the two-pointer approach for reversing an array of n elements?",
-      "options": [
-        "O(n^2) — because we have nested loops",
-        "O(n) — we make a single pass with two pointers",
-        "O(log n) — we keep dividing the array in half",
-        "O(1) — regardless of array size"
-      ],
-      "correctIndex": 1
-    },
-    {
-      "text": "What does \"in-place\" mean when reversing an array?",
-      "options": [
-        "The reversal happens on the user's computer, not on a server",
-        "We modify the original array directly, without creating a separate copy",
-        "We reverse the array using only one line of code",
-        "We write the result directly to the console"
-      ],
-      "correctIndex": 1
-    },
-    {
-      "text": "In the two-pointer reverse algorithm, when should we stop swapping?",
-      "options": [
-        "After the right pointer reaches index 0",
-        "After every element has been swapped once",
-        "When left is no longer less than right (they meet or cross)",
-        "After exactly n swaps"
-      ],
-      "correctIndex": 2
-    },
-    {
-      "text": "How many swaps does the two-pointer reverse perform on an array of 10 elements?",
-      "options": [
-        "10 swaps",
-        "20 swaps",
-        "5 swaps",
-        "2 swaps"
-      ],
-      "correctIndex": 2
-    },
-    {
-      "text": "If the original array is [10, 20, 30, 40, 50], what is the array after one full iteration of the while loop (one swap)?",
-      "options": [
-        "[50, 20, 30, 40, 10]",
-        "[50, 40, 30, 20, 10]",
-        "[10, 20, 30, 40, 50]",
-        "[10, 50, 30, 40, 20]"
-      ],
-      "correctIndex": 0
-    }
-  ]
-}
-```
-
----
-
-### Two Sum (Sorted Array)
-
-```json
-{
-  "title": "Two Sum (Sorted Array)",
-  "slug": "two-sum-sorted-array",
-  "lessonSlug": "arrays",
-  "subtopicSlug": "two-pointers",
-  "difficulty": "easy",
-  "topics": [
-    "Arrays",
-    "Two Pointers"
-  ],
-  "companies": [
-    "Amazon",
-    "Google",
-    "Microsoft",
-    "Facebook"
-  ],
-  "problemStatement": "You are given an array of numbers sorted in increasing order, and a target number. Your task is to find two numbers in the array that add up to exactly the target.\n\nReturn the indices of these two numbers (0-based) as an array of two integers. You may assume that exactly one solution exists for each input, and you may not use the same element twice.\n\nIf no solution exists, return an empty array.\n\nFor example, given [2, 7, 11, 15] and target 9, the answer is [0, 1] because 2 + 7 = 9.",
-  "examples": [
-    {
-      "input": "arr = [2, 7, 11, 15], target = 9",
-      "output": "[0, 1]",
-      "explanation": "2 + 7 = 9. Both numbers are at indices 0 and 1."
-    },
-    {
-      "input": "arr = [1, 3, 4, 5, 7, 10], target = 8",
-      "output": "[2, 3]",
-      "explanation": "4 + 5 = 8. They are at indices 2 and 3."
-    },
-    {
-      "input": "arr = [1, 2, 3], target = 10",
-      "output": "[]",
-      "explanation": "No pair adds up to 10. Return empty array."
-    }
-  ],
-  "constraints": [
-    "The array length is between 2 and 100,000.",
-    "Each element is an integer between -10^9 and 10^9.",
-    "The array is sorted in strictly increasing order.",
-    "At most one valid pair exists."
-  ],
-  "approach": "## Understanding the Problem\n\nThis is a classic problem that appears at almost every tech company. The \"sorted\" part is your biggest clue — it tells you exactly which technique to use.\n\n### Step 1 — The Brute Force Approach\n\nThe naive solution checks every possible pair — O(n^2). For 100,000 elements, that's 5 billion pairs. Way too slow.\n\n### Step 2 — The Key Insight: The Array is Sorted\n\nBecause the array is sorted, we know something very useful:\n\n- If we pick two numbers and their sum is **too small**, the left number needs to get **bigger** (move the left pointer right)\n- If their sum is **too big**, the right number needs to get **smaller** (move the right pointer left)\n\n### Step 3 — The Two-Pointer Solution\n\n1. Place left at the start and right at the end\n2. Check arr[left] + arr[right]:\n   - If it equals target → found the pair, return both indices\n   - If it's less than target → the sum is too small, move left rightward\n   - If it's greater than target → the sum is too big, move right leftward\n3. Repeat until pointers meet. If no pair found, return [].\n\nTrace on [1, 3, 4, 5, 7, 10] with target 8:\n\n```\nStep 1: left=0(1), right=5(10) → sum=11 > 8 → move right left\nStep 2: left=0(1), right=4(7)  → sum=8 == 8 → found! Return [0, 4]\n```\n\nWait — 1 + 7 = 8, but the example in the problem says [2, 3] (4 + 5 = 8). Both are valid answers because multiple pairs sum to 8 in this array. The algorithm returns whichever it finds first.\n\n### Step 4 — Why This Works\n\nThe magic of two pointers on a sorted array is that at every step, we eliminate one entire row of possibilities:\n\n- When sum < target, we know arr[left] paired with ANY element to the right (that we haven't checked yet) will still be too small. We can safely move left forward.\n- When sum > target, we know arr[right] paired with ANY element to the left will still be too big. We can safely move right backward.\n\n### Complexity Analysis\n\n- **Time Complexity: O(n)** — each pointer moves at most n steps total.\n- **Space Complexity: O(1)** — only two variables for the indices.\n\n### Python Code\n\n```python\ndef two_sum_sorted(arr, target):\n    left = 0\n    right = len(arr) - 1\n\n    while left < right:\n        current_sum = arr[left] + arr[right]\n\n        if current_sum == target:\n            return [left, right]\n        elif current_sum < target:\n            left += 1\n        else:\n            right -= 1\n\n    return []\n```\n\n### JavaScript Code\n\n```javascript\nfunction twoSumSorted(arr, target) {\n    let left = 0;\n    let right = arr.length - 1;\n\n    while (left < right) {\n        const currentSum = arr[left] + arr[right];\n\n        if (currentSum === target) {\n            return [left, right];\n        } else if (currentSum < target) {\n            left++;\n        } else {\n            right--;\n        }\n    }\n\n    return [];\n}\n```",
-  "codeBlocks": [
-    {
-      "language": "python",
-      "code": "def two_sum_sorted(arr, target):\n    left = 0\n    right = len(arr) - 1\n\n    while left < right:\n        current_sum = arr[left] + arr[right]\n\n        if current_sum == target:\n            return [left, right]\n        elif current_sum < target:\n            left += 1\n        else:\n            right -= 1\n\n    return []"
-    },
-    {
-      "language": "javascript",
-      "code": "function twoSumSorted(arr, target) {\n    let left = 0;\n    let right = arr.length - 1;\n\n    while (left < right) {\n        const currentSum = arr[left] + arr[right];\n\n        if (currentSum === target) {\n            return [left, right];\n        } else if (currentSum < target) {\n            left++;\n        } else {\n            right--;\n        }\n    }\n\n    return [];\n}"
-    }
-  ],
-  "timeComplexity": "O(n)",
-  "spaceComplexity": "O(1)",
-  "youtubeUrl": "",
-  "pdfUrl": "",
-  "pptxUrl": "",
-  "media": []
-}
-```
-
-**Quiz — 5 MCQs**
-
-```json
-{
-  "questions": [
-    {
-      "text": "What makes the two-pointer approach valid for this specific problem?",
-      "options": [
-        "The array is not too large",
-        "The array is sorted in increasing order",
-        "The target is always positive",
-        "We can use the same element twice"
-      ],
-      "correctIndex": 1
-    },
-    {
-      "text": "If arr[left] + arr[right] is less than the target, what should we do?",
-      "options": [
-        "Move right leftward to make the sum smaller",
-        "Move left rightward to make the sum larger",
-        "Return an empty array because it's impossible",
-        "Move both pointers toward each other"
-      ],
-      "correctIndex": 1
-    },
-    {
-      "text": "If arr[left] + arr[right] is greater than the target, what should we do?",
-      "options": [
-        "Move left rightward to make the sum larger",
-        "Move right leftward to make the sum smaller",
-        "Return the current pair anyway",
-        "Reset both pointers to the beginning"
-      ],
-      "correctIndex": 1
-    },
-    {
-      "text": "How much extra memory does the two-pointer approach use?",
-      "options": [
-        "O(n) — we need to store the result array",
-        "O(n^2) — we need a 2D table",
-        "O(1) — just two variables for the indices",
-        "O(log n) — we need space for the recursion stack"
-      ],
-      "correctIndex": 2
-    },
-    {
-      "text": "Given arr = [1, 2, 3, 4, 6] and target = 6, which pair will the algorithm find?",
-      "options": [
-        "[0, 4] (1 + 6 = 7) — it's wrong, then it keeps going",
-        "[1, 3] (2 + 4 = 6)",
-        "[2, 2] (3 + 3 = 6) — can't use same element",
-        "[] — no solution"
-      ],
-      "correctIndex": 1
-    }
-  ]
-}
-```
-
----
-
-### Longest Substring Without Repeating Characters
-
-```json
-{
-  "title": "Longest Substring Without Repeating Characters",
-  "slug": "longest-substring-without-repeating-characters",
-  "lessonSlug": "arrays",
-  "subtopicSlug": "sliding-window",
-  "difficulty": "medium",
-  "topics": [
-    "Strings",
-    "Sliding Window"
+    "Searching",
+    "Binary Search"
   ],
   "companies": [
     "Amazon",
@@ -366,171 +65,47 @@
     "Facebook",
     "Apple"
   ],
-  "problemStatement": "You are given a string made up of letters and digits. Your task is to find the length of the longest substring (a contiguous block of characters) that contains no repeated characters.\n\nFor example, in the string \"abcabcbb\", the longest substring without repeating characters is \"abc\", which has length 3.\n\nWrite a function that takes the string and returns the length of the longest substring without repeating characters.\n\nNote: a substring is different from a subsequence — a substring must be continuous (no skipping characters).",
+  "problemStatement": "You are given a sorted array of integers (sorted in increasing order) and a target integer. Your task is to find the index of the target in the array using binary search.\n\nIf the target exists in the array, return its index (0-based). If it does not exist, return -1.\n\nYou must implement the binary search algorithm — do not use a simple linear scan.\n\nFor example, given arr = [-1, 0, 3, 5, 9, 12] and target = 9, the answer is 4 because 9 is at index 4.",
   "examples": [
     {
-      "input": "\"abcabcbb\"",
-      "output": "3",
-      "explanation": "The longest substrings without repeating characters are \"abc\" (length 3) starting at index 0, or \"bca\" (length 3) starting at index 1, or \"cab\" (length 3) starting at index 2."
-    },
-    {
-      "input": "\"bbbbb\"",
-      "output": "1",
-      "explanation": "All characters are the same, so the longest substring without repeats is just a single character — \"b\"."
-    },
-    {
-      "input": "\"pwwkew\"",
-      "output": "3",
-      "explanation": "The longest substring without repeats is \"wke\" (length 3). Note that \"pwke\" is NOT a substring — it's a subsequence because the characters are not contiguous."
-    },
-    {
-      "input": "\"dvdf\"",
-      "output": "3",
-      "explanation": "Walkthrough:\n- Start scanning: 'd', 'v' — no repeats, current length is 2\n- Next character: 'd' — repeat found! The previous 'd' was at index 0. Window now starts after index 0, at index 1.\n- Continue: 'v' (already in window), then add 'f' → \"vdf\", length 3.\n- Answer: 3"
-    }
-  ],
-  "constraints": [
-    "The string length is between 0 and 50,000 characters.",
-    "The string contains only English letters (a-z, A-Z) and digits (0-9)."
-  ],
-  "approach": "## Understanding the Problem\n\nWe need to find the longest contiguous chunk of the string where every character appears at most once. This is a classic sliding window problem.\n\n### Step 1 — The Brute Force Approach\n\nCheck every possible substring and verify uniqueness — O(n^3). Way too slow.\n\n### Step 2 — The Sliding Window Insight\n\nInstead of checking every substring from scratch, we maintain a \"window\" (a range between two pointers) that always satisfies the condition: **no repeating characters inside the window**.\n\nAs we expand the window by moving the right pointer, we track which characters are currently in the window. When we encounter a character that's already in the window, we shrink from the left until that character is removed.\n\n### Step 3 — The Algorithm\n\n1. Initialize left = 0 and a set to track characters in the current window\n2. Move right from 0 to the end of the string:\n   a. If s[right] is NOT in the set → add it, update max length\n   b. If s[right] IS in the set → move left forward, removing s[left] from the set, until the repeat is resolved. Then add s[right].\n3. Return the max length found.\n\nTrace on \"abcabcbb\":\n\n```\nright=0, char='a', set={a},        max=1\nright=1, char='b', set={a,b},      max=2\nright=2, char='c', set={a,b,c},    max=3\nright=3, char='a', set has 'a'! Move left from 0 to 1, remove 'a'\n         set={b,c}, add 'a', set={b,c,a}, max=3\nright=4, char='b', set has 'b'! Move left from 1 to 2, remove 'b'\n         set={c,a}, add 'b', set={c,a,b}, max=3\nright=5, char='c', set has 'c'! Move left from 2 to 3, remove 'c'\n         set={a,b}, add 'c', set={a,b,c}, max=3\nright=6, char='b', set has 'b'! Move left from 3 to 5, remove 'a','b'\n         set={c}, add 'b', set={c,b}, max=3\nright=7, char='b', set has 'b'! Move left from 5 to 7, remove 'c','b'\n         set={}, add 'b', set={b}, max=3\n```\n\nFinal answer: 3.\n\n### Step 4 — Why This Works\n\nWhen we find a character that's already in the window, we don't reset everything — we just slide the left side forward past the previous occurrence. All the characters between the old occurrence and the new one are still valid, so we reuse them.\n\n### Complexity Analysis\n\n- **Time Complexity: O(n)** — each character is added to the set once and removed at most once.\n- **Space Complexity: O(min(m, n))** — the set stores unique characters in the current window. With a limited alphabet (letters + digits), this is effectively O(1).\n\n### Python Code\n\n```python\ndef length_of_longest_substring(s):\n    char_set = set()\n    left = 0\n    max_len = 0\n\n    for right in range(len(s)):\n        while s[right] in char_set:\n            char_set.remove(s[left])\n            left += 1\n\n        char_set.add(s[right])\n        max_len = max(max_len, right - left + 1)\n\n    return max_len\n```\n\n### JavaScript Code\n\n```javascript\nfunction lengthOfLongestSubstring(s) {\n    const charSet = new Set();\n    let left = 0;\n    let maxLen = 0;\n\n    for (let right = 0; right < s.length; right++) {\n        while (charSet.has(s[right])) {\n            charSet.delete(s[left]);\n            left++;\n        }\n\n        charSet.add(s[right]);\n        maxLen = Math.max(maxLen, right - left + 1);\n    }\n\n    return maxLen;\n}\n```",
-  "codeBlocks": [
-    {
-      "language": "python",
-      "code": "def length_of_longest_substring(s):\n    char_set = set()\n    left = 0\n    max_len = 0\n\n    for right in range(len(s)):\n        while s[right] in char_set:\n            char_set.remove(s[left])\n            left += 1\n\n        char_set.add(s[right])\n        max_len = max(max_len, right - left + 1)\n\n    return max_len"
-    },
-    {
-      "language": "javascript",
-      "code": "function lengthOfLongestSubstring(s) {\n    const charSet = new Set();\n    let left = 0;\n    let maxLen = 0;\n\n    for (let right = 0; right < s.length; right++) {\n        while (charSet.has(s[right])) {\n            charSet.delete(s[left]);\n            left++;\n        }\n\n        charSet.add(s[right]);\n        maxLen = Math.max(maxLen, right - left + 1);\n    }\n\n    return maxLen;\n}"
-    }
-  ],
-  "timeComplexity": "O(n)",
-  "spaceComplexity": "O(min(m, n))",
-  "youtubeUrl": "",
-  "pdfUrl": "",
-  "pptxUrl": "",
-  "media": []
-}
-```
-
-**Quiz — 5 MCQs**
-
-```json
-{
-  "questions": [
-    {
-      "text": "A substring must be:",
-      "options": [
-        "Any set of characters from the string in any order",
-        "A contiguous block of characters from the original string",
-        "Any sequence of characters in the original order, possibly skipping some",
-        "The first half of the string"
-      ],
-      "correctIndex": 1
-    },
-    {
-      "text": "In the sliding window approach, what does the left pointer do when we encounter a repeated character?",
-      "options": [
-        "It jumps to just after the previous occurrence of that character",
-        "It moves one step to the right, regardless of where the repeat is",
-        "It resets to the beginning of the string",
-        "It stays in place while the right pointer moves back"
-      ],
-      "correctIndex": 0
-    },
-    {
-      "text": "For input \"bbbbb\", the longest substring without repeating characters has length:",
-      "options": [
-        "5",
-        "4",
-        "1",
-        "0"
-      ],
-      "correctIndex": 2
-    },
-    {
-      "text": "What data structure helps us efficiently check if a character is already in the current window?",
-      "options": [
-        "A stack",
-        "A queue",
-        "A hash set (or hash map)",
-        "A linked list"
-      ],
-      "correctIndex": 2
-    },
-    {
-      "text": "Why is the time complexity O(n) even though there's a while loop inside the for loop?",
-      "options": [
-        "Because n is always small",
-        "Because each character is removed from the set at most once, so total work is O(2n) = O(n)",
-        "Because the while loop never runs more than once",
-        "Because the set lookup is O(1)"
-      ],
-      "correctIndex": 1
-    }
-  ]
-}
-```
-
----
-
-### Subarray Sum Equals K
-
-```json
-{
-  "title": "Subarray Sum Equals K",
-  "slug": "subarray-sum-equals-k",
-  "lessonSlug": "arrays",
-  "subtopicSlug": "prefix-sum",
-  "difficulty": "medium",
-  "topics": [
-    "Arrays",
-    "Prefix Sum",
-    "Hash Map"
-  ],
-  "companies": [
-    "Amazon",
-    "Google",
-    "Microsoft",
-    "Facebook",
-    "Uber"
-  ],
-  "problemStatement": "You are given an array of integers (which can be positive, negative, or zero) and a target integer k. Your task is to count how many contiguous subarrays sum to exactly k.\n\nA subarray is a contiguous block of elements — meaning elements that appear consecutively in the original array. Every single element counts as a subarray of length 1.\n\nFor example, given [1, 1, 1] and k = 2, there are two subarrays that sum to 2: [1, 1] (indices 0-1) and [1, 1] (indices 1-2). So the answer is 2.\n\nWrite a function that takes the array and k, and returns the count of subarrays that sum to exactly k.",
-  "examples": [
-    {
-      "input": "arr = [1, 1, 1], k = 2",
-      "output": "2",
-      "explanation": "Two subarrays sum to 2: indices [0,1] (1+1) and indices [1,2] (1+1)."
-    },
-    {
-      "input": "arr = [1, 2, 3], k = 3",
-      "output": "2",
-      "explanation": "Two subarrays sum to 3: indices [0,1] (1+2=3) and indices [2,2] (3=3 — a single element subarray)."
-    },
-    {
-      "input": "arr = [3, 4, 7, 2, -3, 1, 4, 2], k = 7",
+      "input": "arr = [-1, 0, 3, 5, 9, 12], target = 9",
       "output": "4",
-      "explanation": "Four subarrays sum to 7:\n- [3, 4] at indices 0-1 = 7\n- [7] at index 2 = 7\n- [7, 2, -3, 1] at indices 2-5 = 7\n- [1, 4, 2] at indices 5-7 = 7"
+      "explanation": "Binary search trace:\n- left=0, right=5, mid=2 -> arr[2]=3 < 9 -> search right half (left=3)\n- left=3, right=5, mid=4 -> arr[4]=9 == 9 -> found! Return 4"
+    },
+    {
+      "input": "arr = [-1, 0, 3, 5, 9, 12], target = 2",
+      "output": "-1",
+      "explanation": "Binary search trace:\n- left=0, right=5, mid=2 -> arr[2]=3 > 2 -> search left half (right=1)\n- left=0, right=1, mid=0 -> arr[0]=-1 < 2 -> search right half (left=1)\n- left=1, right=1, mid=1 -> arr[1]=0 < 2 -> search right half (left=2)\n- left=2, right=1 -> left > right, loop exits\n- Return -1 (not found)"
+    },
+    {
+      "input": "arr = [5], target = 5",
+      "output": "0",
+      "explanation": "Single element: left=0, right=0, mid=0 -> arr[0]=5 == 5 -> found! Return 0"
+    },
+    {
+      "input": "arr = [], target = 1",
+      "output": "-1",
+      "explanation": "Empty array: left=0, right=-1 -> left > right immediately, loop never runs. Return -1."
     }
   ],
   "constraints": [
-    "The array length is between 1 and 20,000.",
-    "Each element is an integer between -1000 and 1000.",
-    "k is an integer between -10^7 and 10^7."
+    "The array length is between 0 and 100,000 elements.",
+    "Each element is a 32-bit integer.",
+    "The array is sorted in strictly increasing order."
   ],
-  "approach": "## Understanding the Problem\n\nWe need to count subarrays whose elements add up to exactly k. This is tricky because:\n- A subarray could be any length from 1 to n\n- Elements can be negative, so we can't use the sliding window technique\n\n### Step 1 — The Brute Force Approach\n\nCheck every possible subarray by summing its elements — O(n^2) even with optimized sum reuse. For n=20,000, that's 200 million subarrays.\n\n### Step 2 — The Key Insight: Prefix Sums + Hash Map\n\nRemember the prefix sum formula: sum(i, j) = prefix[j+1] - prefix[i].\n\nIf sum(i, j) = k, then:\n- prefix[j+1] - prefix[i] = k\n- prefix[j+1] - k = prefix[i]\n\nThis means: **when we're at position j, if any previous prefix sum equals (current prefix sum - k), then a subarray ending at j sums to k**.\n\n### Step 3 — The Algorithm\n\n1. Initialize prefix_sum = 0, a hash map with {0: 1}, and count = 0\n2. For each element in the array:\n   a. Add the element to prefix_sum\n   b. Check if (prefix_sum - k) exists in the map\n   c. If yes, add its count to our total (each occurrence = one subarray)\n   d. Increment the count for prefix_sum in the map\n3. Return count\n\nKey: we seed the map with {0: 1} to handle subarrays that start from index 0.\n\n### Step 4 — Walk Through an Example\n\nTrace on [3, 4, 7, 2, -3, 1, 4, 2] with k = 7:\n\n```\nInitialize: prefix_sum = 0, map = {0: 1}, count = 0\n\nIndex 0 (value=3):\n  prefix_sum = 3\n  Check: 3 - 7 = -4 → not in map\n  Add 3:1 to map\n\nIndex 1 (value=4):\n  prefix_sum = 7\n  Check: 7 - 7 = 0 → map has {0: 1} → count = 1\n  Add 7:1 to map\n  → Subarray [3, 4] (indices 0-1) sums to 7\n\nIndex 2 (value=7):\n  prefix_sum = 14\n  Check: 14 - 7 = 7 → map has {7: 1} → count = 2\n  Add 14:1 to map\n  → Subarray [7] (index 2) sums to 7\n\nIndex 3 (value=2):\n  prefix_sum = 16\n  Check: 16 - 7 = 9 → not in map\n  Add 16:1 to map\n\nIndex 4 (value=-3):\n  prefix_sum = 13\n  Check: 13 - 7 = 6 → not in map\n  Add 13:1 to map\n\nIndex 5 (value=1):\n  prefix_sum = 14\n  Check: 14 - 7 = 7 → map has {7: 1} → count = 3\n  Add 14:2 to map (now appears twice)\n  → Subarray [7, 2, -3, 1] (indices 2-5) sums to 7\n\nIndex 6 (value=4):\n  prefix_sum = 18\n  Check: 18 - 7 = 11 → not in map\n  Add 18:1 to map\n\nIndex 7 (value=2):\n  prefix_sum = 20\n  Check: 20 - 7 = 13 → map has {13: 1} → count = 4\n  Add 20:1 to map\n  → Subarray [1, 4, 2] (indices 5-7) sums to 7\n\nFinal count: 4\n```\n\n### Complexity Analysis\n\n- **Time Complexity: O(n)** — we make a single pass through the array, with O(1) hash map operations at each step.\n- **Space Complexity: O(n)** — in the worst case, the hash map stores n+1 different prefix sums.\n\n### Python Code\n\n```python\ndef subarray_sum(arr, k):\n    # Dictionary to store the count of each prefix sum seen so far\n    prefix_map = {0: 1}\n    prefix_sum = 0\n    count = 0\n\n    for num in arr:\n        prefix_sum += num\n\n        # If (prefix_sum - k) has been seen before,\n        # then a subarray ending here sums to k\n        if (prefix_sum - k) in prefix_map:\n            count += prefix_map[prefix_sum - k]\n\n        # Record this prefix sum for future lookups\n        prefix_map[prefix_sum] = prefix_map.get(prefix_sum, 0) + 1\n\n    return count\n```\n\n### JavaScript Code\n\n```javascript\nfunction subarraySum(arr, k) {\n    // Map to store the count of each prefix sum seen so far\n    const prefixMap = new Map();\n    prefixMap.set(0, 1);\n    let prefixSum = 0;\n    let count = 0;\n\n    for (const num of arr) {\n        prefixSum += num;\n\n        // If (prefixSum - k) has been seen before,\n        // then a subarray ending here sums to k\n        if (prefixMap.has(prefixSum - k)) {\n            count += prefixMap.get(prefixSum - k);\n        }\n\n        // Record this prefix sum for future lookups\n        prefixMap.set(prefixSum, (prefixMap.get(prefixSum) || 0) + 1);\n    }\n\n    return count;\n}\n```",
+  "approach": "## Understanding the Problem\n\nThis is the classic Binary Search problem — the algorithm that every computer scientist learns first after sorting. It tests whether you understand the divide-and-conquer principle and can implement it correctly without off-by-one errors.\n\n### Step 1 — The Linear Search Way (Too Slow)\n\nThe naive approach is to scan every element:\n\n```text\nFUNCTION linear_search(arr, target):\n    FOR i FROM 0 TO length(arr) - 1:\n        IF arr[i] == target:\n            RETURN i\n    RETURN -1\n```\n\nThis works, but it's O(n). For 100,000 elements, that's up to 100,000 checks. If you're searching many times, this becomes way too slow.\n\n### Step 2 — The Binary Search Insight\n\nSince the array is sorted, we can use the divide-and-conquer approach:\n\n1. Start with two pointers: `left` at index 0 and `right` at the last index\n2. Find the middle index: `mid = left + (right - left) / 2`\n3. Compare `arr[mid]` with the target:\n   - **Equal** → found it! Return mid\n   - **Less than target** → the target must be to the right (if it exists). Move `left` to `mid + 1`\n   - **Greater than target** → the target must be to the left. Move `right` to `mid - 1`\n4. Repeat until left passes right (meaning the search space is empty)\n\n### Step 3 — Trace the Full Algorithm\n\nLet's walk through `arr = [-1, 0, 3, 5, 9, 12]`, target = 9:\n\n```\nInitial: left = 0, right = 5\n\nIteration 1:\n  mid = 0 + (5 - 0) / 2 = 2\n  arr[2] = 3\n  3 < 9 -> target is in the right half\n  left = mid + 1 = 3\n\nIteration 2:\n  mid = 3 + (5 - 3) / 2 = 4\n  arr[4] = 9\n  9 == 9 -> found!\n  Return 4\n```\n\nOnly 2 iterations to find the target in a 6-element array. Linear search would have taken 5.\n\n### Step 4 — Edge Cases to Watch For\n\n1. **Empty array**: left (0) > right (-1) immediately. The loop never runs. Return -1.\n2. **Single element**: left == right. The loop runs once. If it matches, return the index. If not, left becomes > right and we return -1.\n3. **Target not in array**: Eventually left will pass right and we return -1.\n4. **Target smaller than every element**: After the first comparison, right moves to before mid, and eventually left > right.\n5. **Target larger than every element**: left keeps moving right until it passes right.\n\n### Step 5 — Handling the Mid Calculation\n\nAlways use `mid = left + (right - left) / 2` instead of `mid = (left + right) / 2`. Why? If left and right are very large (close to the maximum integer value), their sum can overflow. The alternative formula avoids this by calculating the offset from left instead.\n\n### Complexity Analysis\n\n- **Time Complexity: O(log n)** — each iteration eliminates half the remaining search space.\n- **Space Complexity: O(1)** — we only use three variables (left, right, mid) regardless of input size.\n\n### Python Code\n\n```python\ndef binary_search(arr, target):\n    left = 0\n    right = len(arr) - 1\n\n    while left <= right:\n        mid = left + (right - left) // 2\n\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n\n    return -1\n```\n\n### JavaScript Code\n\n```javascript\nfunction binarySearch(arr, target) {\n    let left = 0;\n    let right = arr.length - 1;\n\n    while (left <= right) {\n        const mid = left + Math.floor((right - left) / 2);\n\n        if (arr[mid] === target) {\n            return mid;\n        } else if (arr[mid] < target) {\n            left = mid + 1;\n        } else {\n            right = mid - 1;\n        }\n    }\n\n    return -1;\n}\n```",
   "codeBlocks": [
     {
       "language": "python",
-      "code": "def subarray_sum(arr, k):\n    # Dictionary to store the count of each prefix sum seen so far\n    prefix_map = {0: 1}\n    prefix_sum = 0\n    count = 0\n\n    for num in arr:\n        prefix_sum += num\n\n        # If (prefix_sum - k) has been seen before,\n        # then a subarray ending here sums to k\n        if (prefix_sum - k) in prefix_map:\n            count += prefix_map[prefix_sum - k]\n\n        # Record this prefix sum for future lookups\n        prefix_map[prefix_sum] = prefix_map.get(prefix_sum, 0) + 1\n\n    return count"
+      "code": "def binary_search(arr, target):\n    left = 0\n    right = len(arr) - 1\n\n    while left <= right:\n        mid = left + (right - left) // 2\n\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n\n    return -1"
     },
     {
       "language": "javascript",
-      "code": "function subarraySum(arr, k) {\n    // Map to store the count of each prefix sum seen so far\n    const prefixMap = new Map();\n    prefixMap.set(0, 1);\n    let prefixSum = 0;\n    let count = 0;\n\n    for (const num of arr) {\n        prefixSum += num;\n\n        // If (prefixSum - k) has been seen before,\n        // then a subarray ending here sums to k\n        if (prefixMap.has(prefixSum - k)) {\n            count += prefixMap.get(prefixSum - k);\n        }\n\n        // Record this prefix sum for future lookups\n        prefixMap.set(prefixSum, (prefixMap.get(prefixSum) || 0) + 1);\n    }\n\n    return count;\n}"
+      "code": "function binarySearch(arr, target) {\n    let left = 0;\n    let right = arr.length - 1;\n\n    while (left <= right) {\n        const mid = left + Math.floor((right - left) / 2);\n\n        if (arr[mid] === target) {\n            return mid;\n        } else if (arr[mid] < target) {\n            left = mid + 1;\n        } else {\n            right = mid - 1;\n        }\n    }\n\n    return -1;\n}"
     }
   ],
-  "timeComplexity": "O(n)",
-  "spaceComplexity": "O(n)",
+  "timeComplexity": "O(log n)",
+  "spaceComplexity": "O(1)",
   "youtubeUrl": "",
   "pdfUrl": "",
   "pptxUrl": "",
@@ -538,60 +113,62 @@
 }
 ```
 
+---
+
 **Quiz — 5 MCQs**
 
 ```json
 {
   "questions": [
     {
-      "text": "What is the key data structure used alongside prefix sums to solve this problem efficiently?",
+      "text": "What is the one condition that must be true for binary search to work correctly?",
       "options": [
-        "A stack",
-        "A queue",
-        "A hash map (to store prefix sum frequencies)",
-        "A linked list"
+        "The array must contain only positive numbers",
+        "The array must be sorted",
+        "The array must have no duplicate values",
+        "The array must have at least 10 elements"
+      ],
+      "correctIndex": 1
+    },
+    {
+      "text": "How many elements does binary search examine in the worst case when searching an array of 1,000 elements?",
+      "options": [
+        "1,000 elements (all of them)",
+        "500 elements (half of them)",
+        "About 10 elements (log₂(1000) ≈ 10)",
+        "Exactly 1 element"
       ],
       "correctIndex": 2
     },
     {
-      "text": "Why do we initialize the hash map with {0: 1}?",
+      "text": "In the binary search while loop, why do we use `left <= right` instead of `left < right`?",
       "options": [
-        "Because arrays always start with 0",
-        "To handle subarrays that start from index 0 and sum to k",
-        "Because 0 is the first prefix sum we check",
-        "It's just a convention with no special meaning"
+        "They both work the same way",
+        "To handle the case where the array has only one element (left == right)",
+        "To make the loop run faster",
+        "To prevent integer overflow"
       ],
       "correctIndex": 1
     },
     {
-      "text": "In the approach, what does it mean when (prefix_sum - k) exists in the map?",
+      "text": "What does binary search return if the target is not found in the array?",
       "options": [
-        "The entire array sum equals k",
-        "There is a subarray ending at the current position that sums to k",
-        "There is a subarray starting at the current position that sums to k",
-        "k is larger than the total array sum"
-      ],
-      "correctIndex": 1
-    },
-    {
-      "text": "Why can't we use the sliding window technique for this problem when there are negative numbers?",
-      "options": [
-        "Sliding window only works for strings, not arrays",
-        "Because adding more elements doesn't always increase the sum when negatives exist",
-        "Sliding window only works for consecutive elements",
-        "Because we need to return a count, not a max length"
-      ],
-      "correctIndex": 1
-    },
-    {
-      "text": "What is the space complexity of the optimal solution?",
-      "options": [
-        "O(1) — we only use a few variables",
-        "O(log n) — we store a balanced tree",
-        "O(n) — the hash map can store up to n+1 prefix sums",
-        "O(n^2) — we store all subarray sums"
+        "0",
+        "The index where the target would be inserted",
+        "-1",
+        "undefined"
       ],
       "correctIndex": 2
+    },
+    {
+      "text": "Why do we write `mid = left + (right - left) / 2` instead of `mid = (left + right) / 2`?",
+      "options": [
+        "It's the same formula written differently — no real difference",
+        "To avoid integer overflow when left and right are very large",
+        "To make the code run faster",
+        "To handle negative numbers correctly"
+      ],
+      "correctIndex": 1
     }
   ]
 }
@@ -603,9 +180,18 @@
 
 
 | Entity | Count |
-|---|---|
-| Categories | 1 of 7 (same as Introduction to DSA) |
-| Lessons | 1 of 19 (order 1 in category) |
-| Subtopics | 4 of 34 |
-| Problems | 4 of 33 |
-| Quizzes | 4 of 33 |
+|---|
+
+| Categories | 1 of 7 (new category: Searching, Sorting & Hashing) |
+|---|
+
+| Lessons | 1 of 19 (order 0 in new category) |
+|---|
+
+| Subtopics | 1 of 34 |
+|---|
+
+| Problems | 1 of 33 |
+|---|
+
+| Quizzes | 1 of 33 |

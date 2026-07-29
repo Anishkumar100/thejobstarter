@@ -78,7 +78,13 @@ const allowedOrigins = [
   ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL.replace(/\/+$/, '')] : []),
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://thejobstarter.vercel.app'
+  'https://thejobstarter.vercel.app',
+  /*
+   * Cashfree payment pages POST to the return_url after payment.
+   * The sandbox uses payments-test.cashfree.com and production uses payments.cashfree.com
+   */
+  'https://payments-test.cashfree.com',
+  'https://payments.cashfree.com'
 ];
 
 app.use(cors({
@@ -92,6 +98,10 @@ app.use(cors({
     }
     /* Also allow any Vercel preview deployment (*.vercel.app) */
     if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    /* Allow any Cashfree subdomain (payments-test.cashfree.com, payments.cashfree.com, etc.) */
+    if (origin.endsWith('.cashfree.com')) {
       return callback(null, true);
     }
     callback(new Error(`Origin ${origin} not allowed by CORS`));

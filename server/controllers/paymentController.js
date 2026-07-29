@@ -29,8 +29,29 @@ function getCashfreeClient() {
   const env = process.env.CASHFREE_ENV === 'production'
     ? CFEnvironment.PRODUCTION
     : CFEnvironment.SANDBOX;
-  const client = new Cashfree(env, process.env.CASHFREE_APP_ID, process.env.CASHFREE_SECRET_KEY);
-  client.XApiVersion = '2022-09-01';
+  /*
+   * Pass XEnableErrorAnalytics = false (7th constructor param) to prevent
+   * the SDK from calling Sentry.init() with profilesSampleRate: 1.0.
+   * On Vercel's serverless sandbox, the V8 profiling hooks needed by
+   * @sentry/node are restricted, causing the process to crash.
+   *
+   * The remaining params (XPartnerKey, XClientSignature, XPartnerMerchantId,
+   * axios) are left as undefined since they're not needed.
+   */
+  const client = new Cashfree(
+    env,
+    process.env.CASHFREE_APP_ID,
+    process.env.CASHFREE_SECRET_KEY,
+    undefined, /* XPartnerKey */
+    undefined, /* XClientSignature */
+    undefined, /* XPartnerMerchantId */
+    false      /* XEnableErrorAnalytics — disable Sentry to avoid Vercel crash */
+  );
+  /*
+   * Let the SDK keep its default XApiVersion ('2026-01-01' for SDK v6).
+   * The SDK auto-generates request payloads matching this version, so
+   * overriding it would cause schema mismatch with Cashfree's server.
+   */
   return client;
 }
 

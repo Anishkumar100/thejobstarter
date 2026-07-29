@@ -1,18 +1,30 @@
+import DsaLesson from '../models/DsaLesson.js';
 import Subtopic from '../models/Subtopic.js';
 import Problem from '../models/Problem.js';
 import { clearCache } from '../middleware/cache.js';
+import { resolveUser, canAccessSubject, isLessonFree } from '../utils/accessControl.js';
 
 /*
  * GET /api/dsa/subtopics
  * Fetch subtopics, optionally filtered by lessonSlug
+ * Gated by parent lesson access — returns empty array if lesson is locked.
  */
 export async function getSubtopics(req, res) {
   try {
     console.log('[DSA] Fetching subtopics with filters:', req.query);
     const { lesson } = req.query;
-    const query = {};
-    if (lesson) query.lessonSlug = lesson;
-    const subtopics = await Subtopic.find(query).sort({ order: 1, title: 1 });
+    if (!lesson) return res.status(400).json({ error: 'lesson query param required' });
+
+    /* Gate by parent lesson */
+    const user = await resolveUser(req);
+    const allLessons = await DsaLesson.find().sort({ order: 1 }).lean();
+    if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
+      console.log('[DSA] Subtopics blocked — lesson locked:', lesson);
+      return res.json({ data: [], locked: true });
+    }
+
+    const query = { lessonSlug: lesson };
+    const subtopics = await Subtopic.find(query).sort({ order: 1, title: 1 }).lean();
     console.log('[DSA] Subtopics fetched:', subtopics.length);
     res.json({ data: subtopics });
   } catch (error) {
@@ -24,18 +36,31 @@ export async function getSubtopics(req, res) {
 /*
  * GET /api/dsa/subtopics/:slug
  * Fetch a single subtopic with its problems
+ * Gated by parent lesson access — returns locked if lesson is behind paywall.
  */
 export async function getSubtopicBySlug(req, res) {
   try {
     console.log('[DSA] Fetching subtopic by slug:', req.params.slug);
-    const subtopic = await Subtopic.findOne({ slug: req.params.slug });
+    const subtopic = await Subtopic.findOne({ slug: req.params.slug }).lean();
     if (!subtopic) {
       console.log('[DSA] Subtopic not found:', req.params.slug);
       return res.status(404).json({ error: 'Subtopic not found' });
     }
-    const problems = await Problem.find({ subtopicSlug: req.params.slug }).sort({ createdAt: -1 });
+
+    /* Gate by parent lesson */
+    const lesson = await DsaLesson.findOne({ slug: subtopic.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await DsaLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[DSA] Subtopic blocked — lesson locked:', subtopic.title);
+        return res.json({ data: { ...subtopic, locked: true, problems: [] } });
+      }
+    }
+
+    const problems = await Problem.find({ subtopicSlug: req.params.slug }).sort({ createdAt: -1 }).lean();
     console.log('[DSA] Subtopic fetched:', subtopic.title, 'with', problems.length, 'problems');
-    res.json({ data: { ...subtopic.toObject(), problems } });
+    res.json({ data: { ...subtopic, locked: false, problems } });
   } catch (error) {
     console.error('[DSA] Error fetching subtopic:', error.message);
     res.status(500).json({ error: error.message });
@@ -97,14 +122,29 @@ export async function deleteSubtopic(req, res) {
 
 /*
  * GET /api/dsa/subtopics/:slug/problems
- * Fetch problems for a specific subtopic (alternative to filtering on /problems)
+ * Fetch problems for a specific subtopic
+ * Gated by parent lesson access — returns empty array if lesson is locked.
  */
 export async function getSubtopicProblems(req, res) {
   try {
     console.log('[DSA] Fetching problems for subtopic:', req.params.slug);
     const { page = 1, limit = 50 } = req.query;
+    const subtopic = await Subtopic.findOne({ slug: req.params.slug }).lean();
+    if (!subtopic) return res.status(404).json({ error: 'Subtopic not found' });
+
+    /* Gate by parent lesson */
+    const lesson = await DsaLesson.findOne({ slug: subtopic.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await DsaLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[DSA] Subtopic problems blocked — lesson locked:', subtopic.lessonSlug);
+        return res.json({ data: [], total: 0, page: Number(page), totalPages: 0 });
+      }
+    }
+
     const skip = (page - 1) * limit;
-    const problems = await Problem.find({ subtopicSlug: req.params.slug }).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
+    const problems = await Problem.find({ subtopicSlug: req.params.slug }).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }).lean();
     const total = await Problem.countDocuments({ subtopicSlug: req.params.slug });
     console.log('[DSA] Subtopic problems fetched:', total);
     res.json({ data: problems, total, page: Number(page), totalPages: Math.ceil(total / limit) });

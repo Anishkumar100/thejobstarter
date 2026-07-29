@@ -9,3 +9,4 @@ export { useLanguageStore } from './useLanguageStore.js';
 export { useCheatsheetStore } from './useCheatsheetStore.js';
 export { useAdminStore } from './useAdminStore.js';
 export { useThemeStore } from './useThemeStore.js';
+export { usePaymentStore } from './usePaymentStore.js';

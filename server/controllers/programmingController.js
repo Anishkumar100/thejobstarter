@@ -2,15 +2,18 @@ import ProgrammingLesson from '../models/ProgrammingLesson.js';
 import ProgrammingSubtopic from '../models/ProgrammingSubtopic.js';
 import ProgrammingProblem from '../models/ProgrammingProblem.js';
 import { clearCache } from '../middleware/cache.js';
+import { resolveUser, canAccessSubject, getLockedLessons, isLessonFree } from '../utils/accessControl.js';
 
 /* ===================== LESSONS ===================== */
 
 export async function getLessons(req, res) {
   try {
     console.log('[PROGRAMMING] Fetching lessons...');
-    const lessons = await ProgrammingLesson.find().sort({ order: 1, title: 1 });
-    console.log('[PROGRAMMING] Lessons fetched:', lessons.length);
-    res.json({ data: lessons });
+    const lessons = await ProgrammingLesson.find().sort({ order: 1, title: 1 }).lean();
+    const user = await resolveUser(req);
+    const enriched = getLockedLessons(lessons, user);
+    console.log('[PROGRAMMING] Lessons fetched:', enriched.length);
+    res.json({ data: enriched });
   } catch (error) {
     console.error('[PROGRAMMING] Error fetching lessons:', error.message);
     res.status(500).json({ error: error.message });
@@ -20,14 +23,21 @@ export async function getLessons(req, res) {
 export async function getLessonBySlug(req, res) {
   try {
     console.log('[PROGRAMMING] Fetching lesson by slug:', req.params.slug);
-    const lesson = await ProgrammingLesson.findOne({ slug: req.params.slug });
+    const lesson = await ProgrammingLesson.findOne({ slug: req.params.slug }).lean();
     if (!lesson) {
       console.log('[PROGRAMMING] Lesson not found:', req.params.slug);
       return res.status(404).json({ error: 'Lesson not found' });
     }
-    const problems = await ProgrammingProblem.find({ lessonSlug: req.params.slug }).sort({ createdAt: -1 });
+    const user = await resolveUser(req);
+    const allLessons = await ProgrammingLesson.find().sort({ order: 1 }).lean();
+    const free = isLessonFree(lesson.slug, allLessons);
+    if (!free && !canAccessSubject(user)) {
+      console.log('[PROGRAMMING] Lesson locked:', lesson.title);
+      return res.json({ data: { ...lesson, locked: true, problems: [], subtopics: [] } });
+    }
+    const problems = await ProgrammingProblem.find({ lessonSlug: req.params.slug }).sort({ createdAt: -1 }).lean();
     console.log('[PROGRAMMING] Lesson fetched:', lesson.title, 'with', problems.length, 'problems');
-    res.json({ data: { ...lesson.toObject(), problems } });
+    res.json({ data: { ...lesson, locked: false, problems } });
   } catch (error) {
     console.error('[PROGRAMMING] Error fetching lesson:', error.message);
     res.status(500).json({ error: error.message });
@@ -81,9 +91,14 @@ export async function getSubtopics(req, res) {
   try {
     console.log('[PROGRAMMING] Fetching subtopics with filters:', req.query);
     const { lesson } = req.query;
-    const query = {};
-    if (lesson) query.lessonSlug = lesson;
-    const subtopics = await ProgrammingSubtopic.find(query).sort({ order: 1, title: 1 });
+    if (!lesson) return res.status(400).json({ error: 'lesson query param required' });
+    const user = await resolveUser(req);
+    const allLessons = await ProgrammingLesson.find().sort({ order: 1 }).lean();
+    if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
+      console.log('[PROGRAMMING] Subtopics blocked — lesson locked:', lesson);
+      return res.json({ data: [], locked: true });
+    }
+    const subtopics = await ProgrammingSubtopic.find({ lessonSlug: lesson }).sort({ order: 1, title: 1 }).lean();
     console.log('[PROGRAMMING] Subtopics fetched:', subtopics.length);
     res.json({ data: subtopics });
   } catch (error) {
@@ -95,14 +110,23 @@ export async function getSubtopics(req, res) {
 export async function getSubtopicBySlug(req, res) {
   try {
     console.log('[PROGRAMMING] Fetching subtopic by slug:', req.params.slug);
-    const subtopic = await ProgrammingSubtopic.findOne({ slug: req.params.slug });
+    const subtopic = await ProgrammingSubtopic.findOne({ slug: req.params.slug }).lean();
     if (!subtopic) {
       console.log('[PROGRAMMING] Subtopic not found:', req.params.slug);
       return res.status(404).json({ error: 'Subtopic not found' });
     }
-    const problems = await ProgrammingProblem.find({ subtopicSlug: req.params.slug }).sort({ createdAt: -1 });
+    const lesson = await ProgrammingLesson.findOne({ slug: subtopic.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await ProgrammingLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[PROGRAMMING] Subtopic blocked — lesson locked:', subtopic.title);
+        return res.json({ data: { ...subtopic, locked: true, problems: [] } });
+      }
+    }
+    const problems = await ProgrammingProblem.find({ subtopicSlug: req.params.slug }).sort({ createdAt: -1 }).lean();
     console.log('[PROGRAMMING] Subtopic fetched:', subtopic.title, 'with', problems.length, 'problems');
-    res.json({ data: { ...subtopic.toObject(), problems } });
+    res.json({ data: { ...subtopic, locked: false, problems } });
   } catch (error) {
     console.error('[PROGRAMMING] Error fetching subtopic:', error.message);
     res.status(500).json({ error: error.message });
@@ -154,10 +178,21 @@ export async function getSubtopicProblems(req, res) {
   try {
     console.log('[PROGRAMMING] Fetching problems for subtopic:', req.params.slug);
     const { difficulty, page = 1, limit = 20 } = req.query;
+    const subtopic = await ProgrammingSubtopic.findOne({ slug: req.params.slug }).lean();
+    if (!subtopic) return res.status(404).json({ error: 'Subtopic not found' });
+    const lesson = await ProgrammingLesson.findOne({ slug: subtopic.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await ProgrammingLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[PROGRAMMING] Subtopic problems blocked — lesson locked:', subtopic.lessonSlug);
+        return res.json({ data: [], total: 0, page: Number(page), totalPages: 0 });
+      }
+    }
     const query = { subtopicSlug: req.params.slug };
     if (difficulty) query.difficulty = difficulty;
     const skip = (page - 1) * limit;
-    const problems = await ProgrammingProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
+    const problems = await ProgrammingProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }).lean();
     const total = await ProgrammingProblem.countDocuments(query);
     console.log('[PROGRAMMING] Subtopic problems fetched:', total);
     res.json({ data: problems, total, page: Number(page), totalPages: Math.ceil(total / limit) });
@@ -181,8 +216,17 @@ export async function getProblems(req, res) {
     if (topic) query.topics = topic;
     if (search) query.title = { $regex: search, $options: 'i' };
 
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await ProgrammingLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
+        console.log('[PROGRAMMING] Problems blocked — lesson locked:', lesson);
+        return res.json({ data: [], total: 0, page: Number(page), totalPages: 0 });
+      }
+    }
+
     const skip = (page - 1) * limit;
-    const problems = await ProgrammingProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
+    const problems = await ProgrammingProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }).lean();
     const total = await ProgrammingProblem.countDocuments(query);
 
     console.log('[PROGRAMMING] Problems fetched:', total);
@@ -196,16 +240,24 @@ export async function getProblems(req, res) {
 export async function getProblemBySlug(req, res) {
   try {
     console.log('[PROGRAMMING] Fetching problem by slug:', req.params.slug);
-    const problem = await ProgrammingProblem.findOne({ slug: req.params.slug });
+    const problem = await ProgrammingProblem.findOne({ slug: req.params.slug }).lean();
     if (!problem) {
       console.log('[PROGRAMMING] Problem not found:', req.params.slug);
       return res.status(404).json({ error: 'Problem not found' });
     }
+    const lesson = await ProgrammingLesson.findOne({ slug: problem.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await ProgrammingLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[PROGRAMMING] Problem blocked — lesson locked:', problem.title);
+        return res.json({ data: { ...problem, locked: true, lesson, subtopic: null } });
+      }
+    }
     await ProgrammingProblem.findByIdAndUpdate(problem._id, { $inc: { views: 1 } });
-    const lesson = await ProgrammingLesson.findOne({ slug: problem.lessonSlug });
-    const subtopic = problem.subtopicSlug ? await ProgrammingSubtopic.findOne({ slug: problem.subtopicSlug }) : null;
+    const subtopic = problem.subtopicSlug ? await ProgrammingSubtopic.findOne({ slug: problem.subtopicSlug }).lean() : null;
     console.log('[PROGRAMMING] Problem fetched:', problem.title);
-    res.json({ data: { ...problem.toObject(), lesson, subtopic } });
+    res.json({ data: { ...problem, lesson, subtopic } });
   } catch (error) {
     console.error('[PROGRAMMING] Error fetching problem:', error.message);
     res.status(500).json({ error: error.message });

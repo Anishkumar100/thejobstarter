@@ -29,6 +29,12 @@ const SECTIONS = [
     ]
   },
   {
+    heading: 'Assignments',
+    links: [
+      { to: '/coordinator/assignments', label: 'Manage Assignments', icon: FileText },
+    ]
+  },
+  {
     heading: 'Plans',
     links: [
       { to: '/coordinator/plans', label: 'Study Plans', icon: FileText },

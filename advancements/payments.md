@@ -6,7 +6,7 @@ Dual payment system for the platform:
 
 | System | Model | Price | Mechanism |
 |--------|-------|-------|-----------|
-| **SaaS (Individual)** | ₹99/month recurring for students NOT in a coaching center | Cashfree subscriptions + webhooks with **auto-pay always enabled** | Free tier = first 2 lessons per subject. Paid = full access. |
+| **SaaS (Individual)** | ₹99/month (configurable via admin) recurring for students NOT in a coaching center | Cashfree subscriptions + webhooks with **auto-pay always enabled** | Free tier = first 2 lessons per subject. Paid = full access. |
 | **Enterprise (Coaching Centers)** | Manual admin management per center | No platform transaction | Existing `CoachingCenter.status` (`active`/`trial`/`suspended`) |
 
 ### Free Tier Rules
@@ -97,8 +97,20 @@ lastBilledAt:     { type: Date, default: null },
 nextBillingAt:    { type: Date, default: null },
 paymentStatus:    { type: String, enum: ['paid', 'pending', 'overdue'], default: 'pending' },
 paymentNotes:     { type: String, default: '' }
--->
+ -->
 ```
+</s>
+
+### SiteConfig Model (`server/models/SiteConfig.js`) — Add subscription settings
+
+```js
+subscriptionSettings: {
+  price: { type: Number, default: 99 },        // ₹ per subscription period
+  durationDays: { type: Number, default: 30 }  // days per subscription period
+}
+```
+
+Price and duration are no longer hardcoded. Both `paymentController.js` and `adminController.js` call `getSubscriptionSettings()` from `siteConfigController.js` to get the latest values. Admin can change them at any time via the Subscription Settings admin page.
 
 ---
 
@@ -173,30 +185,32 @@ Frontend                          Backend                         Cashfree
 
 **`createSubscription`:**
 
-> **Auto-pay is always enabled.** The Cashfree subscription is created as recurring from day one. Promo codes only affect the first charge amount — subsequent months are always ₹99.
+> **Auto-pay is always enabled.** The Cashfree subscription is created as recurring from day one. Promo codes only affect the first charge amount — subsequent months are always the configured price (default ₹99).
 
 1. Validate promo code if provided (check active, not expired, not maxed out)
-2. Calculate first-charge amount:
-   - No promo: ₹99
-   - `free_month`: first charge = ₹0, subsequent = ₹99
-   - `discount_percent`: first charge = ₹99 × (1 - value/100), subsequent = ₹99
-   - `discount_fixed`: first charge = ₹99 - value (min ₹0), subsequent = ₹99
-3. Call Cashfree Subscription API with `first_charge = calculated_amount`, `recurring_amount = 99`, `interval = 30` days — this sets up auto-pay immediately
-4. If promo applied, store `appliedPromo` on User doc for audit trail
-5. Store `cashfreeSubscriptionId` on User doc
-6. Return payment link to frontend
+2. Fetch dynamic config via `getSubscriptionSettings()` (price, durationDays)
+3. Calculate first-charge amount:
+   - No promo: configured price
+   - `free_month`: first charge = ₹0, subsequent = configured price
+   - `discount_percent`: first charge = configured price × (1 - value/100), subsequent = configured price
+   - `discount_fixed`: first charge = configured price - value (min ₹0), subsequent = configured price
+4. Call Cashfree Subscription API with `first_charge = calculated_amount`, `recurring_amount = price`, `interval = durationDays` — this sets up auto-pay immediately
+5. If promo applied, store `appliedPromo` on User doc for audit trail
+6. Store `cashfreeSubscriptionId` on User doc
+7. Return payment link to frontend
 
 **`handleWebhook`** (Cashfree webhook):
 1. Verify webhook signature
 2. Extract event type: `PAYMENT_SUCCESS`, `PAYMENT_FAILED`, `SUBSCRIPTION_CANCELLED`, `SUBSCRIPTION_CHARGED`
 3. Find user by `cashfreeCustomerId` or metadata
 4. On `PAYMENT_SUCCESS` (first payment or first recurring charge after free month):
+   - Fetch dynamic config via `getSubscriptionSettings()` to get the current `durationDays`
    - Set `subscription.status = 'active'`
-   - Set `currentPeriodStart` / `currentPeriodEnd` (30 days from now)
+   - Set `currentPeriodStart` / `currentPeriodEnd` (durationDays from now)
    - If promo was applied on first payment only, increment `PromoCode.usedCount`
    - Create `PaymentTransaction` with `status: 'success'`
 5. On `SUBSCRIPTION_CHARGED` (subsequent recurring charges):
-   - Same as `PAYMENT_SUCCESS` — update `currentPeriodEnd` by +30 days
+   - Same as `PAYMENT_SUCCESS` — update `currentPeriodEnd` by +durationDays
    - Create `PaymentTransaction` with type `subscription_renewed`
 6. On `PAYMENT_FAILED`:
    - Set `subscription.status = 'past_due'`
@@ -207,12 +221,13 @@ Frontend                          Backend                         Cashfree
 8. Return 200 OK to Cashfree
 
 **`applyPromo`:**
-1. Validate promo code exists, is active, not expired, not at max uses
-2. Calculate discount:
-   - `free_month` → first month ₹0, then ₹99/month
-   - `discount_percent` → ₹99 × (1 - value/100)
-   - `discount_fixed` → ₹99 - value (min ₹0)
-3. Return calculated price and promo details
+1. Fetch dynamic config via `getSubscriptionSettings()` to get current price
+2. Validate promo code exists, is active, not expired, not at max uses
+3. Calculate discount:
+   - `free_month` → first month ₹0, then ₹price/month
+   - `discount_percent` → ₹price × (1 - value/100)
+   - `discount_fixed` → ₹price - value (min ₹0)
+4. Return calculated price and promo details
 
 **`cancelSubscription`:**
 
@@ -430,9 +445,17 @@ router.get('/problems/:slug', requireAuth, getProblemBySlug); // was: no auth
 |--------|----------|---------|
 | GET | `/api/admin/payments/stats` | Revenue overview stats |
 | GET | `/api/admin/payments/subscriptions` | List all users with subscription data |
-| POST | `/api/admin/payments/subscriptions/:userId/activate` | Manually activate subscription |
-| POST | `/api/admin/payments/subscriptions/:userId/deactivate` | Manually deactivate |
+| POST | `/api/admin/payments/subscriptions/:userId/activate` | Manually activate (accepts `{ months }` in body) |
+| POST | `/api/admin/payments/subscriptions/:userId/cancel` | Manually cancel (sets status to `canceled`, user keeps access until period end) |
+| POST | `/api/admin/payments/subscriptions/:userId/deactivate` | Manually deactivate (sets status to `expired` immediately) |
 | GET | `/api/admin/payments/transactions` | Transaction history |
+
+### New Backend Routes (`/api/site-config`)
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/site-config/subscription` | Get current subscription price & durationDays |
+| PUT | `/api/site-config/subscription` | Update subscription price & durationDays |
 
 ### New Backend Routes (`/api/admin/promos`)
 
@@ -448,8 +471,13 @@ router.get('/problems/:slug', requireAuth, getProblemBySlug); // was: no auth
 | Page | Route | Purpose |
 |------|-------|---------|
 | Payments Dashboard | `/admin/payments` | Stats cards, revenue, recent transactions |
-| Subscriber Management | `/admin/payments/subscribers` | Table of subscriptions with manual controls |
+| Subscriber Management | `/admin/payments/subscribers` | Table of subscriptions with manual Activate/Cancel controls |
 | Promo Codes | `/admin/payments/promos` | CRUD for promo codes |
+| Subscription Settings | `/admin/payments/settings` | Configure subscription price & durationDays |
+
+### Admin Subscribers Detail
+
+For active users, the Actions column shows a **Cancel** button (red). Admin clicks it to immediately set the user's subscription status to `canceled`. For non-active users, an **Activate** button (green) prompts "How many months of access should this user get?" and activates for `months × durationDays`.
 
 ### Admin Dashboard Changes (`AdminDashboard.jsx`)
 
@@ -487,12 +515,13 @@ Add a **Billing & Payments** section:
 
 ### Admin Sidebar Changes (`AdminSidebar.jsx`)
 
-Add Payments section under Coaching:
+Payments section now includes Subscription Settings:
 ```js
 { heading: 'Payments', links: [
   { to: '/admin/payments', label: 'Dashboard', icon: IndianRupee },
   { to: '/admin/payments/subscribers', label: 'Subscribers', icon: Users },
-  { to: '/admin/payments/promos', label: 'Promo Codes', icon: TicketPercent }
+  { to: '/admin/payments/promos', label: 'Promo Codes', icon: TicketPercent },
+  { to: '/admin/payments/settings', label: 'Subscription Settings', icon: Settings }
 ]}
 ```
 
@@ -574,6 +603,7 @@ For subscribed users:
 <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
 <Route path="/admin/payments/subscribers" element={<AdminRoute><AdminSubscribers /></AdminRoute>} />
 <Route path="/admin/payments/promos" element={<AdminRoute><AdminPromoCodes /></AdminRoute>} />
+<Route path="/admin/payments/settings" element={<AdminRoute><AdminSubscriptionSettings /></AdminRoute>} />
 ```
 
 ### Payment Store (`usePaymentStore.js`)
@@ -620,7 +650,7 @@ export const usePaymentStore = create((set, get) => ({
 
 ## Summary — All Files
 
-### Create (12 files)
+### Create (13 files)
 
 | # | File |
 |---|------|
@@ -635,33 +665,39 @@ export const usePaymentStore = create((set, get) => ({
 | 9 | `client/src/pages/AdminPayments.jsx` |
 | 10 | `client/src/pages/AdminSubscribers.jsx` |
 | 11 | `client/src/pages/AdminPromoCodes.jsx` |
-| 12 | `client/src/api/paymentApi.js` |
+| 12 | `client/src/pages/AdminSubscriptionSettings.jsx` |
+| 13 | `client/src/api/paymentApi.js` |
 
-### Modify (20 files)
+### Modify (22 files)
 
 | # | File | Changes |
 |---|------|---------|
 | 1 | `server/models/User.js` | Add `subscription` sub-object |
-| 2 | `server/app.js` | Register payment routes |
-| 3 | `server/controllers/adminController.js` | Add `getPaymentStats`, payment/subscription/promo endpoints |
-| 4 | `server/routes/adminRoutes.js` | Add payment + promo admin routes |
-| 5 | `server/controllers/dsaController.js` | Add `locked` flag to lesson list, gate detail |
-| 6 | `server/controllers/dbmsController.js` | Same |
-| 7 | `server/controllers/osController.js` | Same |
-| 8 | `server/controllers/programmingController.js` | Same |
-| 9 | `server/routes/dsaRoutes.js` | Already has `requireAuth` on all GET endpoints — no change |
-| 10 | `server/routes/dbmsRoutes.js` | Same — already has `requireAuth` |
-| 11 | `server/routes/osRoutes.js` | Same — already has `requireAuth` |
-| 12 | `server/routes/programmingRoutes.js` | **ADD `requireAuth`** to 6 GET endpoints (missing — security gap) |
-| 13 | `client/src/App.jsx` | Add /pricing, /settings/subscription, admin payment routes |
-| 14 | `client/src/components/ui/Navbar.jsx` | Upgrade/Pricing link, Premium badge |
-| 15 | `client/src/stores/useAuthStore.js` | Call `updateUser({ subscription })` after fetching status from payment store |
-| 16 | `client/src/components/admin/AdminSidebar.jsx` | Add Payments section |
-| 17 | `client/src/pages/AdminDashboard.jsx` | Revenue stats card |
-| 18 | `client/src/pages/DsaList.jsx` (and DbmsList, OsList, ProgrammingList) | Lock overlay on lesson cards |
-| 19 | `client/src/pages/DsaDetail.jsx` (and DbmsDetail, OsDetail, ProgrammingDetail) | Paywall banner when locked |
+| 2 | `server/models/SiteConfig.js` | Add `subscriptionSettings { price, durationDays }` field |
+| 3 | `server/app.js` | Register payment routes |
+| 4 | `server/controllers/adminController.js` | Add `getPaymentStats`, `cancelSubscription`, payment/subscription/promo endpoints; use `getSubscriptionSettings()` for dynamic duration |
+| 5 | `server/controllers/siteConfigController.js` | Add `getSubscriptionSettings()` helper + `getSubscriptionConfig` / `updateSubscriptionConfig` endpoints |
+| 6 | `server/routes/adminRoutes.js` | Add payment + promo admin routes + cancel subscription route |
+| 7 | `server/routes/siteConfigRoutes.js` | Add GET + PUT for `/subscription` config |
+| 8 | `server/controllers/paymentController.js` | Replace hardcoded `SUBSCRIPTION_PRICE=99` and `30` days with dynamic `getSubscriptionSettings()` |
+| 9 | `server/controllers/dsaController.js` | Add `locked` flag to lesson list, gate detail |
+| 10 | `server/controllers/dbmsController.js` | Same |
+| 11 | `server/controllers/osController.js` | Same |
+| 12 | `server/controllers/programmingController.js` | Same |
+| 13 | `server/routes/dsaRoutes.js` | Already has `requireAuth` on all GET endpoints — no change |
+| 14 | `server/routes/dbmsRoutes.js` | Same — already has `requireAuth` |
+| 15 | `server/routes/osRoutes.js` | Same — already has `requireAuth` |
+| 16 | `server/routes/programmingRoutes.js` | **ADD `requireAuth`** to 6 GET endpoints (missing — security gap) |
+| 17 | `client/src/App.jsx` | Add /pricing, /settings/subscription, admin payment routes, admin subscription settings |
+| 18 | `client/src/components/ui/Navbar.jsx` | Upgrade/Pricing link, Premium badge |
+| 19 | `client/src/stores/useAuthStore.js` | Call `updateUser({ subscription })` after fetching status from payment store |
+| 20 | `client/src/components/admin/AdminSidebar.jsx` | Add Payments section with Subscription Settings link |
+| 21 | `client/src/pages/AdminDashboard.jsx` | Revenue stats card (uses dynamic `currentPrice` from API) |
+| 22 | `client/src/pages/AdminSubscribers.jsx` | Activate prompts for months, Cancel button for active users, dynamic status badge |
+| 23 | `client/src/pages/DsaList.jsx` (and DbmsList, OsList, ProgrammingList) | Lock overlay on lesson cards |
+| 24 | `client/src/pages/DsaDetail.jsx` (and DbmsDetail, OsDetail, ProgrammingDetail) | Paywall banner when locked |
 
-**Total: ~32 files**
+**Total: ~35 files**
 
 ---
 
@@ -678,14 +714,41 @@ CASHFREE_ENV=sandbox    # or 'production'
 
 ## Implementation Order
 
+### Status Overview
+
+| # | Step | Status |
+|---|------|--------|
+| 1 | Data models | ✅ Done |
+| 2 | Access control | ✅ Done |
+| 3 | Subject controllers (locked flag) | ✅ Done |
+| 4 | Subject routes (requireAuth) | ✅ Done |
+| 5 | **Cashfree integration** | ✅ **Connected** — SDK configured with test keys in `.env`, sandbox mode, all 5 routes wired, webhook handler with signature verification ready |
+| 6 | Admin backend (stats, subs, promos) | ✅ Done |
+| 7 | Admin frontend (dashboard, subs, promos) | ✅ Done |
+| 8 | **Pricing page** (`/pricing`) | ❌ Not started |
+| 9 | **Lock UI** (lesson cards, paywall banners) | ❌ Not started |
+| 10 | **Navigation** (Upgrade link, Premium badge) | ❌ Not started |
+| 11 | **User subscription settings** (`/settings/subscription`) | ❌ Not started |
+| 12 | Subscription settings admin (`/admin/payments/settings`) | ✅ Done |
+| 13 | Admin cancel subscription | ✅ Done |
+
+### Detail
+
 1. **Data models** — User, PromoCode, PaymentTransaction changes (CoachingCenter billing deferred)
 2. **Access control** — `server/utils/accessControl.js` first
 3. **Subject controllers** — Add locking to lessons/subtopics/problems across all 4 subjects
 4. **Subject routes** — Add `requireAuth` to programming GET routes (DSA/DBMS/OS already have it)
 5. **Cashfree integration** — Config, payment controller, webhook, routes
-6. **Admin backend** — Payment stats, subscription management, promo CRUD
-7. **Admin frontend** — Payments dashboard, subscribers page, promo codes page
-8. **Pricing page** — Public `/pricing` with Cashfree checkout
-9. **Lock UI** — Lesson cards, paywall banners on detail pages
-10. **Navigation** — Upgrade link, Premium badge
-11. **User subscription settings** — `/settings/subscription` page
+   - `server/config/cashfree.js` — SDK initialized with `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENV`
+   - `.env` has test keys loaded, sandbox mode active
+   - 5 endpoints wired in `app.js`: `createSubscription`, `handleWebhook`, `applyPromo`, `getStatus`, `cancel`
+   - All controller functions call Cashfree SDK and handle responses
+   - Not yet end-to-end tested with live Cashfree API calls
+6. **Admin backend** — Payment stats, subscription management, promo CRUD, cancel subscription
+7. **Admin frontend** — Payments dashboard, subscribers page (with Activate/Cancel), promo codes page
+8. **Pricing page** — Public `/pricing` with Cashfree checkout — **NEXT**
+9. **Lock UI** — Lesson cards, paywall banners on detail pages — **NEXT**
+10. **Navigation** — Upgrade link, Premium badge — **NEXT**
+11. **User subscription settings** — `/settings/subscription` page — **NEXT**
+12. **Subscription settings admin** — Configurable price & duration via `/admin/payments/settings`
+13. **Admin cancel subscription** — Cancel button on subscriber management page

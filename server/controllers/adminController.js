@@ -22,7 +22,10 @@ import BatchPlan from '../models/BatchPlan.js';
 import Batch from '../models/Batch.js';
 import Progress from '../models/Progress.js';
 import CoachingCenter from '../models/CoachingCenter.js';
+import PaymentTransaction from '../models/PaymentTransaction.js';
+import PromoCode from '../models/PromoCode.js';
 import { getProgressSummary, deriveStatus } from '../services/progressService.js';
+import { getSubscriptionSettings } from './siteConfigController.js';
 
 
 /*
@@ -400,6 +403,441 @@ export async function getBatchPlanStats(req, res) {
     res.json({ data: { activePlans, activeBatchPlans, behindCount, recentBatches, totalStudents, totalCenters, totalPlansAll, totalBatches, centerStudents } });
   } catch (error) {
     console.error('[ADMIN] Error fetching batch/plan stats:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/* ===================== PAYMENT ADMIN ===================== */
+
+/*
+ * GET /api/admin/payments/stats
+ * Admin: Aggregate payment and subscription statistics.
+ * Returns counts of active/canceled/expired users, total revenue, and
+ * revenue for the current month.
+ */
+export async function getPaymentStats(req, res) {
+  try {
+    console.log('[ADMIN] Fetching payment stats...');
+
+    const [
+      activeSubscriptions,
+      canceledSubscriptions,
+      totalTransactions,
+      successfulTransactions,
+      totalRevenue,
+      monthlyTransactions
+    ] = await Promise.all([
+      /* Count users with active subscription */
+      User.countDocuments({ 'subscription.status': 'active' }),
+      /* Count users with canceled subscription */
+      User.countDocuments({ 'subscription.status': 'canceled' }),
+      /* Count all payment transactions */
+      PaymentTransaction.countDocuments(),
+      /* Count successful transactions */
+      PaymentTransaction.countDocuments({ status: 'success' }),
+      /* Sum all successful transaction amounts */
+      PaymentTransaction.aggregate([
+        { $match: { status: 'success' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      /* Count transactions this month */
+      PaymentTransaction.countDocuments({
+        createdAt: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
+      })
+    ]);
+
+    const revenue = totalRevenue.length > 0 ? totalRevenue[0].total : 0;
+    const subConfig = await getSubscriptionSettings();
+
+    console.log('[ADMIN] Payment stats:', { activeSubscriptions, canceledSubscriptions, totalTransactions, revenue });
+    res.json({
+      data: {
+        activeSubscriptions,
+        canceledSubscriptions,
+        totalTransactions,
+        successfulTransactions,
+        totalRevenue: revenue,
+        monthlyTransactions,
+        currentPrice: subConfig.price,
+        durationDays: subConfig.durationDays
+      }
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error fetching payment stats:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * GET /api/admin/payments/subscriptions
+ * Admin: List all users with subscription data, sorted by most recent.
+ * Supports pagination and status filtering.
+ */
+export async function getAllSubscriptions(req, res) {
+  try {
+    console.log('[ADMIN] Fetching all subscriptions...');
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const { status } = req.query;
+
+    /*
+     * Base filters:
+     *   - Exclude center-enrolled students (they get access via their centre, not via subscription)
+     *   - Exclude coordinators (they manage centres, not subscribers)
+     *   - Every user always has subscription.status (default: 'free');
+     *     'free' means never subscribed, any other status means they have or had a subscription
+     */
+    const query = {
+      coachingCenter: null,
+      coordinatorFor: null
+    };
+    if (status) {
+      query['subscription.status'] = status;
+    } else {
+      /* Default: show only users who actually subscribed (status != 'free') */
+      query['subscription.status'] = { $ne: 'free' };
+    }
+
+    const skip = (page - 1) * limit;
+    const users = await User.find(query)
+      .select('username displayName email avatar subscription')
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const total = await User.countDocuments(query);
+    const statusCounts = status ? {} : await Promise.all([
+      User.countDocuments({ 'subscription.status': 'active' }),
+      User.countDocuments({ 'subscription.status': 'canceled' }),
+      User.countDocuments({ 'subscription.status': 'expired' }),
+      User.countDocuments({ 'subscription.status': 'past_due' }),
+      User.countDocuments({ 'subscription.status': 'free' })
+    ]);
+
+    console.log('[ADMIN] Subscriptions fetched:', total, '| status filter:', status || 'none');
+    res.json({
+      data: users,
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / limit),
+      breakdown: status ? undefined : {
+        active: statusCounts[0],
+        canceled: statusCounts[1],
+        expired: statusCounts[2],
+        pastDue: statusCounts[3],
+        free: statusCounts[4]
+      }
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error fetching subscriptions:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/admin/payments/subscriptions/:userId/activate
+ * Admin: Manually activate a user's subscription.
+ * Used for coaching center students that get access via their center,
+ * or for manual override by support.
+ * Creates a PaymentTransaction audit record.
+ */
+export async function activateSubscription(req, res) {
+  try {
+    console.log('[ADMIN] Activating subscription for user:', req.params.userId);
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { months } = req.body;
+    const monthsNum = parseInt(months, 10);
+    if (!monthsNum || monthsNum < 1) {
+      return res.status(400).json({ error: 'months is required and must be at least 1' });
+    }
+
+    const now = new Date();
+    const subConfig = await getSubscriptionSettings();
+    const periodEnd = new Date(now.getTime() + subConfig.durationDays * monthsNum * 24 * 60 * 60 * 1000);
+
+    user.subscription.status = 'active';
+    user.subscription.currentPeriodStart = now;
+    user.subscription.currentPeriodEnd = periodEnd;
+    await user.save();
+
+    await PaymentTransaction.create({
+      user: user._id,
+      type: 'admin_activated',
+      amount: 0,
+      currency: 'INR',
+      status: 'success',
+      metadata: { activatedBy: req.userId, reason: `Manual admin activation for ${monthsNum} month(s)`, months: monthsNum }
+    });
+
+    console.log('[ADMIN] Subscription activated for user:', user._id, '| months:', monthsNum, '| periodEnd:', periodEnd);
+    res.json({ data: { message: 'Subscription activated', currentPeriodEnd: periodEnd, months: monthsNum } });
+  } catch (error) {
+    console.error('[ADMIN] Error activating subscription:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/admin/payments/subscriptions/:userId/deactivate
+ * Admin: Manually deactivate a user's subscription.
+ * Sets status to 'expired' immediately (not 'canceled' — 'canceled' means
+ * user still has access until period end).
+ * Creates a PaymentTransaction audit record.
+ */
+export async function deactivateSubscription(req, res) {
+  try {
+    console.log('[ADMIN] Deactivating subscription for user:', req.params.userId);
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.subscription.status = 'expired';
+    user.subscription.currentPeriodStart = null;
+    user.subscription.currentPeriodEnd = null;
+    await user.save();
+
+    await PaymentTransaction.create({
+      user: user._id,
+      type: 'admin_deactivated',
+      amount: 0,
+      currency: 'INR',
+      status: 'success',
+      metadata: { deactivatedBy: req.userId, reason: 'Manual admin deactivation' }
+    });
+
+    console.log('[ADMIN] Subscription deactivated for user:', user._id);
+    res.json({ data: { message: 'Subscription deactivated' } });
+  } catch (error) {
+    console.error('[ADMIN] Error deactivating subscription:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/admin/payments/subscriptions/:userId/cancel
+ * Admin: Cancel a user's subscription.
+ * Sets status to 'canceled' — user keeps access until currentPeriodEnd,
+ * but no more charges/future renewals.
+ * Creates a PaymentTransaction audit record.
+ */
+export async function cancelSubscription(req, res) {
+  try {
+    console.log('[ADMIN] Canceling subscription for user:', req.params.userId);
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.subscription?.status !== 'active') {
+      return res.status(400).json({ error: 'User does not have an active subscription' });
+    }
+
+    user.subscription.status = 'canceled';
+    await user.save();
+
+    await PaymentTransaction.create({
+      user: user._id,
+      type: 'subscription_canceled',
+      amount: 0,
+      currency: 'INR',
+      status: 'success',
+      metadata: { canceledBy: req.userId, reason: 'Manual admin cancellation', accessUntil: user.subscription.currentPeriodEnd }
+    });
+
+    console.log('[ADMIN] Subscription canceled for user:', user._id, '| access until:', user.subscription.currentPeriodEnd);
+    res.json({ data: { message: 'Subscription canceled', accessUntil: user.subscription.currentPeriodEnd } });
+  } catch (error) {
+    console.error('[ADMIN] Error canceling subscription:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * GET /api/admin/payments/transactions
+ * Admin: List all payment transactions with user details.
+ * Supports pagination and type/status filtering.
+ */
+export async function getTransactionHistory(req, res) {
+  try {
+    console.log('[ADMIN] Fetching transaction history...');
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const { type, status } = req.query;
+    const query = {};
+    if (type) query.type = type;
+    if (status) query.status = status;
+
+    const skip = (page - 1) * limit;
+    const transactions = await PaymentTransaction.find(query)
+      .populate('user', 'username displayName email avatar')
+      .populate('promoCode', 'code type')
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const total = await PaymentTransaction.countDocuments(query);
+
+    console.log('[ADMIN] Transactions fetched:', total);
+    res.json({ data: transactions, total, page: Number(page), totalPages: Math.ceil(total / limit) });
+  } catch (error) {
+    console.error('[ADMIN] Error fetching transactions:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/* ===================== PROMO CODE CRUD ===================== */
+
+/*
+ * GET /api/admin/promos
+ * Admin: List all promo codes with pagination.
+ */
+export async function getPromoCodes(req, res) {
+  try {
+    console.log('[ADMIN] Fetching promo codes...');
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
+    const promos = await PromoCode.find({})
+      .populate('createdBy', 'username displayName')
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 })
+      .lean();
+    const total = await PromoCode.countDocuments({});
+    console.log('[ADMIN] Promo codes fetched:', total);
+    res.json({ data: promos, total, page: Number(page), totalPages: Math.ceil(total / limit) });
+  } catch (error) {
+    console.error('[ADMIN] Error fetching promo codes:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/admin/promos
+ * Admin: Create a new promo code.
+ * The code is automatically uppercased before saving.
+ */
+export async function createPromoCode(req, res) {
+  try {
+    console.log('[ADMIN] Creating promo code...');
+    const { code, type, value, maxUses, expiresAt, description } = req.body;
+
+    if (!code || !type || value === undefined) {
+      return res.status(400).json({ error: 'code, type, and value are required' });
+    }
+
+    if (!['free_month', 'discount_percent', 'discount_fixed'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid promo type. Must be free_month, discount_percent, or discount_fixed' });
+    }
+
+    /* Validate value is a positive number */
+    const numericValue = Number(value);
+    if (isNaN(numericValue) || numericValue < 0) {
+      return res.status(400).json({ error: 'Value must be a positive number' });
+    }
+
+    if (type === 'discount_percent' && (numericValue < 1 || numericValue > 100)) {
+      return res.status(400).json({ error: 'Discount percent must be between 1 and 100' });
+    }
+
+    if (type === 'discount_fixed' && numericValue < 1) {
+      return res.status(400).json({ error: 'Fixed discount must be at least ₹1' });
+    }
+
+    /* Check for duplicate code */
+    const existing = await PromoCode.findOne({ code: code.toUpperCase() });
+    if (existing) {
+      return res.status(409).json({ error: 'A promo code with this code already exists' });
+    }
+
+    /* Look up the admin user's MongoDB _id (req.userId is Clerk session ID) */
+    const adminUser = await User.findOne({ clerkId: req.userId }).select('_id').lean();
+    const promo = await PromoCode.create({
+      code: code.toUpperCase(),
+      type,
+      value: numericValue,
+      maxUses: maxUses || null,
+      expiresAt: expiresAt || null,
+      description: description || '',
+      createdBy: adminUser?._id || null
+    });
+
+    console.log('[ADMIN] Promo code created:', promo.code, '| type:', type, '| value:', numericValue);
+    res.status(201).json({ data: promo });
+  } catch (error) {
+    console.error('[ADMIN] Error creating promo code:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * PUT /api/admin/promos/:id
+ * Admin: Update an existing promo code.
+ * Fields that are not provided remain unchanged.
+ */
+export async function updatePromoCode(req, res) {
+  try {
+    console.log('[ADMIN] Updating promo code:', req.params.id);
+    const { type, value, maxUses, expiresAt, active, description } = req.body;
+    const promo = await PromoCode.findById(req.params.id);
+    if (!promo) {
+      return res.status(404).json({ error: 'Promo code not found' });
+    }
+
+    if (type !== undefined) {
+      if (!['free_month', 'discount_percent', 'discount_fixed'].includes(type)) {
+        return res.status(400).json({ error: 'Invalid promo type' });
+      }
+      promo.type = type;
+    }
+    if (value !== undefined) {
+      const numericValue = Number(value);
+      if (isNaN(numericValue) || numericValue < 0) {
+        return res.status(400).json({ error: 'Value must be a positive number' });
+      }
+      if (promo.type === 'discount_percent' && (numericValue < 1 || numericValue > 100)) {
+        return res.status(400).json({ error: 'Discount percent must be between 1 and 100' });
+      }
+      promo.value = numericValue;
+    }
+    if (maxUses !== undefined) promo.maxUses = maxUses;
+    if (expiresAt !== undefined) promo.expiresAt = expiresAt;
+    if (active !== undefined) promo.active = active;
+    if (description !== undefined) promo.description = description;
+
+    /* Code should not be changed after creation — too risky for active promos */
+
+    await promo.save();
+    console.log('[ADMIN] Promo code updated:', promo.code);
+    res.json({ data: promo });
+  } catch (error) {
+    console.error('[ADMIN] Error updating promo code:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * DELETE /api/admin/promos/:id
+ * Admin: Delete a promo code permanently.
+ */
+export async function deletePromoCode(req, res) {
+  try {
+    console.log('[ADMIN] Deleting promo code:', req.params.id);
+    const promo = await PromoCode.findByIdAndDelete(req.params.id);
+    if (!promo) {
+      return res.status(404).json({ error: 'Promo code not found' });
+    }
+    console.log('[ADMIN] Promo code deleted:', promo.code);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ADMIN] Error deleting promo code:', error.message);
     res.status(500).json({ error: error.message });
   }
 }

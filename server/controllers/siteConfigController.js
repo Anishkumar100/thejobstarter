@@ -403,3 +403,216 @@ export async function updateHeroSection(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+/*
+ * Shared helper: get subscription price & duration from config (with fallback to defaults)
+ * Used by paymentController and adminController so they always use the latest values.
+ */
+export async function getSubscriptionSettings() {
+  try {
+    const config = await SiteConfig.findOne().lean();
+    return {
+      price: config?.subscriptionSettings?.price ?? 99,
+      durationDays: config?.subscriptionSettings?.durationDays ?? 30
+    };
+  } catch (error) {
+    console.error('[SITE_CONFIG] Error reading subscription settings:', error.message);
+    return { price: 99, durationDays: 30 };
+  }
+}
+
+/*
+ * GET /api/site-config/pricing
+ * Public: Get active pricing plans for the /pricing page
+ */
+export async function getPricingPlans(req, res) {
+  try {
+    console.log('[SITE_CONFIG] Fetching pricing plans...');
+    let config = await SiteConfig.findOne().lean();
+    if (!config || !config.pricingPlans || config.pricingPlans.length === 0) {
+      /* Return default plans if nothing saved yet */
+      const defaults = [
+        {
+          id: 'free',
+          name: 'Free',
+          description: 'Get started with basic access to the platform.',
+          price: 0,
+          interval: 'forever',
+          features: [
+            'Access to DSA problems',
+            'Community Q&A read-only',
+            'Basic articles & blog posts',
+            'Public profile'
+          ],
+          ctaText: 'Get Started',
+          ctaLink: '/sign-up',
+          highlighted: false,
+          badge: '',
+          active: true
+        },
+        {
+          id: 'premium',
+          name: 'Premium',
+          description: 'Full access to everything TheJobStarter offers.',
+          price: 99,
+          interval: 'monthly',
+          features: [
+            'Everything in Free',
+            'Unlimited code submissions',
+            'Premium articles & cheatsheets',
+            'Direct messaging',
+            'Download PDFs & PPTX',
+            'Priority community support'
+          ],
+          ctaText: 'Subscribe Now',
+          ctaLink: '/subscribe',
+          highlighted: true,
+          badge: 'Most Popular',
+          active: true
+        },
+        {
+          id: 'lifetime',
+          name: 'Lifetime',
+          description: 'One-time payment. Access forever.',
+          price: 999,
+          interval: 'once',
+          features: [
+            'Everything in Premium',
+            'All future premium content',
+            'Lifetime updates',
+            'Exclusive Discord access',
+            'Priority email support',
+            'Early access to new features'
+          ],
+          ctaText: 'Get Lifetime',
+          ctaLink: '/subscribe',
+          highlighted: false,
+          badge: '',
+          active: true
+        }
+      ];
+      return res.json({ data: defaults.filter(p => p.active) });
+    }
+    /* Only return plans that are active */
+    const activePlans = config.pricingPlans.filter(p => p.active);
+    console.log('[SITE_CONFIG] Pricing plans fetched:', activePlans.length);
+    res.json({ data: activePlans });
+  } catch (error) {
+    console.error('[SITE_CONFIG] Error fetching pricing plans:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * GET /api/site-config/pricing/admin
+ * Admin: Get ALL pricing plans (including inactive)
+ */
+export async function getPricingPlansAdmin(req, res) {
+  try {
+    console.log('[SITE_CONFIG] Fetching all pricing plans (admin)...');
+    const config = await SiteConfig.findOne().lean();
+    if (!config || !config.pricingPlans || config.pricingPlans.length === 0) {
+      return res.json({ data: [] });
+    }
+    console.log('[SITE_CONFIG] Admin pricing plans fetched:', config.pricingPlans.length);
+    res.json({ data: config.pricingPlans });
+  } catch (error) {
+    console.error('[SITE_CONFIG] Error fetching admin pricing plans:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * PUT /api/site-config/pricing/plans
+ * Admin: Replace the entire pricing plans array
+ * Body: { plans: [{ id, name, description, price, interval, features, ctaText, ctaLink, highlighted, badge, active }] }
+ */
+export async function updatePricingPlans(req, res) {
+  try {
+    console.log('[SITE_CONFIG] Updating pricing plans...');
+    const { plans } = req.body;
+    if (!Array.isArray(plans)) {
+      return res.status(400).json({ error: 'plans array is required' });
+    }
+
+    /* Validate each plan has required fields */
+    for (const plan of plans) {
+      if (!plan.id || !plan.name || typeof plan.price !== 'number') {
+        return res.status(400).json({ error: 'Each plan must have id, name, and price' });
+      }
+    }
+
+    await SiteConfig.findOneAndUpdate(
+      {},
+      { $set: { pricingPlans: plans } },
+      { upsert: true }
+    );
+    console.log('[SITE_CONFIG] Pricing plans updated:', plans.length);
+    res.json({ data: plans, message: 'Pricing plans saved successfully' });
+  } catch (error) {
+    console.error('[SITE_CONFIG] Error updating pricing plans:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * GET /api/site-config/subscription/public
+ * Public: Get current subscription price and duration (for checkout page)
+ */
+export async function getPublicSubscriptionConfig(req, res) {
+  try {
+    const config = await SiteConfig.findOne().lean();
+    const settings = config?.subscriptionSettings || { price: 99, durationDays: 30 };
+    console.log('[SITE_CONFIG] Public subscription config fetched:', settings);
+    res.json({ data: settings });
+  } catch (error) {
+    console.error('[SITE_CONFIG] Error fetching public subscription config:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * GET /api/site-config/subscription
+ * Admin: Get current subscription price and duration config
+ */
+export async function getSubscriptionConfig(req, res) {
+  try {
+    const config = await SiteConfig.findOne().lean();
+    const settings = config?.subscriptionSettings || { price: 99, durationDays: 30 };
+    console.log('[SITE_CONFIG] Subscription config fetched:', settings);
+    res.json({ data: settings });
+  } catch (error) {
+    console.error('[SITE_CONFIG] Error fetching subscription config:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * PUT /api/site-config/subscription
+ * Admin: Update subscription price and/or duration
+ * Body: { price?: number, durationDays?: number }
+ */
+export async function updateSubscriptionConfig(req, res) {
+  try {
+    console.log('[SITE_CONFIG] Updating subscription config:', req.body);
+    const { price, durationDays } = req.body;
+
+    const update = { $set: {} };
+    if (typeof price === 'number' && price > 0) {
+      update.$set['subscriptionSettings.price'] = price;
+    }
+    if (typeof durationDays === 'number' && durationDays > 0) {
+      update.$set['subscriptionSettings.durationDays'] = durationDays;
+    }
+
+    await SiteConfig.findOneAndUpdate({}, update, { upsert: true });
+    const config = await SiteConfig.findOne().lean();
+    const settings = config?.subscriptionSettings || { price: 99, durationDays: 30 };
+
+    console.log('[SITE_CONFIG] Subscription config updated:', settings);
+    res.json({ data: settings });
+  } catch (error) {
+    console.error('[SITE_CONFIG] Error updating subscription config:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}

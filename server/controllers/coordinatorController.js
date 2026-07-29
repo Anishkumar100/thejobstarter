@@ -10,6 +10,7 @@ import { getProgressSummary, deriveStatus } from '../services/progressService.js
 import User from '../models/User.js';
 import Batch from '../models/Batch.js';
 import CourseOffering from '../models/CourseOffering.js';
+import CoachingCenter from '../models/CoachingCenter.js';
 import { generateCode } from './batchController.js';
 
 /*
@@ -791,6 +792,50 @@ export async function exportCoordinatorCsv(req, res) {
 }
 
 /*
+ * PATCH /api/coordinator/center/code
+ * Coordinator: Update their center's join code.
+ * Accepts either { code: 'newcode' } to set a specific code,
+ * or { regenerate: true } to auto-generate a random code.
+ * No restrictions on code format — any non-empty string is accepted.
+ * Uniqueness is enforced server-side (case-sensitive).
+ */
+export async function updateCenterCode(req, res) {
+  try {
+    const centerId = req.coordinatorCenterId;
+    console.log('[COORD] Updating center code for center:', centerId);
+
+    const center = await CoachingCenter.findById(centerId);
+    if (!center) {
+      return res.status(404).json({ error: 'Coaching center not found' });
+    }
+
+    if (req.body.regenerate === true) {
+      /* Auto-generate a random code using the shared generator */
+      center.code = generateCode();
+    } else if (req.body.code) {
+      const code = req.body.code.trim();
+      /* Check uniqueness (case-sensitive) */
+      const existing = await CoachingCenter.findOne({ code, _id: { $ne: centerId } });
+      if (existing) {
+        return res.status(409).json({ error: 'This code is already in use by another center' });
+      }
+      center.code = code;
+    } else {
+      return res.status(400).json({ error: 'Provide a code or set regenerate: true' });
+    }
+
+    center.codeRegeneratedAt = new Date();
+    await center.save();
+
+    console.log('[COORD] Center code updated:', center.code);
+    res.json({ data: { code: center.code } });
+  } catch (error) {
+    console.error('[COORD] Error updating center code:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
  * PATCH /api/coordinator/students/:userId/remove
  * Removes a student from the coordinator's own center.
  * Verifies the target user's coachingCenter matches the coordinator's center.
@@ -816,9 +861,11 @@ export async function removeStudent(req, res) {
     /* Remove the center link — does NOT delete the user account */
     student.coachingCenter = null;
     student.coachingCenterJoinedAt = null;
+    student.batch = null;
+    student.courseOffering = null;
     await student.save();
 
-    console.log('[COORD] Student removed from center:', userId);
+    console.log('[COORD] Student removed from center:', userId, '— batch and courseOffering also cleared');
     res.json({ success: true, data: { _id: student._id, username: student.username } });
   } catch (error) {
     console.error('[COORD] Error removing student:', error.message);

@@ -40,6 +40,10 @@ import BlogList from './pages/BlogList.jsx';
 import BlogDetail from './pages/BlogDetail.jsx';
 import Cheatsheets from './pages/Cheatsheets.jsx';
 import Newsletter from './pages/Newsletter.jsx';
+import Pricing from './pages/Pricing.jsx';
+import Subscribe from './pages/Subscribe.jsx';
+import PaymentSuccess from './pages/PaymentSuccess.jsx';
+import SubscriptionSettings from './pages/SubscriptionSettings.jsx';
 
 /* Protected pages */
 import SubjectProgressDetail from './pages/SubjectProgressDetail.jsx';
@@ -113,6 +117,11 @@ import AdminCoachingCenters from './pages/AdminCoachingCenters.jsx';
 import AdminCoachingCenterDetail from './pages/AdminCoachingCenterDetail.jsx';
 import AdminBatchDetail from './pages/AdminBatchDetail.jsx';
 import AdminCoachingCenterStudentDetail from './pages/AdminCoachingCenterStudentDetail.jsx';
+import AdminPayments from './pages/AdminPayments.jsx';
+import AdminSubscribers from './pages/AdminSubscribers.jsx';
+import AdminPromoCodes from './pages/AdminPromoCodes.jsx';
+import AdminSubscriptionSettings from './pages/AdminSubscriptionSettings.jsx';
+import AdminPricingSettings from './pages/AdminPricingSettings.jsx';
 import AdminLayout from './components/admin/AdminLayout.jsx';
 
 import CoordinatorDashboard from './pages/CoordinatorDashboard.jsx';
@@ -123,6 +132,10 @@ import CoordinatorCourses from './pages/CoordinatorCourses.jsx';
 import CoordinatorStudentsList from './pages/CoordinatorStudentsList.jsx';
 import CoordinatorStudentDetail from './pages/CoordinatorStudentDetail.jsx';
 import CoordinatorProfile from './pages/CoordinatorProfile.jsx';
+import CoordinatorAssignments from './pages/CoordinatorAssignments.jsx';
+import CoordinatorAssignmentDetail from './pages/CoordinatorAssignmentDetail.jsx';
+import StudentAssignments from './pages/StudentAssignments.jsx';
+import StudentAssignmentDetail from './pages/StudentAssignmentDetail.jsx';
 import CoordinatorLayout from './components/coordinator/CoordinatorLayout.jsx';
 import AdminPlanList from './pages/AdminPlanList.jsx';
 import AdminPlanBuilder from './pages/AdminPlanBuilder.jsx';
@@ -280,6 +293,9 @@ function AppRoutes() {
       <Route path="/blog/:slug" element={<ProtectedRoute><AppLayout><BlogDetail /></AppLayout></ProtectedRoute>} />
       <Route path="/cheatsheets" element={<AppLayout><Cheatsheets /></AppLayout>} />
       <Route path="/newsletter" element={<AppLayout><Newsletter /></AppLayout>} />
+      <Route path="/pricing" element={<AppLayout><Pricing /></AppLayout>} />
+      <Route path="/subscribe" element={<ProtectedRoute><AppLayout><Subscribe /></AppLayout></ProtectedRoute>} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/sign-in/*" element={<SignIn />} />
       <Route path="/sign-up/*" element={<SignUp />} />
 
@@ -290,8 +306,11 @@ function AppRoutes() {
       <Route path="/users/:username" element={<ProtectedRoute><AppLayout><UserProfile /></AppLayout></ProtectedRoute>} />
       <Route path="/users/:username/followers" element={<ProtectedRoute><AppLayout><FollowersPage /></AppLayout></ProtectedRoute>} />
       <Route path="/settings/profile" element={<ProtectedRoute><AppLayout><EditProfile /></AppLayout></ProtectedRoute>} />
+      <Route path="/settings/subscription" element={<ProtectedRoute><AppLayout><SubscriptionSettings /></AppLayout></ProtectedRoute>} />
       <Route path="/settings/progress/:subject" element={<ProtectedRoute><AppLayout><SubjectProgressDetail /></AppLayout></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><AppLayout><StudentDashboard /></AppLayout></ProtectedRoute>} />
+      <Route path="/assignments" element={<ProtectedRoute><AppLayout><StudentAssignments /></AppLayout></ProtectedRoute>} />
+      <Route path="/assignments/:id" element={<ProtectedRoute><AppLayout><StudentAssignmentDetail /></AppLayout></ProtectedRoute>} />
 
       <Route path="/coordinator" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorDashboard /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/general-stats" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorGeneralStats /></CoordinatorLayout></CoordinatorRoute>} />
@@ -301,6 +320,8 @@ function AppRoutes() {
       <Route path="/coordinator/students" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentsList /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/students/:userId" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentDetail /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/profile" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorProfile /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/assignments" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorAssignments /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/assignments/:id" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorAssignmentDetail /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/plans" element={<CoordinatorRoute><CoordinatorLayout><AdminPlanList /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/plans/new" element={<CoordinatorRoute><CoordinatorLayout><AdminPlanBuilder /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/plans/:id" element={<CoordinatorRoute><CoordinatorLayout><AdminPlanBuilder /></CoordinatorLayout></CoordinatorRoute>} />
@@ -385,6 +406,11 @@ function AppRoutes() {
       <Route path="/admin/plans/new" element={<AdminRoute><AdminLayout><AdminPlanBuilder /></AdminLayout></AdminRoute>} />
       <Route path="/admin/plans/:id" element={<AdminRoute><AdminLayout><AdminPlanBuilder /></AdminLayout></AdminRoute>} />
 <Route path="/admin/plans/:id/edit" element={<AdminRoute><AdminLayout><AdminPlanBuilder /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/payments" element={<AdminRoute><AdminLayout><AdminPayments /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/payments/subscribers" element={<AdminRoute><AdminLayout><AdminSubscribers /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/payments/promos" element={<AdminRoute><AdminLayout><AdminPromoCodes /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/payments/settings" element={<AdminRoute><AdminLayout><AdminSubscriptionSettings /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/payments/pricing" element={<AdminRoute><AdminLayout><AdminPricingSettings /></AdminLayout></AdminRoute>} />
 
       <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
     </Routes>

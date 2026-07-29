@@ -22,9 +22,10 @@ export async function handleClerkWebhook(req, res) {
     console.log('[USER] Clerk webhook received:', event.type);
 
     if (event.type === 'user.created' || event.type === 'user.updated') {
-      const { id, username, first_name, last_name, email_addresses, image_url } = event.data;
+      const { id, username, first_name, last_name, email_addresses, image_url, public_metadata } = event.data;
       const displayName = [first_name, last_name].filter(Boolean).join(' ') || username;
       const email = email_addresses?.[0]?.email_address;
+      const role = public_metadata?.role === 'admin' ? 'admin' : 'user';
 
       const user = await User.findOneAndUpdate(
         { clerkId: id },
@@ -33,7 +34,8 @@ export async function handleClerkWebhook(req, res) {
           username: username || `user_${id.substring(0, 8)}`,
           displayName,
           email,
-          avatar: image_url
+          avatar: image_url,
+          role
         },
         { upsert: true, new: true }
       );

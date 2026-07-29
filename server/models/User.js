@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, index: true },
   displayName: String,
   email: String,
+  phone: String,
   avatar: String,
   bio: String,
   college: String,
@@ -31,7 +32,29 @@ const userSchema = new mongoose.Schema({
   coachingCenterJoinedAt: { type: Date, default: null },
   coordinatorFor: { type: mongoose.Schema.Types.ObjectId, ref: 'CoachingCenter', default: null },
   batch: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch', default: null },
-  courseOffering: { type: mongoose.Schema.Types.ObjectId, ref: 'CourseOffering', default: null }
+  courseOffering: { type: mongoose.Schema.Types.ObjectId, ref: 'CourseOffering', default: null },
+  role: { type: String, enum: ['user', 'admin', 'coordinator'], default: 'user' },
+
+  /*
+   * Subscription fields for Cashfree recurring payments
+   * Default ensures every user has subscription.status set to 'free' on creation.
+   */
+  subscription: {
+    type: {
+      status: {
+        type: String,
+        enum: ['free', 'active', 'past_due', 'canceled', 'expired'],
+        default: 'free'
+      },
+      cashfreeCustomerId:     { type: String, default: '' },
+      cashfreeSubscriptionId: { type: String, default: '' },
+      currentPeriodStart:     { type: Date, default: null },
+      currentPeriodEnd:       { type: Date, default: null },
+      appliedPromo:           { type: mongoose.Schema.Types.ObjectId, ref: 'PromoCode', default: null },
+      pendingRedirect:        { type: String, default: '' }
+    },
+    default: { status: 'free' }
+  }
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

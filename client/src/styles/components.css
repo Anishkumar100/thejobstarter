@@ -499,6 +499,76 @@
   margin: 4px 0;
 }
 
+/* Premium badge on navbar */
+.navbar__premium-badge,
+.navbar__org-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  flex-shrink: 0;
+  box-shadow: 2px 2px 0 var(--shadow-color);
+  transition: all 0.15s ease;
+}
+
+.navbar__premium-badge {
+  border-color: var(--accent-highlight, #ffd700);
+  background: var(--accent-highlight, #ffd700);
+  color: #000;
+}
+
+/* Coordinator badge — building icon with distinct style */
+.navbar__org-badge--coordinator {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+/* Student badge — graduation cap */
+.navbar__org-badge--student {
+  border-color: #6366f1;
+  background: #6366f1;
+  color: #fff;
+}
+
+.navbar__user:hover .navbar__premium-badge,
+.navbar__user:hover .navbar__org-badge {
+  transform: rotate(-10deg) scale(1.15);
+}
+
+.navbar__upgrade-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 12px;
+  border: 3px solid var(--accent-highlight, #ffd700);
+  background: var(--accent-highlight, #ffd700);
+  color: #000;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  box-shadow: 3px 3px 0 var(--shadow-color);
+}
+
+.navbar__upgrade-link:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--shadow-color);
+  background: transparent;
+  color: var(--accent-highlight, #ffd700) !important;
+}
+
+.navbar__upgrade-link:active {
+  transform: translate(0, 0);
+  box-shadow: 1px 1px 0 var(--shadow-color);
+}
+
 /* Notification bubble on the navbar avatar */
 .navbar__user-badge {
   position: absolute;
@@ -614,6 +684,93 @@
 }
 
 /* Theme toggle button */
+.navbar__community-wrapper {
+  position: relative;
+  display: flex;
+}
+
+.navbar__community-trigger {
+  cursor: pointer;
+  background: none;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navbar__community-chevron {
+  transition: transform 0.2s ease;
+}
+
+.navbar__community-chevron--open {
+  transform: rotate(180deg);
+}
+
+.navbar__community-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  border: var(--border);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow);
+  z-index: 300;
+  overflow: hidden;
+}
+
+.navbar__community-dropdown .navbar__dropdown-item {
+  border-bottom: 2px solid var(--border-subtle);
+}
+
+.navbar__community-dropdown .navbar__dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.navbar__dropdown-item--active {
+  background: var(--accent-light);
+  color: var(--accent) !important;
+  font-weight: 800;
+}
+
+/* Mobile overlay community subsection */
+.navbar__overlay-subsection {
+  margin-top: 4px;
+}
+
+.navbar__overlay-subheader {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-tertiary);
+  padding: 12px 0 4px;
+  border-bottom: 2px solid var(--border-subtle);
+}
+
+.navbar__overlay-sublink {
+  display: flex;
+  align-items: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  padding: 10px 0 10px 16px;
+  border-bottom: 2px solid var(--border-subtle);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.navbar__overlay-sublink:hover {
+  color: var(--accent) !important;
+  padding-left: 24px;
+}
+
+.navbar__overlay-sublink--active {
+  color: var(--accent) !important;
+}
+
 .navbar__theme-btn {
   width: 40px;
   height: 40px;
@@ -653,6 +810,50 @@
 /* ===== FULLSCREEN MOBILE OVERLAY ===== */
 .navbar__overlay {
   display: none;
+}
+
+/* Medium screens — tighten spacing to fit all links */
+@media (max-width: 1100px) {
+  .navbar__desktop-links {
+    gap: 2px;
+  }
+  .navbar__link {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+  .navbar {
+    padding: 0 var(--space-md) 0 0;
+  }
+  .navbar__upgrade-link {
+    font-size: 0.65rem;
+    padding: 4px 8px;
+  }
+  .navbar__username {
+    max-width: 80px;
+    font-size: 0.72rem;
+  }
+}
+
+/* Tight squeeze — reduce further */
+@media (max-width: 960px) {
+  .navbar__link {
+    padding: 4px 6px;
+    font-size: 0.65rem;
+    letter-spacing: 0.03em;
+  }
+  .navbar__desktop-links {
+    gap: 1px;
+  }
+  .navbar__login-btn {
+    font-size: 0.7rem;
+    padding: 6px 10px;
+  }
+  .navbar__user {
+    padding: 2px 8px 2px 2px;
+  }
+  .navbar__username {
+    max-width: 60px;
+  }
 }
 
 @media (max-width: 768px) {

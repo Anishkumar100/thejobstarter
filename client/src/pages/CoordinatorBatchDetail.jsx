@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
-import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus, BarChart3, TrendingUp } from 'lucide-react';
+import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus, BarChart3, TrendingUp, ChevronRight, ExternalLink } from 'lucide-react';
 
 const CARD = {
   border: '4px solid var(--border-color)',
@@ -128,12 +128,12 @@ export default function CoordinatorBatchDetail() {
       return;
     }
     try {
-      const res = await apiRequest(`/coordinator/batches/${id}/assign-plan`, {
+      await apiRequest(`/coordinator/batches/${id}/assign-plan`, {
         method: 'POST',
         body: JSON.stringify({ planId: selectedPlanId, startDate })
       });
-      setActivePlan(res.data);
       setShowPlanPicker(false);
+      fetchActivePlan(); /* Re-fetch from active-plan endpoint which includes currentDay */
     } catch (err) {
       alert(err.message || 'Failed to assign plan');
     }
@@ -360,6 +360,86 @@ export default function CoordinatorBatchDetail() {
   const paginatedOnTrack = onTrackStudents.slice((onTrackPage - 1) * PER_PAGE_BATCH, onTrackPage * PER_PAGE_BATCH);
   const behindTotalPages = Math.max(1, Math.ceil(behindStudents.length / PER_PAGE_BATCH));
   const paginatedBehind = behindStudents.slice((behindPage - 1) * PER_PAGE_BATCH, behindPage * PER_PAGE_BATCH);
+
+  /* ── Assignments section ── */
+  const [assignments, setAssignments] = useState([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState(null);
+  const [assignmentForm, setAssignmentForm] = useState({
+    title: '', instructions: '', attachmentLink: '', startDate: '', endDate: '', status: 'active'
+  });
+  const [savingAssignment, setSavingAssignment] = useState(false);
+  const [expandedAssignment, setExpandedAssignment] = useState(null);
+  const [assignmentDetail, setAssignmentDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const fetchAssignments = async () => {
+    if (!id) return;
+    setAssignmentsLoading(true);
+    try {
+      const res = await apiRequest(`/coordinator/assignments?batchId=${id}`);
+      setAssignments(res.data || []);
+    } catch (err) { console.error('[ASSIGN] Fetch error:', err.message); }
+    setAssignmentsLoading(false);
+  };
+
+  useEffect(() => { if (id) fetchAssignments(); }, [id]);
+
+  const resetAssignmentForm = () => {
+    setAssignmentForm({ title: '', instructions: '', attachmentLink: '', startDate: new Date().toISOString().split('T')[0], endDate: '', status: 'active' });
+    setEditingAssignment(null);
+    setShowAssignmentModal(false);
+  };
+
+  const handleCreateAssignment = async () => {
+    if (!assignmentForm.title || !assignmentForm.endDate) { alert('Title and end date required'); return; }
+    setSavingAssignment(true);
+    try {
+      if (editingAssignment) {
+        const res = await apiRequest(`/coordinator/assignments/${editingAssignment._id}`, {
+          method: 'PUT', body: JSON.stringify({ ...assignmentForm, batchId: id })
+        });
+        setAssignments(prev => prev.map(a => a._id === editingAssignment._id ? res.data : a));
+      } else {
+        const res = await apiRequest('/coordinator/assignments', {
+          method: 'POST', body: JSON.stringify({ ...assignmentForm, batchId: id })
+        });
+        setAssignments(prev => [res.data, ...prev]);
+      }
+      resetAssignmentForm();
+    } catch (err) { alert(err.message || 'Failed to save assignment'); }
+    setSavingAssignment(false);
+  };
+
+  const handleDeleteAssignment = async (a) => {
+    if (a._submissionStats?.total > 0 && !confirm(`This assignment has ${a._submissionStats.total} submission(s). Delete anyway?`)) return;
+    if (!editingAssignment && !confirm(`Delete "${a.title}"?`)) return;
+    try {
+      await apiRequest(`/coordinator/assignments/${a._id}`, { method: 'DELETE' });
+      setAssignments(prev => prev.filter(x => x._id !== a._id));
+    } catch (err) { alert(err.message || 'Failed to delete'); }
+  };
+
+  const loadAssignmentDetail = async (a) => {
+    if (expandedAssignment === a._id) { setExpandedAssignment(null); setAssignmentDetail(null); return; }
+    setExpandedAssignment(a._id);
+    setDetailLoading(true);
+    try {
+      const res = await apiRequest(`/coordinator/assignments/${a._id}`);
+      setAssignmentDetail(res.data);
+    } catch (err) { setAssignmentDetail(null); }
+    setDetailLoading(false);
+  };
+
+  const handleGradeSubmission = async (submissionId, status, feedback) => {
+    try {
+      await apiRequest(`/coordinator/assignments/${assignmentDetail._id}/submissions/${submissionId}`, {
+        method: 'PUT', body: JSON.stringify({ status, feedback })
+      });
+      loadAssignmentDetail(assignmentDetail);
+    } catch (err) { alert(err.message || 'Failed to grade'); }
+  };
 
   /* ── Single-student remove from batch (per-row action) ── */
 
@@ -588,6 +668,10 @@ export default function CoordinatorBatchDetail() {
                       <span>Day {current}/{total}</span>
                       <span>Time Elapsed: {timePct}%</span>
                     </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 2 }}>
+                      <span>Day {current} expires at 11:59 PM tonight</span>
+                      <span>{total - current} day{(total - current) !== 1 ? 's' : ''} remaining</span>
+                    </div>
                     <div style={{ height: 12, background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${timePct}%`, background: 'var(--success)', transition: 'width 0.4s ease' }} />
                     </div>
@@ -645,13 +729,142 @@ export default function CoordinatorBatchDetail() {
                 </>
               );
             })()}
-          </div>
-        ) : (
+          </div>              ) : (
           <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Clock size={14} /> No plan assigned yet. Create or assign a study plan to track daily progress.
           </p>
         )}
       </div>
+
+      {/* ═══ ASSIGNMENTS — INLINE CRUD ═══ */}
+      <div style={{ ...CARD, marginBottom: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+          <h2 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)' }}>
+            <FileText size={18} /> Assignments ({assignments.length})
+          </h2>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button className="btn btn--sm" onClick={() => { resetAssignmentForm(); setShowAssignmentModal(true); }}
+              style={{ fontSize: '0.65rem', padding: '4px 10px' }}>
+              <Plus size={12} /> Create
+            </button>
+          </div>
+        </div>
+
+        {assignmentsLoading ? (
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>Loading assignments...</p>
+        ) : assignments.length === 0 ? (
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FileText size={14} /> No assignments yet for this batch.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {assignments.map(a => {
+              const now = new Date();
+              const end = new Date(a.endDate);
+              /* Fix timezone: construct local midnight of day after endDate so deadline is end-of-day LOCAL time */
+              const eod = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
+              const isOverdue = a.status === 'active' && eod <= now;
+
+              const stats = a._submissionStats || {};
+              return (
+                <div key={a._id} style={{ border: '2px solid var(--border-color)', background: 'var(--bg-tertiary)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px' }}>
+                    <FileText size={14} style={{ flexShrink: 0, color: isOverdue ? '#dc2626' : a.status === 'active' ? '#16a34a' : 'var(--text-tertiary)' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)' }}>{a.title}</span>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', marginLeft: 6 }}>{new Date(a.startDate).toLocaleDateString()} - {new Date(a.endDate).toLocaleDateString()} (deadline: {new Date(a.endDate).toLocaleDateString()} at 11:59 PM)</span>
+                    </div>
+                    <span style={{ fontSize: '0.5rem', fontWeight: 700, padding: '2px 6px', border: '2px solid var(--border-color)', background: isOverdue ? '#fef2f2' : a.status === 'active' ? '#f0fdf4' : 'var(--bg-tertiary)', color: isOverdue ? '#dc2626' : a.status === 'active' ? '#16a34a' : 'var(--text-tertiary)' }}>{a.status}{isOverdue ? ' (overdue)' : ''}</span>
+                    <button onClick={e => { e.stopPropagation(); loadAssignmentDetail(a); }}
+                      style={{
+                        fontSize: '0.55rem', fontWeight: 700, padding: '4px 10px',
+                        border: '2px solid var(--border-color)', cursor: 'pointer',
+                        background: 'var(--bg-surface)', color: 'var(--text-primary)',
+                        display: 'inline-flex', alignItems: 'center', gap: 4,                      whiteSpace: 'nowrap'
+                    }}>
+                      {expandedAssignment === a._id ? '▲' : '▼'} Submissions ({stats.total}/{stats.totalStudents})
+                    </button>
+                    <Link to={`/coordinator/assignments/${a._id}`}
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        fontSize: '0.55rem', fontWeight: 700, padding: '4px 10px',
+                        border: '2px solid var(--border-color)', cursor: 'pointer',
+                        background: 'var(--bg-inverse)', color: 'var(--text-inverse)',
+                        textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3,
+                        whiteSpace: 'nowrap'
+                      }}>
+                      Details →
+                    </Link>
+                    <button onClick={e => { e.stopPropagation(); setEditingAssignment(a); setAssignmentForm({ title: a.title, instructions: a.instructions || '', attachmentLink: a.attachmentLink || '', startDate: new Date(a.startDate).toISOString().split('T')[0], endDate: new Date(a.endDate).toISOString().split('T')[0], status: a.status }); setShowAssignmentModal(true); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', color: 'var(--text-primary)', fontSize: '0.7rem' }}>
+                      <Edit3 size={12} />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); handleDeleteAssignment(a); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', color: '#dc2626', fontSize: '0.7rem' }}>
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                  {/* Expanded detail with submissions */}
+                  {expandedAssignment === a._id && (
+                    <div style={{ borderTop: '2px solid var(--border-color)', padding: 'var(--space-sm)', background: 'var(--bg-surface)' }}>
+                      {detailLoading ? (
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Loading...</p>
+                      ) : assignmentDetail ? (
+                        <>
+                          {assignmentDetail.instructions && <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{assignmentDetail.instructions}</p>}
+                          {assignmentDetail.attachmentLink && (
+                            <a href={assignmentDetail.attachmentLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.68rem', fontWeight: 600, color: '#4338ca', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+                              <ExternalLink size={11} /> View Attachment
+                            </a>
+                          )}
+                          <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 6 }}>Submissions ({assignmentDetail.submissions?.length || 0})</div>
+                          {(assignmentDetail.submissions || []).map(sub => (
+                            <div key={sub._id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', flexWrap: 'wrap', borderTop: '1px solid var(--gray-300)' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 600, minWidth: 100 }}>{sub.student?.displayName || sub.student?.username || '?'}</span>
+                              <a href={sub.driveLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.65rem', color: '#4338ca' }}>View</a>
+                              <span style={{ fontSize: '0.55rem', fontWeight: 700, padding: '1px 6px', border: '2px solid var(--border-color)', background: sub.status === 'approved' ? '#f0fdf4' : sub.status === 'rejected' ? '#fef2f2' : 'var(--bg-tertiary)', color: sub.status === 'approved' ? '#16a34a' : sub.status === 'rejected' ? '#dc2626' : 'var(--text-tertiary)' }}>{sub.status}</span>
+                              <button onClick={() => handleGradeSubmission(sub._id, 'approved', sub.feedback || '')} style={{ fontSize: '0.55rem', fontWeight: 700, padding: '1px 6px', border: '2px solid #16a34a', cursor: 'pointer', background: '#f0fdf4', color: '#16a34a' }}>Approve</button>
+                              <button onClick={() => { const fb = prompt('Feedback:', sub.feedback || ''); if (fb !== null) handleGradeSubmission(sub._id, 'rejected', fb); }} style={{ fontSize: '0.55rem', fontWeight: 700, padding: '1px 6px', border: '2px solid #dc2626', cursor: 'pointer', background: '#fef2f2', color: '#dc2626' }}>Reject</button>
+                            </div>
+                          ))}
+                          {assignmentDetail.notSubmitted?.length > 0 && (
+                            <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: 4 }}>Not submitted: {assignmentDetail.notSubmitted.map(s => s.displayName || s.username).join(', ')}</p>
+                          )}
+                        </>
+                      ) : <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Failed to load.</p>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Assignment create/edit modal */}
+      {showAssignmentModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget) resetAssignmentForm(); }}>
+          <div style={{ background: 'var(--bg-surface)', border: '3px solid var(--border-color)', boxShadow: '8px 8px 0 var(--shadow-color)', padding: 'var(--space-lg)', maxWidth: 500, width: '100%' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 900, marginBottom: 16, color: 'var(--text-primary)' }}>{editingAssignment ? 'Edit' : 'New'} Assignment</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <input className="input" placeholder="Title *" value={assignmentForm.title} onChange={e => setAssignmentForm(f => ({ ...f, title: e.target.value }))} />
+              <textarea className="input" placeholder="Instructions..." rows={3} value={assignmentForm.instructions} onChange={e => setAssignmentForm(f => ({ ...f, instructions: e.target.value }))} style={{ resize: 'vertical' }} />
+              <input className="input" placeholder="Attachment link (Google Drive...)" value={assignmentForm.attachmentLink} onChange={e => setAssignmentForm(f => ({ ...f, attachmentLink: e.target.value }))} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div><label style={{ fontSize: '0.6rem', fontWeight: 700, display: 'block', marginBottom: 2, color: 'var(--text-tertiary)' }}>Start</label><input type="date" className="input" value={assignmentForm.startDate} onChange={e => setAssignmentForm(f => ({ ...f, startDate: e.target.value }))} /></div>
+                <div><label style={{ fontSize: '0.6rem', fontWeight: 700, display: 'block', marginBottom: 2, color: 'var(--text-tertiary)' }}>End *</label><input type="date" className="input" value={assignmentForm.endDate} onChange={e => setAssignmentForm(f => ({ ...f, endDate: e.target.value }))} /></div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                <button className="btn btn--sm btn--ghost" onClick={resetAssignmentForm}>Cancel</button>
+                <button className="btn btn--sm" onClick={handleCreateAssignment} disabled={savingAssignment} style={{ opacity: savingAssignment ? 0.6 : 1 }}>{savingAssignment ? 'Saving...' : editingAssignment ? 'Update' : 'Create'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plan Progress Distribution */}
 
       {/* Plan Progress Distribution */}
       {activePlan && enrolledStudents.length > 0 && (

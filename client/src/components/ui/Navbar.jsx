@@ -3,29 +3,52 @@ import { useAuthStore } from '../../stores/useAuthStore.js';
 import { useThemeStore } from '../../stores/useThemeStore.js';
 import { useNotificationStore } from '../../stores/useNotificationStore.js';
 import { useState, useEffect, useRef } from 'react';
-import { Menu, X, Moon, Sun, MessageCircle, User, Settings, LogOut, Bell, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Moon, Sun, MessageCircle, User, Settings, LogOut, Bell, LayoutDashboard, Sparkles, Zap, ChevronDown, Users, HelpCircle, GraduationCap, Building2 } from 'lucide-react';
 import BrandLogo from './BrandLogo.jsx';
 
-const NAV_LINKS = [
+/*
+ * Core nav links that are always visible (top level).
+ * Pricing is conditionally added below the static list.
+ */
+const CORE_LINKS = [
   { to: '/dsa', label: 'DSA' },
   { to: '/dbms', label: 'DBMS' },
   { to: '/os', label: 'OS' },
   { to: '/programming', label: 'Programming' },
   { to: '/blog', label: 'Blog' },
-  { to: '/qa', label: 'Q&A' },
-  { to: '/users', label: 'Community' },
   { to: '/about', label: 'About' }
+];
+
+/* Community dropdown sub-links */
+const COMMUNITY_LINKS = [
+  { to: '/qa', label: 'Q&A', icon: HelpCircle },
+  { to: '/users', label: 'Community', icon: Users }
 ];
 
 export default function Navbar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, isPremium, subscriptionStatus } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [communityOpen, setCommunityOpen] = useState(false);
   const profileRef = useRef(null);
+  const communityRef = useRef(null);
+
+  /* Determine if user is center-enrolled or a coordinator — hide Pricing for them */
+  const isCenterOrCoordinator = !!user?.coachingCenter || user?.publicMetadata?.role === 'coordinator' || !!user?.coordinatorFor;
+
+  /* Role/org badge logic */
+  const isCoordinator = user?.publicMetadata?.role === 'coordinator' || !!user?.coordinatorFor;
+  const isStudentInCenter = !!user?.coachingCenter && !isCoordinator;
+
+  /* Build the full nav links list dynamically */
+  const navLinks = [
+    ...CORE_LINKS,
+    ...(!isCenterOrCoordinator ? [{ to: '/pricing', label: 'Pricing' }] : []),
+  ];
 
   /* Fetch unread notification count when authenticated, poll every 30s, refetch on focus */
   useEffect(() => {
@@ -48,6 +71,17 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  /* Close community dropdown on outside click */
+  useEffect(() => {
+    function handleClick(e) {
+      if (communityRef.current && !communityRef.current.contains(e.target)) {
+        setCommunityOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   /* Lock body scroll when mobile menu open */
   useEffect(() => {
     if (menuOpen) {
@@ -64,6 +98,9 @@ export default function Navbar() {
     return pathname === to || pathname.startsWith(to + '/');
   };
 
+  /* Check if ANY community link is active */
+  const isCommunityActive = COMMUNITY_LINKS.some(l => isActive(l.to));
+
   const closeMenu = () => setMenuOpen(false);
 
   return (
@@ -74,7 +111,7 @@ export default function Navbar() {
         </div>
 
         <div className="navbar__desktop-links">
-          {NAV_LINKS.map(link => (
+          {navLinks.map(link => (
             <Link
               key={link.to}
               to={link.to}
@@ -83,81 +120,147 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          {/* Community dropdown */}
+          <div
+            className="navbar__community-wrapper"
+            ref={communityRef}
+            onMouseLeave={() => setCommunityOpen(false)}
+          >
+            <button
+              className={`navbar__link navbar__community-trigger ${isCommunityActive ? 'navbar__link--active' : ''}`}
+              onClick={() => setCommunityOpen(!communityOpen)}
+              onMouseEnter={() => setCommunityOpen(true)}
+            >
+              Community <ChevronDown size={14} className={`navbar__community-chevron ${communityOpen ? 'navbar__community-chevron--open' : ''}`} />
+            </button>
+
+            {communityOpen && (
+              <div className="navbar__community-dropdown">
+                {COMMUNITY_LINKS.map(sub => (
+                  <Link
+                    key={sub.to}
+                    to={sub.to}
+                    className={`navbar__dropdown-item ${isActive(sub.to) ? 'navbar__dropdown-item--active' : ''}`}
+                    onClick={() => setCommunityOpen(false)}
+                  >
+                    <sub.icon size={16} />
+                    <span>{sub.label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="navbar__actions">
           {isAuthenticated && user ? (
-            <div className="navbar__profile-wrapper" ref={profileRef}>
-              <button
-                className="navbar__user"
-                onClick={() => setProfileOpen(!profileOpen)}
-              >
-                <div className="navbar__avatar">
-                  {user.avatar ? (
-                    <img src={user.avatar} alt={user.displayName} className="navbar__avatar-img" />
-                  ) : (
-                    <User size={16} />
-                  )}
-                  {unreadCount > 0 && (
-                    <span className="navbar__user-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
-                  )}
-                </div>
-                <span className="navbar__username">{user.displayName || user.username}</span>
-              </button>
-
-              {profileOpen && (
-                <div className="navbar__dropdown">
-                  <Link
-                    to="/messages"
-                    className="navbar__dropdown-item"
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    <MessageCircle size={16} />
-                    <span>Messages</span>
-                    {unreadCount > 0 && (
-                      <span className="navbar__notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+            <>
+              {/* Upgrade CTA for free-tier non-center users */}
+              {!isPremium && !isCenterOrCoordinator && (
+                <Link to="/pricing" className="navbar__upgrade-link">
+                  <Zap size={14} /> Upgrade
+                </Link>
+              )}
+              <div className="navbar__profile-wrapper" ref={profileRef}>
+                <button
+                  className="navbar__user"
+                  onClick={() => setProfileOpen(!profileOpen)}
+                >
+                  <div className="navbar__avatar">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.displayName} className="navbar__avatar-img" />
+                    ) : (
+                      <User size={16} />
                     )}
-                  </Link>
-                  {user.coachingCenter && (
+                    {unreadCount > 0 && (
+                      <span className="navbar__user-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                    )}
+                  </div>
+                  <span className="navbar__username">{user.displayName || user.username}</span>
+                  {/* Role/org badge — coordinator, student, or premium */}
+                  {isCoordinator && (
+                    <span className="navbar__org-badge navbar__org-badge--coordinator" title="Coordinator">
+                      <Building2 size={12} />
+                    </span>
+                  )}
+                  {isStudentInCenter && (
+                    <span className="navbar__org-badge navbar__org-badge--student" title="Center Student">
+                      <GraduationCap size={12} />
+                    </span>
+                  )}
+                  {isPremium && !isCenterOrCoordinator && (
+                    <span className="navbar__premium-badge" title="Premium Member">
+                      <Sparkles size={12} />
+                    </span>
+                  )}
+                </button>
+
+                {profileOpen && (
+                  <div className="navbar__dropdown">
                     <Link
-                      to="/dashboard"
+                      to="/messages"
                       className="navbar__dropdown-item"
                       onClick={() => setProfileOpen(false)}
                     >
-                      <LayoutDashboard size={16} />
-                      <span>Dashboard</span>
+                      <MessageCircle size={16} />
+                      <span>Messages</span>
+                      {unreadCount > 0 && (
+                        <span className="navbar__notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                      )}
                     </Link>
-                  )}
-                  <Link
-                    to={`/users/${user.username}`}
-                    className="navbar__dropdown-item"
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    <User size={16} />
-                    <span>View Profile</span>
-                  </Link>
-                  <Link
-                    to="/settings/profile"
-                    className="navbar__dropdown-item"
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    <Settings size={16} />
-                    <span>Edit Profile</span>
-                  </Link>
-                  <div className="navbar__dropdown-divider" />
-                  <button
-                    className="navbar__dropdown-item navbar__dropdown-item--danger"
-                    onClick={() => {
-                      setProfileOpen(false);
-                      window.Clerk?.signOut?.();
-                    }}
-                  >
-                    <LogOut size={16} />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              )}
-            </div>
+                    {user.coachingCenter && (
+                      <Link
+                        to="/dashboard"
+                        className="navbar__dropdown-item"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        <LayoutDashboard size={16} />
+                        <span>Dashboard</span>
+                      </Link>
+                    )}
+                    <Link
+                      to={`/users/${user.username}`}
+                      className="navbar__dropdown-item"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      <User size={16} />
+                      <span>View Profile</span>
+                    </Link>
+                    <Link
+                      to="/settings/profile"
+                      className="navbar__dropdown-item"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      <Settings size={16} />
+                      <span>Edit Profile</span>
+                    </Link>
+                    {/* Subscription settings link — only for non-center users */}
+                    {!isCenterOrCoordinator && (
+                      <Link
+                        to="/settings/subscription"
+                        className="navbar__dropdown-item"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        <Sparkles size={16} />
+                        <span>{isPremium ? 'Subscription' : 'Upgrade to Premium'}</span>
+                      </Link>
+                    )}
+                    <div className="navbar__dropdown-divider" />
+                    <button
+                      className="navbar__dropdown-item navbar__dropdown-item--danger"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        window.Clerk?.signOut?.();
+                      }}
+                    >
+                      <LogOut size={16} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <Link to="/sign-in" className="navbar__login-btn">
               Login
@@ -197,7 +300,7 @@ export default function Navbar() {
 
         <div className="navbar__overlay-body">
           <div className="navbar__overlay-links">
-            {NAV_LINKS.map(link => (
+            {navLinks.map(link => (
               <Link
                 key={link.to}
                 to={link.to}
@@ -207,6 +310,21 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+
+            {/* Community section in mobile overlay */}
+            <div className="navbar__overlay-subsection">
+              <span className="navbar__overlay-subheader">Community</span>
+              {COMMUNITY_LINKS.map(sub => (
+                <Link
+                  key={sub.to}
+                  to={sub.to}
+                  className={`navbar__overlay-sublink ${isActive(sub.to) ? 'navbar__overlay-sublink--active' : ''}`}
+                  onClick={closeMenu}
+                >
+                  {sub.label}
+                </Link>
+              ))}
+            </div>
           </div>
 
           <div className="navbar__overlay-bottom">
@@ -242,6 +360,12 @@ export default function Navbar() {
                   <Settings size={18} />
                   Edit Profile
                 </Link>
+                {!isCenterOrCoordinator && (
+                  <Link to="/settings/subscription" className="navbar__overlay-msg-btn" onClick={closeMenu} style={{ borderTop: 'none' }}>
+                    <Sparkles size={18} />
+                    {isPremium ? 'Subscription' : 'Upgrade to Premium'}
+                  </Link>
+                )}
                 <button
                   className="navbar__overlay-msg-btn navbar__overlay-signout"
                   onClick={() => { closeMenu(); window.Clerk?.signOut?.(); }}

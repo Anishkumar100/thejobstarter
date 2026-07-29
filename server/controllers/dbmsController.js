@@ -2,15 +2,18 @@ import DbmsLesson from '../models/DbmsLesson.js';
 import DbmsSubtopic from '../models/DbmsSubtopic.js';
 import DbmsProblem from '../models/DbmsProblem.js';
 import { clearCache } from '../middleware/cache.js';
+import { resolveUser, canAccessSubject, getLockedLessons, isLessonFree } from '../utils/accessControl.js';
 
 /* ===================== LESSONS ===================== */
 
 export async function getLessons(req, res) {
   try {
     console.log('[DBMS] Fetching lessons...');
-    const lessons = await DbmsLesson.find().sort({ order: 1, title: 1 });
-    console.log('[DBMS] Lessons fetched:', lessons.length);
-    res.json({ data: lessons });
+    const lessons = await DbmsLesson.find().sort({ order: 1, title: 1 }).lean();
+    const user = await resolveUser(req);
+    const enriched = getLockedLessons(lessons, user);
+    console.log('[DBMS] Lessons fetched:', enriched.length);
+    res.json({ data: enriched });
   } catch (error) {
     console.error('[DBMS] Error fetching lessons:', error.message);
     res.status(500).json({ error: error.message });
@@ -20,14 +23,21 @@ export async function getLessons(req, res) {
 export async function getLessonBySlug(req, res) {
   try {
     console.log('[DBMS] Fetching lesson by slug:', req.params.slug);
-    const lesson = await DbmsLesson.findOne({ slug: req.params.slug });
+    const lesson = await DbmsLesson.findOne({ slug: req.params.slug }).lean();
     if (!lesson) {
       console.log('[DBMS] Lesson not found:', req.params.slug);
       return res.status(404).json({ error: 'Lesson not found' });
     }
-    const problems = await DbmsProblem.find({ lessonSlug: req.params.slug }).sort({ createdAt: -1 });
+    const user = await resolveUser(req);
+    const allLessons = await DbmsLesson.find().sort({ order: 1 }).lean();
+    const free = isLessonFree(lesson.slug, allLessons);
+    if (!free && !canAccessSubject(user)) {
+      console.log('[DBMS] Lesson locked:', lesson.title);
+      return res.json({ data: { ...lesson, locked: true, problems: [], subtopics: [] } });
+    }
+    const problems = await DbmsProblem.find({ lessonSlug: req.params.slug }).sort({ createdAt: -1 }).lean();
     console.log('[DBMS] Lesson fetched:', lesson.title, 'with', problems.length, 'problems');
-    res.json({ data: { ...lesson.toObject(), problems } });
+    res.json({ data: { ...lesson, locked: false, problems } });
   } catch (error) {
     console.error('[DBMS] Error fetching lesson:', error.message);
     res.status(500).json({ error: error.message });
@@ -81,9 +91,14 @@ export async function getSubtopics(req, res) {
   try {
     console.log('[DBMS] Fetching subtopics with filters:', req.query);
     const { lesson } = req.query;
-    const query = {};
-    if (lesson) query.lessonSlug = lesson;
-    const subtopics = await DbmsSubtopic.find(query).sort({ order: 1, title: 1 });
+    if (!lesson) return res.status(400).json({ error: 'lesson query param required' });
+    const user = await resolveUser(req);
+    const allLessons = await DbmsLesson.find().sort({ order: 1 }).lean();
+    if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
+      console.log('[DBMS] Subtopics blocked — lesson locked:', lesson);
+      return res.json({ data: [], locked: true });
+    }
+    const subtopics = await DbmsSubtopic.find({ lessonSlug: lesson }).sort({ order: 1, title: 1 }).lean();
     console.log('[DBMS] Subtopics fetched:', subtopics.length);
     res.json({ data: subtopics });
   } catch (error) {
@@ -95,14 +110,23 @@ export async function getSubtopics(req, res) {
 export async function getSubtopicBySlug(req, res) {
   try {
     console.log('[DBMS] Fetching subtopic by slug:', req.params.slug);
-    const subtopic = await DbmsSubtopic.findOne({ slug: req.params.slug });
+    const subtopic = await DbmsSubtopic.findOne({ slug: req.params.slug }).lean();
     if (!subtopic) {
       console.log('[DBMS] Subtopic not found:', req.params.slug);
       return res.status(404).json({ error: 'Subtopic not found' });
     }
-    const problems = await DbmsProblem.find({ subtopicSlug: req.params.slug }).sort({ createdAt: -1 });
+    const lesson = await DbmsLesson.findOne({ slug: subtopic.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await DbmsLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[DBMS] Subtopic blocked — lesson locked:', subtopic.title);
+        return res.json({ data: { ...subtopic, locked: true, problems: [] } });
+      }
+    }
+    const problems = await DbmsProblem.find({ subtopicSlug: req.params.slug }).sort({ createdAt: -1 }).lean();
     console.log('[DBMS] Subtopic fetched:', subtopic.title, 'with', problems.length, 'problems');
-    res.json({ data: { ...subtopic.toObject(), problems } });
+    res.json({ data: { ...subtopic, locked: false, problems } });
   } catch (error) {
     console.error('[DBMS] Error fetching subtopic:', error.message);
     res.status(500).json({ error: error.message });
@@ -154,10 +178,21 @@ export async function getSubtopicProblems(req, res) {
   try {
     console.log('[DBMS] Fetching problems for subtopic:', req.params.slug);
     const { difficulty, page = 1, limit = 20 } = req.query;
+    const subtopic = await DbmsSubtopic.findOne({ slug: req.params.slug }).lean();
+    if (!subtopic) return res.status(404).json({ error: 'Subtopic not found' });
+    const lesson = await DbmsLesson.findOne({ slug: subtopic.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await DbmsLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[DBMS] Subtopic problems blocked — lesson locked:', subtopic.lessonSlug);
+        return res.json({ data: [], total: 0, page: Number(page), totalPages: 0 });
+      }
+    }
     const query = { subtopicSlug: req.params.slug };
     if (difficulty) query.difficulty = difficulty;
     const skip = (page - 1) * limit;
-    const problems = await DbmsProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
+    const problems = await DbmsProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }).lean();
     const total = await DbmsProblem.countDocuments(query);
     console.log('[DBMS] Subtopic problems fetched:', total);
     res.json({ data: problems, total, page: Number(page), totalPages: Math.ceil(total / limit) });
@@ -181,8 +216,17 @@ export async function getProblems(req, res) {
     if (topic) query.topics = topic;
     if (search) query.title = { $regex: search, $options: 'i' };
 
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await DbmsLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
+        console.log('[DBMS] Problems blocked — lesson locked:', lesson);
+        return res.json({ data: [], total: 0, page: Number(page), totalPages: 0 });
+      }
+    }
+
     const skip = (page - 1) * limit;
-    const problems = await DbmsProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
+    const problems = await DbmsProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }).lean();
     const total = await DbmsProblem.countDocuments(query);
 
     console.log('[DBMS] Problems fetched:', total);
@@ -196,16 +240,24 @@ export async function getProblems(req, res) {
 export async function getProblemBySlug(req, res) {
   try {
     console.log('[DBMS] Fetching problem by slug:', req.params.slug);
-    const problem = await DbmsProblem.findOne({ slug: req.params.slug });
+    const problem = await DbmsProblem.findOne({ slug: req.params.slug }).lean();
     if (!problem) {
       console.log('[DBMS] Problem not found:', req.params.slug);
       return res.status(404).json({ error: 'Problem not found' });
     }
+    const lesson = await DbmsLesson.findOne({ slug: problem.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await DbmsLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[DBMS] Problem blocked — lesson locked:', problem.title);
+        return res.json({ data: { ...problem, locked: true, lesson, subtopic: null } });
+      }
+    }
     await DbmsProblem.findByIdAndUpdate(problem._id, { $inc: { views: 1 } });
-    const lesson = await DbmsLesson.findOne({ slug: problem.lessonSlug });
-    const subtopic = problem.subtopicSlug ? await DbmsSubtopic.findOne({ slug: problem.subtopicSlug }) : null;
+    const subtopic = problem.subtopicSlug ? await DbmsSubtopic.findOne({ slug: problem.subtopicSlug }).lean() : null;
     console.log('[DBMS] Problem fetched:', problem.title);
-    res.json({ data: { ...problem.toObject(), lesson, subtopic } });
+    res.json({ data: { ...problem, lesson, subtopic } });
   } catch (error) {
     console.error('[DBMS] Error fetching problem:', error.message);
     res.status(500).json({ error: error.message });

@@ -419,6 +419,210 @@
   .home-topics__card-category { font-size: 0.4rem; padding: 2px 6px; margin-bottom: var(--space-sm); }
 }
 
+/* ===== LOCK OVERLAY ON LESSON CARDS ===== */
+.dsa-lesson-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Lock overlay — subtle dim + lock icon + Subscribe CTA */
+.dsa-lesson-card__lock {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.dsa-lesson-card__lock--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Lock icon */
+.dsa-lesson-card__lock-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.2rem;
+  transform: rotate(0deg);
+  transition: transform 0.3s ease;
+}
+
+.dsa-lesson-card:hover .dsa-lesson-card__lock-icon {
+  transform: rotate(-10deg) scale(1.1);
+}
+
+/* Subscribe CTA button inside lock overlay */
+.dsa-lesson-card__lock-text {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dsa-lesson-card__lock-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: 3px solid var(--accent-highlight, #ffd700);
+  background: var(--accent-highlight, #ffd700);
+  color: #000;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.dsa-lesson-card__lock-cta:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.3);
+  background: transparent;
+  color: var(--accent-highlight, #ffd700);
+}
+
+.dsa-lesson-card__lock-cta:active {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Blur the card image when locked */
+.dsa-lesson-card--locked .dsa-lesson-card__img img {
+  filter: blur(4px) grayscale(0.4);
+  transition: filter 0.3s ease;
+}
+
+/* Dim the card body text when locked */
+.dsa-lesson-card--locked .dsa-lesson-card__body {
+  opacity: 0.7;
+}
+
+/* ===== PAYWALL BANNER (detail page) ===== */
+.paywall-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-2xl) var(--space-xl);
+  border: 5px solid var(--border-color);
+  background: var(--bg-secondary);
+  box-shadow: 10px 10px 0 var(--shadow-color);
+  max-width: 520px;
+  margin: 0 auto;
+  gap: var(--space-md);
+}
+
+.paywall-banner__icon {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid var(--border-color);
+  background: var(--bg-inverse);
+  color: var(--accent-highlight, #ffd700);
+  transform: rotate(-5deg);
+  transition: transform 0.3s ease;
+}
+
+.paywall-banner:hover .paywall-banner__icon {
+  transform: rotate(0deg) scale(1.05);
+}
+
+.paywall-banner__title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.paywall-banner__desc {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 38ch;
+}
+
+.paywall-banner__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border: 4px solid var(--border-color);
+  background: var(--accent-highlight, #ffd700);
+  color: #000;
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  box-shadow: 6px 6px 0 var(--shadow-color);
+  transition: all 0.15s ease;
+}
+
+.paywall-banner__cta:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 9px 9px 0 var(--shadow-color);
+  color: #000 !important;
+}
+
+.paywall-banner__cta:active {
+  transform: translate(0, 0);
+  box-shadow: 3px 3px 0 var(--shadow-color);
+}
+
+.paywall-banner__back {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.paywall-banner__back:hover {
+  color: var(--accent) !important;
+  text-decoration: underline;
+}
+
+/* Lock badge on the image corner (always visible, even before hover) */
+.dsa-lesson-card__lock-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 6;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border-color);
+  background: var(--bg-inverse);
+  color: var(--accent-highlight, #ffd700);
+  font-size: 0.9rem;
+  box-shadow: 2px 2px 0 var(--shadow-color);
+}
+
 /* ===== LISTING PAGES ===== */
 .listing-header {
   display: flex;
@@ -6302,5 +6506,4 @@ ol.subtopic-list .subtopic-list__item::marker {
     padding: 6px 10px;
   }
 }
-
 

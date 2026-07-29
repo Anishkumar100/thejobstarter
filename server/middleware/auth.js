@@ -14,7 +14,7 @@ export async function requireAuth(req, res, next) {
      * so we use req.originalUrl or construct an absolute URL.
      */
     const result = await clerk.authenticateRequest({
-      url: `http://localhost:${process.env.PORT || 3001}${req.originalUrl}`,
+      url: `${process.env.SERVER_URL || 'http://localhost:3001'}${req.originalUrl}`,
       headers: req.headers,
       method: req.method
     });
@@ -58,7 +58,7 @@ export async function requireAuth(req, res, next) {
 export async function optionalAuth(req, res, next) {
   try {
     const result = await clerk.authenticateRequest({
-      url: `http://localhost:${process.env.PORT || 3001}${req.originalUrl}`,
+      url: `${process.env.SERVER_URL || 'http://localhost:3001'}${req.originalUrl}`,
       headers: req.headers,
       method: req.method
     });

@@ -1,16 +1,27 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { motion } from 'motion/react';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
 import Modal from '../components/ui/Modal.jsx';
-import { Layers, Plus, Users, Trash2, BookOpen, Search, Calendar, X } from 'lucide-react';
+import {
+  Layers, Plus, Users, Trash2, BookOpen, Search, Calendar, X,
+  ChevronRight, GraduationCap, Clock, CheckCircle, AlertCircle,
+  Hash, Edit3, UserPlus, ArrowRight, Sparkles
+} from 'lucide-react';
 
 const CARD = {
-  border: '4px solid #000',
+  border: '4px solid var(--border-color)',
   padding: 'var(--space-lg)',
   background: 'var(--bg-surface)',
-  boxShadow: '6px 6px 0 #000',
+  boxShadow: '6px 6px 0 var(--shadow-color)',
+};
+
+const STATUS_CONFIG = {
+  active: { border: '4px solid var(--success)', label: 'Active', bg: 'var(--success-bg)', text: 'var(--success-text)' },
+  trial: { border: '4px solid var(--warning)', label: 'Trial', bg: 'var(--warning-bg)', text: 'var(--warning-text)' },
+  suspended: { border: '4px solid var(--error)', label: 'Suspended', bg: 'var(--error-bg)', text: 'var(--error-text)' },
 };
 
 export default function CoordinatorBatches() {
@@ -29,9 +40,6 @@ export default function CoordinatorBatches() {
   const [filterCourse, setFilterCourse] = useState('');
   const [filterDate, setFilterDate] = useState('');
 
-  /*
-   * Fetch all batches and student roster
-   */
   const fetchBatches = useCallback(async () => {
     console.log('[COORD BATCHES] Fetching batches...');
     setLoading(true);
@@ -54,9 +62,6 @@ export default function CoordinatorBatches() {
 
   useEffect(() => { fetchBatches(); }, [fetchBatches]);
 
-  /*
-   * Count students in a batch
-   */
   const getBatchStudentCount = (batchId) => {
     return allStudents.filter(s => {
       const bid = s.batch?._id || s.batch;
@@ -64,9 +69,6 @@ export default function CoordinatorBatches() {
     }).length;
   };
 
-  /*
-   * Create a new batch
-   */
   const handleCreate = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
@@ -90,9 +92,6 @@ export default function CoordinatorBatches() {
     setSaving(false);
   };
 
-  /*
-   * Delete a batch (unlinks any remaining students first)
-   */
   const handleDelete = async (batchId) => {
     if (!confirm('Delete this batch permanently? Students currently linked will be unassigned.')) return;
     try {
@@ -105,16 +104,10 @@ export default function CoordinatorBatches() {
     }
   };
 
-  /*
-   * Navigate to batch detail page for student assignment
-   */
   const handleOpenAssign = (batchId) => {
     navigate(`/coordinator/batches/${batchId}`);
   };
 
-  /*
-   * Save course offering on a batch
-   */
   const handleSaveCourseEdit = async (batchId) => {
     if (!batchId) return;
     try {
@@ -134,9 +127,6 @@ export default function CoordinatorBatches() {
 
   if (loading) return <Loader text="LOADING BATCHES..." />;
 
-  /*
-   * Filter batches by search, course, and date range
-   */
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
@@ -144,17 +134,14 @@ export default function CoordinatorBatches() {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const filteredBatches = batches.filter(b => {
-    /* Search by name or code */
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       if (!b.name.toLowerCase().includes(q) && !b.code.toLowerCase().includes(q)) return false;
     }
-    /* Filter by course */
     if (filterCourse) {
       const coId = b.courseOffering?._id || b.courseOffering;
       if (coId !== filterCourse) return false;
     }
-    /* Filter by date range */
     if (filterDate) {
       if (!b.createdAt) return false;
       const created = new Date(b.createdAt);
@@ -170,228 +157,548 @@ export default function CoordinatorBatches() {
   });
 
   return (
-    <div style={{ padding: 'var(--space-lg)', maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ padding: 'var(--space-lg)', maxWidth: 1200, margin: '0 auto', position: 'relative' }}>
+      {/* Subtle grid background */}
+      <div
+        style={{
+          position: 'fixed', inset: 0, opacity: 0.03, pointerEvents: 'none', zIndex: 0,
+          backgroundImage:
+            'linear-gradient(var(--border-color) 1.5px, transparent 1.5px), linear-gradient(90deg, var(--border-color) 1.5px, transparent 1.5px)',
+          backgroundSize: '44px 44px',
+        }}
+      />
+
       <Helmet><title>Batches — Coordinator — TheWebytes</title></Helmet>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+      {/* ═══ HEADER ═══ */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        marginBottom: 'var(--space-lg)', flexWrap: 'wrap', gap: 'var(--space-md)'
+      }}>
         <div>
-          <h1 style={{ fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Layers size={28} /> Batches
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', marginTop: 4 }}>
-            Create and manage student cohorts. Click a batch to manage its students.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 48, height: 48, border: '4px solid var(--border-color)',
+              background: 'var(--accent)', color: 'var(--text-inverse)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '5px 5px 0 var(--shadow-color)',
+              transform: 'rotate(-3deg)'
+            }}>
+              <Layers size={24} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', fontWeight: 900, lineHeight: 1.1 }}>
+                Batches
+              </h1>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', marginTop: 2 }}>
+                <GraduationCap size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                Create and manage student cohorts
+              </p>
+            </div>
+          </div>
         </div>
-        <button className="btn" onClick={() => setShowCreate(true)}>
-          <Plus size={16} /> New Batch
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{
+            fontSize: '0.7rem', fontWeight: 800, padding: '6px 14px',
+            border: '3px solid var(--border-color)',
+            background: 'var(--bg-surface)', boxShadow: '3px 3px 0 var(--shadow-color)',
+            display: 'flex', alignItems: 'center', gap: 6
+          }}>
+            <Users size={14} />
+            <span>{batches.reduce((sum, b) => sum + getBatchStudentCount(b._id), 0)} total students</span>
+          </div>
+          <button
+            onClick={() => setShowCreate(true)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              border: '4px solid var(--border-color)', padding: '8px 18px',
+              background: 'var(--accent)', color: 'var(--text-inverse)',
+              fontWeight: 900, fontSize: '0.78rem', textTransform: 'uppercase',
+              letterSpacing: '0.04em', cursor: 'pointer',
+              boxShadow: '5px 5px 0 var(--shadow-color)',
+              transition: 'all 0.1s ease'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '7px 7px 0 var(--shadow-color)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '5px 5px 0 var(--shadow-color)'; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'translate(3px, 3px)'; e.currentTarget.style.boxShadow = '2px 2px 0 var(--shadow-color)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '7px 7px 0 var(--shadow-color)'; }}
+          >
+            <Plus size={16} strokeWidth={3} /> New Batch
+          </button>
+        </div>
       </div>
 
-      {/* ── Search + Filters ── */}
+      {/* ═══ FILTERS BAR ═══ */}
       <div style={{
-        display: 'flex', gap: 8, marginBottom: 'var(--space-lg)',
-        flexWrap: 'wrap', alignItems: 'center'
+        position: 'relative', zIndex: 1,
+        display: 'flex', gap: 10, marginBottom: 'var(--space-lg)',
+        flexWrap: 'wrap', alignItems: 'center',
+        padding: 'var(--space-md)',
+        border: '3px solid var(--border-color)',
+        background: 'var(--bg-surface)',
+        boxShadow: '5px 5px 0 var(--shadow-color)',
       }}>
+        {/* Search */}
         <div style={{
-          flex: '1 1 220px', display: 'flex', alignItems: 'center', gap: 6,
-          border: '3px solid #000', padding: '6px 10px', background: 'var(--bg-surface)',
-          boxShadow: '4px 4px 0 #000'
+          flex: '1 1 200px', display: 'flex', alignItems: 'center', gap: 6,
+          border: '3px solid var(--border-color)', padding: '7px 10px',
+          background: 'var(--bg-primary)'
         }}>
           <Search size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
-          <input className="input" placeholder="Search by name or code..."
+          <input
+            placeholder="Search by name or code..."
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent', padding: 0 }} />
+            style={{
+              flex: 1, border: 'none', outline: 'none', fontSize: '0.82rem',
+              background: 'transparent', color: 'var(--text-primary)', padding: 0,
+              fontFamily: 'inherit'
+            }}
+          />
           {searchQuery && (
-            <button className="btn btn--sm btn--ghost" onClick={() => setSearchQuery('')}
-              style={{ padding: '2px 4px', fontSize: '0.6rem', flexShrink: 0 }}>
-              <X size={12} />
+            <button onClick={() => setSearchQuery('')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-tertiary)' }}>
+              <X size={14} />
             </button>
           )}
         </div>
-        <select className="input" value={filterCourse} onChange={e => setFilterCourse(e.target.value)}
-          style={{ width: 180, fontSize: '0.78rem', padding: '6px 8px' }}>
+
+        {/* Course filter */}
+        <select value={filterCourse} onChange={e => setFilterCourse(e.target.value)}
+          style={{
+            width: 170, fontSize: '0.78rem', padding: '7px 8px',
+            border: '3px solid var(--border-color)', background: 'var(--bg-primary)',
+            color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'inherit'
+          }}>
           <option value="">All courses</option>
           {courseOfferings.filter(c => c.status === 'active').map(c => (
             <option key={c._id} value={c._id}>{c.name}</option>
           ))}
         </select>
-        <select className="input" value={filterDate} onChange={e => setFilterDate(e.target.value)}
-          style={{ width: 160, fontSize: '0.78rem', padding: '6px 8px' }}>
+
+        {/* Date filter */}
+        <select value={filterDate} onChange={e => setFilterDate(e.target.value)}
+          style={{
+            width: 155, fontSize: '0.78rem', padding: '7px 8px',
+            border: '3px solid var(--border-color)', background: 'var(--bg-primary)',
+            color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'inherit'
+          }}>
           <option value="">All time</option>
           <option value="year">This year</option>
           <option value="6months">Within 6 months</option>
           <option value="1month">Within 1 month</option>
           <option value="today">Today</option>
         </select>
+
         {(searchQuery || filterCourse || filterDate) && (
-          <button className="btn btn--sm btn--ghost" onClick={() => { setSearchQuery(''); setFilterCourse(''); setFilterDate(''); }}
-            style={{ fontSize: '0.72rem', padding: '4px 10px' }}>
-            <X size={14} /> Clear filters
+          <button onClick={() => { setSearchQuery(''); setFilterCourse(''); setFilterDate(''); }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: '0.72rem', fontWeight: 700, padding: '5px 12px',
+              border: '3px solid var(--border-color)', cursor: 'pointer',
+              background: 'var(--bg-primary)', color: 'var(--text-primary)',
+              fontFamily: 'inherit'
+            }}>
+            <X size={14} /> Clear
           </button>
         )}
-        <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+
+        <span style={{
+          fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-tertiary)',
+          marginLeft: 'auto', whiteSpace: 'nowrap'
+        }}>
           {filteredBatches.length} / {batches.length} batches
         </span>
       </div>
 
+      {/* ═══ ERROR STATE ═══ */}
       {error && (
-        <div style={{ ...CARD, background: 'var(--error-bg)', marginBottom: 'var(--space-lg)' }}>
-          <p style={{ fontWeight: 700 }}>Error loading batches</p>
-          <p style={{ fontSize: '0.85rem' }}>{error}</p>
+        <div style={{ ...CARD, background: 'var(--error-bg)', marginBottom: 'var(--space-lg)', borderLeft: '6px solid var(--error)', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertCircle size={20} style={{ color: 'var(--error)', flexShrink: 0 }} />
+            <div>
+              <p style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--error-text)' }}>Failed to load batches</p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--error-text)', marginTop: 2 }}>{error}</p>
+            </div>
+          </div>
         </div>
       )}
 
+      {/* ═══ EMPTY STATE ═══ */}
       {!error && batches.length === 0 && (
-        <div style={{ ...CARD, textAlign: 'center', padding: 'var(--space-2xl)' }}>
-          <Layers size={48} style={{ marginBottom: 'var(--space-md)', color: 'var(--gray-500)' }} />
-          <p style={{ fontWeight: 700, marginBottom: 'var(--space-sm)', fontSize: '1.1rem' }}>No batches yet</p>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', marginBottom: 'var(--space-lg)' }}>
-            Create your first batch to group students into cohorts.
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ ...CARD, textAlign: 'center', padding: 'var(--space-2xl)', position: 'relative', zIndex: 1 }}
+        >
+          <div style={{
+            width: 72, height: 72, margin: '0 auto 1.5rem',
+            border: '4px solid var(--border-color)',
+            background: 'var(--bg-tertiary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '6px 6px 0 var(--shadow-color)', transform: 'rotate(-3deg)'
+          }}>
+            <Layers size={36} style={{ color: 'var(--text-tertiary)' }} />
+          </div>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: 8 }}>No batches yet</h2>
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-tertiary)', marginBottom: 'var(--space-lg)', maxWidth: 360, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
+            Create your first batch to group students into cohorts. Each batch gets a unique code for students to join.
           </p>
-          <button className="btn btn--primary" onClick={() => setShowCreate(true)}>
-            <Plus size={16} /> Create Batch
+          <button onClick={() => setShowCreate(true)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              border: '4px solid var(--border-color)', padding: '10px 22px',
+              background: 'var(--accent)', color: 'var(--text-inverse)',
+              fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase',
+              letterSpacing: '0.04em', cursor: 'pointer',
+              boxShadow: '6px 6px 0 var(--shadow-color)',
+              fontFamily: 'inherit'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '8px 8px 0 var(--shadow-color)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '6px 6px 0 var(--shadow-color)'; }}
+          >
+            <Sparkles size={18} /> Create Your First Batch
           </button>
-        </div>
+        </motion.div>
       )}
 
+      {/* ═══ NO RESULTS STATE ═══ */}
       {!error && batches.length > 0 && filteredBatches.length === 0 && (
-        <div style={{ ...CARD, textAlign: 'center', padding: 'var(--space-2xl)' }}>
-          <Layers size={48} style={{ marginBottom: 'var(--space-md)', color: 'var(--gray-500)' }} />
-          <p style={{ fontWeight: 700, marginBottom: 'var(--space-sm)', fontSize: '1.1rem' }}>No batches match your filters</p>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', marginBottom: 'var(--space-lg)' }}>
-            Try a different search term or clear the filters.
-          </p>
-          <button className="btn btn--sm btn--ghost" onClick={() => { setSearchQuery(''); setFilterCourse(''); setFilterDate(''); }}>
-            Clear filters
+        <div style={{ ...CARD, textAlign: 'center', padding: 'var(--space-2xl)', position: 'relative', zIndex: 1 }}>
+          <Search size={40} style={{ color: 'var(--text-tertiary)', marginBottom: 'var(--space-md)' }} />
+          <h3 style={{ fontSize: '1rem', fontWeight: 900, marginBottom: 6 }}>No batches match your filters</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', marginBottom: 'var(--space-md)' }}>Try a different search term or clear the filters.</p>
+          <button onClick={() => { setSearchQuery(''); setFilterCourse(''); setFilterDate(''); }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: '0.72rem', fontWeight: 700, padding: '6px 14px',
+              border: '3px solid var(--border-color)', cursor: 'pointer',
+              background: 'var(--bg-primary)', color: 'var(--text-primary)',
+              fontFamily: 'inherit'
+            }}>
+            <X size={14} /> Clear filters
           </button>
         </div>
       )}
 
+      {/* ═══ BATCH CARDS GRID ═══ */}
       {filteredBatches.length > 0 && (
-        <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
-          {filteredBatches.map(b => {
+        <div style={{ display: 'grid', gap: 'var(--space-lg)', position: 'relative', zIndex: 1 }}>
+          {filteredBatches.map((b, index) => {
             const studentCount = getBatchStudentCount(b._id);
+            const statusConf = STATUS_CONFIG[b.status] || STATUS_CONFIG.trial;
+            const coId = b.courseOffering?._id || b.courseOffering;
+            const course = coId && courseOfferings.find(c => c._id === coId);
+
             return (
-              <div key={b._id}>
-                <Link to={`/coordinator/batches/${b._id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-                  <div style={{ ...CARD, cursor: 'pointer', transition: 'all 0.12s ease' }}
-                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '8px 8px 0 #000'; e.currentTarget.style.transform = 'translate(-2px, -2px)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.boxShadow = '6px 6px 0 #000'; e.currentTarget.style.transform = 'none'; }}
-                  >
-                    <div>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: 4 }}>{b.name}</h3>
-                      <div style={{ display: 'flex', gap: 16, fontSize: '0.82rem', color: 'var(--text-tertiary)', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span>
-                          Code: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.12em', color: '#000' }}>{b.code}</strong>
-                        </span>
-                        <span><Users size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />{studentCount} students</span>
-                        {b.expectedStudents && <span>Expected: {b.expectedStudents}</span>}
-                        {(() => {
-                          const coId = b.courseOffering?._id || b.courseOffering;
-                          const found = coId && courseOfferings.find(c => c._id === coId);
-                          return found ? (
-                            <span style={{
-                              padding: '2px 6px', border: '2px solid var(--black)',
-                              background: 'var(--bg-tertiary)', fontSize: '0.65rem', fontWeight: 600
-                            }}>
-                              <BookOpen size={12} style={{ verticalAlign: 'middle', marginRight: 3 }} />
-                              {found.name}
-                            </span>
-                          ) : null;
-                        })()}
+              <motion.div
+                key={b._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: index * 0.04 }}
+              >
+                <div style={{
+                  ...CARD, padding: 0, overflow: 'hidden',
+                  cursor: 'pointer', transition: 'all 0.15s ease',
+                }}
+                  onClick={() => navigate(`/coordinator/batches/${b._id}`)}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.boxShadow = '8px 8px 0 var(--shadow-color)';
+                    e.currentTarget.style.transform = 'translate(-2px, -2px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.boxShadow = '6px 6px 0 var(--shadow-color)';
+                    e.currentTarget.style.transform = 'none';
+                  }}
+                >
+                  {/* Top accent bar */}
+                  <div style={{
+                    height: 6, width: '100%',
+                    background: b.status === 'active' ? 'var(--success)' : b.status === 'trial' ? 'var(--warning)' : 'var(--error)'
+                  }} />
+
+                  <div style={{ padding: 'var(--space-lg)' }}>
+                    {/* Row 1: Batch name + Status */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                      <h3 style={{
+                        fontSize: '1.1rem', fontWeight: 900,
+                        color: 'var(--text-primary)', lineHeight: 1.2
+                      }}>
+                        {b.name}
+                      </h3>
+                      <span style={{
+                        fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
+                        letterSpacing: '0.08em', padding: '3px 8px',
+                        border: `2px solid var(--border-color)`,
+                        background: statusConf.bg,
+                        color: statusConf.text,
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {statusConf.label}
+                      </span>
+                    </div>
+
+                    {/* Row 2: Batch metadata */}
+                    <div style={{
+                      display: 'flex', gap: 14, fontSize: '0.78rem',
+                      flexWrap: 'wrap', alignItems: 'center',
+                      color: 'var(--text-secondary)', marginBottom: 14
+                    }}>
+                      {/* Code */}
+                      <span style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        fontFamily: 'monospace', fontWeight: 700,
+                        fontSize: '0.75rem', letterSpacing: '0.08em',
+                        color: 'var(--text-primary)',
+                        padding: '2px 8px', border: '2px solid var(--border-color)',
+                        background: 'var(--bg-primary)'
+                      }}>
+                        <Hash size={12} />
+                        {b.code}
+                      </span>
+
+                      {/* Course */}
+                      {course && (
                         <span style={{
-                          padding: '2px 6px', border: '2px solid var(--black)',
-                          background: b.status === 'active' ? 'var(--success-bg)' : 'var(--gray-100)',
-                          fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase'
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '2px 8px', border: '2px solid var(--border-color)',
+                          background: 'var(--accent-light)',
+                          fontWeight: 700, fontSize: '0.7rem',
+                          color: 'var(--text-primary)'
                         }}>
-                          {b.status}
+                          <BookOpen size={12} />
+                          {course.name}
                         </span>
-                      </div>
+                      )}
+
+                      {/* Created date */}
+                      {b.createdAt && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-tertiary)' }}>
+                          <Calendar size={12} />
+                          Created {new Date(b.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Row 3: Student count */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '10px 12px',
+                      border: '2px solid var(--border-color)',
+                      background: 'var(--bg-primary)'
+                    }}>
+                      <Users size={16} style={{ color: 'var(--text-tertiary)' }} />
+                      <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                        {studentCount}
+                      </span>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                        student{studentCount !== 1 ? 's' : ''}
+                      </span>
                     </div>
                   </div>
-                </Link>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: '2px', alignItems: 'center' }}>
-                  <button
-                    className="btn btn--sm"
-                    onClick={(e) => { e.preventDefault(); handleOpenAssign(b._id); }}
-                    style={{ fontSize: '0.7rem' }}
-                  >
-                    <Users size={12} /> Manage Students
-                  </button>
-                  {/* Inline course editor */}
-                  {editingCourseBatchId === b._id ? (
-                    <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                      <select className="input" style={{ fontSize: '0.7rem', padding: '2px 4px', width: 140 }}
-                        value={editingCourseValue}
-                        onChange={e => setEditingCourseValue(e.target.value)}
-                        autoFocus
+
+                  {/* Action bar */}
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px var(--space-lg)',
+                    borderTop: '3px solid var(--border-color)',
+                    background: 'var(--bg-tertiary)',
+                    gap: 8, flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        onClick={e => { e.stopPropagation(); handleOpenAssign(b._id); }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          fontSize: '0.65rem', fontWeight: 700, padding: '4px 10px',
+                          border: '2px solid var(--border-color)', cursor: 'pointer',
+                          background: 'var(--bg-surface)', color: 'var(--text-primary)',
+                          fontFamily: 'inherit', transition: 'all 0.1s ease'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--text-inverse)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
                       >
-                        <option value="">— No course —</option>
-                        {courseOfferings.filter(c => c.status === 'active').map(c => (
-                          <option key={c._id} value={c._id}>{c.name}</option>
-                        ))}
-                      </select>
-                      <button className="btn btn--sm" onClick={(e) => { e.preventDefault(); handleSaveCourseEdit(b._id); }}
-                        style={{ fontSize: '0.65rem', padding: '2px 6px' }}>Save</button>
-                      <button className="btn btn--sm btn--ghost" onClick={(e) => { e.preventDefault(); setEditingCourseBatchId(null); }}
-                        style={{ fontSize: '0.65rem', padding: '2px 6px' }}>X</button>
+                        <UserPlus size={12} /> Manage
+                      </button>
+
+                      {editingCourseBatchId === b._id ? (
+                        <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}
+                          onClick={e => e.stopPropagation()}>
+                          <select
+                            style={{
+                              fontSize: '0.65rem', padding: '3px 4px', width: 130,
+                              border: '2px solid var(--border-color)',
+                              background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                              fontFamily: 'inherit', fontWeight: 600
+                            }}
+                            value={editingCourseValue}
+                            onChange={e => setEditingCourseValue(e.target.value)}
+                            autoFocus
+                          >
+                            <option value="">— No course —</option>
+                            {courseOfferings.filter(c => c.status === 'active').map(c => (
+                              <option key={c._id} value={c._id}>{c.name}</option>
+                            ))}
+                          </select>
+                          <button onClick={(e) => { e.stopPropagation(); handleSaveCourseEdit(b._id); }}
+                            style={{
+                              fontSize: '0.6rem', fontWeight: 800, padding: '3px 8px',
+                              border: '2px solid var(--border-color)', cursor: 'pointer',
+                              background: 'var(--success)', color: '#fff',
+                              fontFamily: 'inherit'
+                            }}>Save</button>
+                          <button onClick={(e) => { e.stopPropagation(); setEditingCourseBatchId(null); }}
+                            style={{
+                              fontSize: '0.6rem', fontWeight: 800, padding: '3px 8px',
+                              border: '2px solid var(--border-color)', cursor: 'pointer',
+                              background: 'var(--bg-surface)', color: 'var(--text-primary)',
+                              fontFamily: 'inherit'
+                            }}>X</button>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={e => { e.stopPropagation(); setEditingCourseBatchId(b._id); setEditingCourseValue(b.courseOffering?._id || b.courseOffering || ''); }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            fontSize: '0.65rem', fontWeight: 700, padding: '4px 10px',
+                            border: '2px solid var(--border-color)', cursor: 'pointer',
+                            background: 'var(--bg-surface)', color: 'var(--text-primary)',
+                            fontFamily: 'inherit', transition: 'all 0.1s ease'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-light)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; }}
+                        >
+                          <BookOpen size={12} /> Course
+                        </button>
+                      )}
+
+                      <button
+                        onClick={e => { e.stopPropagation(); handleDelete(b._id); }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          fontSize: '0.65rem', fontWeight: 700, padding: '4px 10px',
+                          border: '2px solid var(--error)', cursor: 'pointer',
+                          background: 'var(--error-bg)', color: 'var(--error-text)',
+                          fontFamily: 'inherit', transition: 'all 0.1s ease'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--error)'; e.currentTarget.style.color = '#fff'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--error-bg)'; e.currentTarget.style.color = 'var(--error-text)'; }}
+                      >
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </div>
+
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      fontSize: '0.65rem', fontWeight: 700,
+                      color: 'var(--text-tertiary)'
+                    }}>
+                      View Details <ArrowRight size={12} />
                     </span>
-                  ) : (
-                    <button
-                      className="btn btn--sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setEditingCourseBatchId(b._id);
-                        setEditingCourseValue(b.courseOffering?._id || b.courseOffering || '');
-                      }}
-                      style={{ fontSize: '0.7rem' }}
-                    >
-                      <BookOpen size={12} /> Edit Course
-                    </button>
-                  )}
-                  <button
-                    className="btn btn--sm btn--danger"
-                    onClick={(e) => { e.preventDefault(); handleDelete(b._id); }}
-                    style={{ fontSize: '0.7rem' }}
-                  >
-                    <Trash2 size={12} /> Delete
-                  </button>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
       )}
 
-      {/* Create Batch Modal */}
+      {/* ═══ CREATE MODAL ═══ */}
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)}>
-        <h2 style={{ marginBottom: 'var(--space-lg)' }}>New Batch</h2>
+        <div style={{
+          borderBottom: '4px solid var(--border-color)',
+          paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)'
+        }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Sparkles size={20} /> New Batch
+          </h2>
+        </div>
         <form onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
-          <div className="input-group">
-            <label>Batch Name *</label>
-            <input className="input" value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. Jan 2027 Weekend Batch" required />
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 800, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Batch Name <span style={{ color: 'var(--error)' }}>*</span>
+            </label>
+            <input
+              style={{
+                width: '100%', padding: '10px 12px',
+                border: '3px solid var(--border-color)', fontSize: '0.9rem',
+                background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                fontFamily: 'inherit', fontWeight: 600, outline: 'none'
+              }}
+              value={form.name}
+              onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="e.g. Jan 2027 Weekend Batch"
+              required
+              autoFocus
+            />
           </div>
-          <div className="input-group">
-            <label>Course / Program</label>
-            <select className="input" value={form.courseOffering} onChange={e => setForm(prev => ({ ...prev, courseOffering: e.target.value }))}>
+          <div style={{ marginBottom: 'var(--space-md)' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 800, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Course / Program
+            </label>
+            <select
+              style={{
+                width: '100%', padding: '10px 12px',
+                border: '3px solid var(--border-color)', fontSize: '0.9rem',
+                background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                fontFamily: 'inherit', fontWeight: 600, cursor: 'pointer'
+              }}
+              value={form.courseOffering}
+              onChange={e => setForm(prev => ({ ...prev, courseOffering: e.target.value }))}
+            >
               <option value="">— No course —</option>
               {courseOfferings.filter(c => c.status === 'active').map(c => (
                 <option key={c._id} value={c._id}>{c.name}</option>
               ))}
             </select>
           </div>
-          <div className="input-group">
-            <label>Expected Students</label>
-            <input className="input" type="number" value={form.expectedStudents} onChange={e => setForm(prev => ({ ...prev, expectedStudents: e.target.value }))} placeholder="Optional" />
+          <div style={{ marginBottom: 'var(--space-lg)' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 800, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Expected Students <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>(optional)</span>
+            </label>
+            <input
+              type="number"
+              style={{
+                width: '100%', padding: '10px 12px',
+                border: '3px solid var(--border-color)', fontSize: '0.9rem',
+                background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                fontFamily: 'inherit', fontWeight: 600, outline: 'none'
+              }}
+              value={form.expectedStudents}
+              onChange={e => setForm(prev => ({ ...prev, expectedStudents: e.target.value }))}
+              placeholder="e.g. 30"
+            />
           </div>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: 'var(--space-lg)' }}>
-            <button type="button" className="btn btn--ghost" onClick={() => setShowCreate(false)}>Cancel</button>
-            <button type="submit" className="btn" disabled={saving}>{saving ? 'Creating...' : 'Create Batch'}</button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button type="button"
+              onClick={() => setShowCreate(false)}
+              style={{
+                padding: '10px 20px', fontSize: '0.78rem', fontWeight: 700,
+                border: '3px solid var(--border-color)', cursor: 'pointer',
+                background: 'var(--bg-surface)', color: 'var(--text-primary)',
+                fontFamily: 'inherit'
+              }}
+            >
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}
+              style={{
+                padding: '10px 20px', fontSize: '0.78rem', fontWeight: 900,
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+                border: '3px solid var(--border-color)', cursor: 'pointer',
+                background: 'var(--accent)', color: 'var(--text-inverse)',
+                fontFamily: 'inherit',
+                opacity: saving ? 0.6 : 1,
+                boxShadow: '4px 4px 0 var(--shadow-color)'
+              }}
+            >
+              {saving ? 'Creating...' : 'Create Batch'}
+            </button>
           </div>
         </form>
       </Modal>
-
     </div>
   );
 }

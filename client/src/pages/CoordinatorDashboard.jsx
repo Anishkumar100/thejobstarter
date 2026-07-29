@@ -12,17 +12,17 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const CARD = {
-  border: '3px solid #000',
+  border: '3px solid var(--border-color)',
   padding: 'var(--space-lg)',
   background: 'var(--bg-surface)',
-  boxShadow: '6px 6px 0 #000'
+  boxShadow: '6px 6px 0 var(--shadow-color)'
 };
 
 const BATTLECARD = {
-  border: '3px solid #000',
+  border: '3px solid var(--border-color)',
   padding: 'var(--space-md)',
   background: 'var(--bg-surface)',
-  boxShadow: '6px 6px 0 #000',
+  boxShadow: '6px 6px 0 var(--shadow-color)',
   cursor: 'pointer',
   transition: 'transform 0.15s'
 };
@@ -260,7 +260,7 @@ export default function CoordinatorDashboard() {
                 <span style={{
                   fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase',
                   padding: '2px 8px', border: '2px solid #000',
-                  background: center.status === 'active' ? '#dcfce7' : 'var(--bg-tertiary)'
+                  background: center.status === 'active' ? 'var(--success-bg)' : 'var(--bg-tertiary)'
                 }}>
                   {center.status}
                 </span>
@@ -281,27 +281,27 @@ export default function CoordinatorDashboard() {
         <Link to="/coordinator/students" style={{ textDecoration: 'none', color: 'inherit', ...CARD, padding: 'var(--space-md)', textAlign: 'center', transition: 'transform 0.12s' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '8px 8px 0 #000'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '6px 6px 0 #000'; }}>
-          <Users size={22} style={{ color: '#000', marginBottom: 6 }} />
+          <Users size={22} style={{ color: 'var(--text-primary)', marginBottom: 6 }} />
           <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{totalStudents}</div>
           <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Students</div>
         </Link>
         <Link to="/coordinator/batches" style={{ textDecoration: 'none', color: 'inherit', ...CARD, padding: 'var(--space-md)', textAlign: 'center', transition: 'transform 0.12s' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '8px 8px 0 #000'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '6px 6px 0 #000'; }}>
-          <Layers size={22} style={{ color: '#000', marginBottom: 6 }} />
+          <Layers size={22} style={{ color: 'var(--text-primary)', marginBottom: 6 }} />
           <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{activeBatches}</div>
           <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Active Batches</div>
         </Link>
         <Link to="/coordinator/plans" style={{ textDecoration: 'none', color: 'inherit', ...CARD, padding: 'var(--space-md)', textAlign: 'center', transition: 'transform 0.12s' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '8px 8px 0 #000'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '6px 6px 0 #000'; }}>
-          <FileText size={22} style={{ color: '#000', marginBottom: 6 }} />
+          <FileText size={22} style={{ color: 'var(--text-primary)', marginBottom: 6 }} />
           <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{totalPlans}</div>
           <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Active Plans</div>
         </Link>
-        <div style={{ ...CARD, padding: 'var(--space-md)', textAlign: 'center', borderColor: behindBatches > 0 ? '#dc2626' : '#000' }}>
-          <TrendingUp size={22} style={{ color: behindBatches > 0 ? '#dc2626' : '#000', marginBottom: 6 }} />
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: behindBatches > 0 ? '#dc2626' : 'inherit' }}>{behindBatches}</div>
+        <div style={{ ...CARD, padding: 'var(--space-md)', textAlign: 'center', borderColor: behindBatches > 0 ? 'var(--error)' : 'var(--border-color)' }}>
+          <TrendingUp size={22} style={{ color: behindBatches > 0 ? 'var(--error)' : 'var(--text-primary)', marginBottom: 6 }} />
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: behindBatches > 0 ? 'var(--error)' : 'inherit' }}>{behindBatches}</div>
           <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Behind Schedule</div>
           <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.3, borderTop: '2px solid #000', paddingTop: 4 }}>
             Batches on Day 3+ of their plan but less than 40% of plan days elapsed. Timeline flag, not student scores.
@@ -309,7 +309,7 @@ export default function CoordinatorDashboard() {
         </div>
         {stats?.aggregate?.overall?.percentage !== undefined && (
           <div style={{ ...CARD, padding: 'var(--space-md)', textAlign: 'center' }}>
-            <BarChart3 size={22} style={{ color: '#000', marginBottom: 6 }} />
+            <BarChart3 size={22} style={{ color: 'var(--text-primary)', marginBottom: 6 }} />
             <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{stats.aggregate.overall.percentage}%</div>
             <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Overall Completion</div>
             <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.3, borderTop: '2px solid #000', paddingTop: 4 }}>
@@ -362,7 +362,7 @@ export default function CoordinatorDashboard() {
                     <span style={{ fontWeight: 700, minWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {b.fullName}{!b.hasPlan ? <span style={{ fontWeight: 400, fontSize: '0.6rem', color: '#9ca3af', marginLeft: 4 }}>(no plan)</span> : ''}
                     </span>
-                    <div style={{ flex: 1, height: 10, background: '#e5e7eb', border: '2px solid #000', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ flex: 1, height: 10, background: 'var(--bg-tertiary)', border: '2px solid #000', position: 'relative', overflow: 'hidden' }}>
                       <div style={{
                         height: '100%', width: b.hasPlan ? `${b.dayPct}%` : '100%',
                         background: !b.hasPlan ? '#d4d4d4' : b.behind ? '#dc2626' : '#16a34a',
@@ -440,11 +440,11 @@ export default function CoordinatorDashboard() {
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>Code: <strong style={{ fontFamily: 'monospace' }}>{batch.code}</strong></span>
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <span style={{ fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 6px', border: '2px solid #000', background: batch.status === 'active' ? '#dcfce7' : 'var(--bg-tertiary)' }}>
+                      <span style={{ fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 6px', border: '2px solid #000', background: batch.status === 'active' ? 'var(--success-bg)' : 'var(--bg-tertiary)' }}>
                         {batch.status}
                       </span>
                       {isBehind && (
-                        <span style={{ fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 6px', border: '2px solid #dc2626', background: '#fee2e2', color: '#dc2626' }}>
+                        <span style={{ fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 6px', border: '2px solid var(--error)', background: 'var(--error-bg)', color: 'var(--error-text)' }}>
                           <AlertCircle size={10} style={{ verticalAlign: 'middle' }} /> Behind
                         </span>
                       )}
@@ -461,19 +461,19 @@ export default function CoordinatorDashboard() {
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 10, background: '#e5e7eb', border: '2px solid #000', overflow: 'hidden' }}>
+                        <div style={{ flex: 1, height: 10, background: 'var(--bg-tertiary)', border: '2px solid #000', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${progressPct}%`, background: isBehind ? '#dc2626' : '#16a34a', transition: 'width 0.4s ease' }} />
                         </div>
                         <span style={{ fontWeight: 900, fontSize: '0.7rem' }}>{progressPct}%</span>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ padding: '6px 10px', border: '2px dashed #000', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ padding: '6px 10px', border: '2px dashed var(--border-color)', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <AlertCircle size={14} /> No plan assigned
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '0.68rem', color: 'var(--text-tertiary)', borderTop: '2px solid #e5e7eb', paddingTop: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '0.68rem', color: 'var(--text-tertiary)', borderTop: '2px solid var(--border-color)', paddingTop: 6 }}>
                     <span><Users size={12} style={{ verticalAlign: 'middle', marginRight: 3 }} /> {batch.studentCount} student{batch.studentCount !== 1 ? 's' : ''}</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Eye size={12} /> View <ArrowRight size={10} /></span>
                   </div>
@@ -544,12 +544,12 @@ export default function CoordinatorDashboard() {
 
       {/* ═══ LAGGING STUDENTS ═══ */}
       {laggingStudents.length > 0 && (
-        <div style={{ ...CARD, marginBottom: 'var(--space-xl)', borderLeft: '6px solid #dc2626' }}>
+        <div style={{ ...CARD, marginBottom: 'var(--space-xl)', borderLeft: '6px solid var(--error)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <AlertCircle size={18} style={{ color: '#dc2626' }} />
+              <AlertCircle size={18} style={{ color: 'var(--error)' }} />
               <h2 style={{ fontSize: '1rem', fontWeight: 900 }}>Students Needing Attention</h2>
-              <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 10px', border: '2px solid #000', background: '#dc2626', color: '#fff' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 10px', border: '2px solid var(--border-color)', background: 'var(--error)', color: '#fff' }}>
                 {laggingStudents.length} flagged
               </span>
             </div>
@@ -584,7 +584,7 @@ export default function CoordinatorDashboard() {
                 {s.avatar ? (
                   <img src={s.avatar} alt="" style={{ width: 28, height: 28, border: '2px solid #000', objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
-                  <div style={{ width: 28, height: 28, border: '2px solid #000', background: 'var(--gray-300)', flexShrink: 0 }} />
+                  <div style={{ width: 28, height: 28, border: '2px solid #000', background: 'var(--bg-tertiary)', flexShrink: 0 }} />
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ fontWeight: 700 }}>{s.displayName || s.username}</span>
@@ -596,8 +596,9 @@ export default function CoordinatorDashboard() {
                   {(s.attentionReasons || []).slice(0, 2).map((reason, i) => (
                     <span key={i} style={{
                       fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase',
-                      padding: '2px 6px', border: '2px solid #000',
-                      background: reason.includes('Inactive') ? '#fee2e2' : reason.includes('Bottom') ? '#fef3c7' : '#e0e7ff'
+                      padding: '2px 6px', border: '2px solid var(--border-color)',
+                      background: reason.includes('Inactive') ? 'var(--error-bg)' : reason.includes('Bottom') ? 'var(--warning-bg)' : 'var(--accent-light)',
+                      color: reason.includes('Inactive') ? 'var(--error-text)' : reason.includes('Bottom') ? 'var(--warning-text)' : 'var(--text-primary)'
                     }}>
                       {reason.length > 25 ? reason.slice(0, 25) + '\u2026' : reason}
                     </span>
@@ -672,7 +673,7 @@ export default function CoordinatorDashboard() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase', padding: '2px 6px', border: '2px solid #000', background: s.progress?.planProgress?.paceStatus === 'ahead' ? '#dcfce7' : '#f0fdf4', color: '#166534' }}>
+                    <span style={{ fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase', padding: '2px 6px', border: '2px solid #000', background: s.progress?.planProgress?.paceStatus === 'ahead' ? 'var(--success-bg)' : 'var(--success-bg)', color: 'var(--success-text)' }}>
                       {s.progress?.planProgress?.paceStatus === 'ahead' ? 'Ahead' : s.progress?.planProgress?.paceStatus === 'on-track' ? 'On Track' : 'Active'}
                     </span>
                     {s._cp > 0 && (

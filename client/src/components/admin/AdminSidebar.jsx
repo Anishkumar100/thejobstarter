@@ -3,7 +3,8 @@ import {
   LayoutDashboard, BookOpen, Code2, Layers, Tags, Database,
   FileText, Users, HelpCircle, Globe, Mail, Image as ImageIcon,
   Home, Settings, BookText, Tag, Cpu, ThumbsUp, MessageSquareText,
-  X, ChevronDown, Building2, Airplay, Terminal, Sun, Moon
+  X, ChevronDown, Building2, Airplay, Terminal, Sun, Moon,
+  IndianRupee, CreditCard, DollarSign
 } from 'lucide-react';
 import { useState } from 'react';
 import { useThemeStore } from '../../stores/useThemeStore.js';
@@ -80,6 +81,15 @@ const SECTIONS = [
     links: [
       { to: '/admin/coaching-centers', label: 'Centres', icon: Building2 },
       { to: '/admin/plans', label: 'Plans', icon: FileText },
+    ]
+  },
+  {
+    heading: 'Payments',
+    links: [
+      { to: '/admin/payments', label: 'Dashboard', icon: IndianRupee },
+      { to: '/admin/payments/subscribers', label: 'Subscribers', icon: Users },
+      { to: '/admin/payments/promos', label: 'Promo Codes', icon: CreditCard },
+      { to: '/admin/payments/pricing', label: 'Pricing Settings', icon: DollarSign },
     ]
   },
   {

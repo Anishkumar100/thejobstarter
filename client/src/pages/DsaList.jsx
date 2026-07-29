@@ -169,19 +169,55 @@ export default function DsaList() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: i * 0.05 }}
                 >
-                  <Link to={`/dsa/${lesson.slug}`} className="dsa-lesson-card">
-                  <div className="dsa-lesson-card__img">
-                    <img src={lesson.image || `https://picsum.photos/seed/${lesson.slug}/400/200`} alt={lesson.title} />
-                  </div>
-                  <div className="dsa-lesson-card__body">
-                    <h3 className="dsa-lesson-card__title">{lesson.title}</h3>
-                    <p className="dsa-lesson-card__desc">{lesson.description}</p>
-                    <div className="dsa-lesson-card__footer">
-                      <span>{lesson.problemCount} problems</span>
-                      <span className="dsa-lesson-card__arrow">→</span>
-                    </div>
-                  </div>
-                </Link>
+                  <>
+                    {lesson.locked ? (
+                      <div className="dsa-lesson-card dsa-lesson-card--locked">
+                        <div className="dsa-lesson-card__lock dsa-lesson-card__lock--visible">
+                          <div className="dsa-lesson-card__lock-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                          </div>
+                          <span className="dsa-lesson-card__lock-text">Premium Lesson</span>
+                          <Link to="/pricing" className="dsa-lesson-card__lock-cta">
+                            Subscribe
+                          </Link>
+                        </div>
+                        <div className="dsa-lesson-card__lock-badge">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                          </svg>
+                        </div>
+                        <div className="dsa-lesson-card__img">
+                          <img src={lesson.image || `https://picsum.photos/seed/${lesson.slug}/400/200`} alt={lesson.title} />
+                        </div>
+                        <div className="dsa-lesson-card__body">
+                          <h3 className="dsa-lesson-card__title">{lesson.title}</h3>
+                          <p className="dsa-lesson-card__desc">{lesson.description}</p>
+                          <div className="dsa-lesson-card__footer">
+                            <span>{lesson.problemCount} problems</span>
+                            <span className="dsa-lesson-card__arrow">→</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Link to={`/dsa/${lesson.slug}`} className="dsa-lesson-card">
+                        <div className="dsa-lesson-card__img">
+                          <img src={lesson.image || `https://picsum.photos/seed/${lesson.slug}/400/200`} alt={lesson.title} />
+                        </div>
+                        <div className="dsa-lesson-card__body">
+                          <h3 className="dsa-lesson-card__title">{lesson.title}</h3>
+                          <p className="dsa-lesson-card__desc">{lesson.description}</p>
+                          <div className="dsa-lesson-card__footer">
+                            <span>{lesson.problemCount} problems</span>
+                            <span className="dsa-lesson-card__arrow">→</span>
+                          </div>
+                        </div>
+                      </Link>
+                    )}
+                  </>
                 </motion.div>
               ))}
             </div>

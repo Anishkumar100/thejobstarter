@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { requireCoordinator } from '../middleware/coordinatorOnly.js';
-import { getStudents, getStats, getStudentById, updateStudent, removeStudent, exportCoordinatorCsv, getCoordinatorBatches, createCoordinatorBatch, updateCoordinatorBatch, deleteCoordinatorBatch, assignStudentToBatch, removeStudentFromBatch, bulkAssignStudentsToBatch, bulkRemoveStudentsFromBatch, getCoordinatorCourseOfferings, createCoordinatorCourseOffering, updateCoordinatorCourseOffering, deleteCoordinatorCourseOffering, updateStudentCourse } from '../controllers/coordinatorController.js';
+import { getStudents, getStats, getStudentById, updateStudent, removeStudent, exportCoordinatorCsv, getCoordinatorBatches, createCoordinatorBatch, updateCoordinatorBatch, deleteCoordinatorBatch, assignStudentToBatch, removeStudentFromBatch, bulkAssignStudentsToBatch, bulkRemoveStudentsFromBatch, getCoordinatorCourseOfferings, createCoordinatorCourseOffering, updateCoordinatorCourseOffering, deleteCoordinatorCourseOffering, updateStudentCourse, updateCenterCode } from '../controllers/coordinatorController.js';
 import { getCoordinatorPlans, getCoordinatorPlanById, createCoordinatorPlan, updateCoordinatorPlan, deleteCoordinatorPlan, getBatchesWithPlans, getBatchStudentsWithProgress, getCoordinatorPlanAssignments, assignCoordinatorPlanToBatch, unassignCoordinatorPlanFromBatch } from '../controllers/planController.js';
 
 const router = Router();
@@ -47,6 +47,9 @@ router.delete('/plans/:id', requireAuth, requireCoordinator, deleteCoordinatorPl
 /* ── Plan assign/unassign (scoped to own centre) ── */
 router.post('/batches/:id/assign-plan', requireAuth, requireCoordinator, assignCoordinatorPlanToBatch);
 router.delete('/batches/:id/unassign-plan', requireAuth, requireCoordinator, unassignCoordinatorPlanFromBatch);
+
+/* ── Center code update ── */
+router.patch('/center/code', requireAuth, requireCoordinator, updateCenterCode);
 
 /* ── Batch progress (for dashboard) ── */
 router.get('/batches/progress', requireAuth, requireCoordinator, getBatchesWithPlans);

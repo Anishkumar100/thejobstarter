@@ -32,6 +32,7 @@
   --accent-hover: #be123c;
   --accent-light: #fff1f2;
   --accent-ring: #e11d48;
+  --accent-highlight: #ffd700;
 
   /* Semantic */
   --success: #059669;
@@ -105,6 +106,7 @@
   --accent-hover: #fdba74;
   --accent-light: #431407;
   --accent-ring: #fb923c;
+  --accent-highlight: #ffd700;
 
   /* Semantic */
   --success: #34d399;

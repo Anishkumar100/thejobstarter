@@ -65,6 +65,36 @@ export default function DbmsDetail() {
   const p = currentProblem;
   const hasCode = p.codeBlocks?.length > 0;
 
+  /* ═════ PAYWALL BANNER — shown when problem is locked ═════ */
+  if (p.locked) {
+    return (
+      <div className="container" style={{ paddingTop: 'var(--space-xl)', paddingBottom: 'var(--space-2xl)' }}>
+        <Link to={backLink} className="detail-back" style={{ marginBottom: 'var(--space-md)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ArrowLeft01Icon size={16} /> {backText}
+        </Link>
+        <div className="paywall-banner">
+          <div className="paywall-banner__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h2 className="paywall-banner__title">Premium Content</h2>
+          <p className="paywall-banner__desc">
+            This {subtopicSlug ? 'problem' : 'lesson'} requires an active subscription.
+            Subscribe to unlock all lessons, problems, video solutions, and more.
+          </p>
+          <Link to="/pricing" className="paywall-banner__cta">
+            Subscribe
+          </Link>
+          <Link to={lessonSlug ? `/dbms/${lessonSlug}` : '/dbms'} className="paywall-banner__back">
+            ← Back to {lessonSlug ? 'Lesson' : 'DBMS'}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pdetail-page">
       <Helmet>

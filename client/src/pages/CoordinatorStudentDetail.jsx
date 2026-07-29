@@ -294,7 +294,7 @@ export default function CoordinatorStudentDetail() {
                 </span>
               )}
               {student.batch && (
-                <Link to={`/coordinator/batches/${student.batch._id}`} style={{ fontSize: '0.7rem', padding: '2px 8px', border: '2px solid #000', background: '#dbeafe', textDecoration: 'none', color: 'inherit', fontWeight: 700 }}>
+                <Link to={`/coordinator/batches/${student.batch._id}`} style={{ fontSize: '0.7rem', padding: '2px 8px', border: '2px solid var(--border-color)', background: 'var(--accent-light)', textDecoration: 'none', color: 'var(--text-primary)', fontWeight: 700 }}>
                   <Layers size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
                   {student.batch.name}
                 </Link>
@@ -314,7 +314,7 @@ export default function CoordinatorStudentDetail() {
           {[
             { icon: BarChart3, label: 'Overall Progress', value: `${overallPct}%`, color: overallPct >= 50 ? '#16a34a' : '#dc2626' },
             { icon: Target, label: 'Quiz Average', value: avgQuizScore !== null ? `${avgQuizScore}%` : 'N/A', color: getScoreGrade(avgQuizScore).color },
-            { icon: Calendar, label: 'Joined', value: student.coachingCenterJoinedAt ? new Date(student.coachingCenterJoinedAt).toLocaleDateString() : 'N/A', color: '#000' },
+            { icon: Calendar, label: 'Joined', value: student.coachingCenterJoinedAt ? new Date(student.coachingCenterJoinedAt).toLocaleDateString() : 'N/A', color: 'var(--text-primary)' },
           ].map((stat, i) => {
             const StatIcon = stat.icon;
             return (
@@ -374,7 +374,7 @@ export default function CoordinatorStudentDetail() {
               <span>Time elapsed</span>
               <span>{Math.round((pp.currentDayOffset / pp.durationDays) * 100)}%</span>
             </div>
-            <div style={{ height: 12, background: '#e5e7eb', border: '2px solid #000', overflow: 'hidden' }}>
+            <div style={{ height: 12, background: 'var(--bg-tertiary)', border: '2px solid #000', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${Math.min(100, Math.round((pp.currentDayOffset / pp.durationDays) * 100))}%`, background: pp.paceStatus === 'behind' ? '#dc2626' : '#16a34a', transition: 'width 0.4s ease' }} />
             </div>
             <p style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', marginTop: 2 }}>Plan started {new Date(pp.startDate || planBreakdown?.startDate).toLocaleDateString()}</p>
@@ -408,7 +408,7 @@ export default function CoordinatorStudentDetail() {
                         : '#fca5a5',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '0.6rem', fontWeight: 700,
-                      color: d.isFuture ? '#9ca3af' : d.itemsCount === 0 ? '#9ca3af' : '#000',
+                      color: d.isFuture ? 'var(--text-tertiary)' : d.itemsCount === 0 ? 'var(--text-tertiary)' : 'var(--text-primary)',
                       transition: 'transform 0.1s',
                       outline: selectedDayData?.day === d.day ? '2px solid #2563eb' : 'none',
                       outlineOffset: 1
@@ -423,7 +423,7 @@ export default function CoordinatorStudentDetail() {
                 <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#16a34a', marginRight: 3, border: '1px solid #000' }} /> All done</span>
                 <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#eab308', marginRight: 3, border: '1px solid #000' }} /> Partial</span>
                 <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#fca5a5', marginRight: 3, border: '1px solid #000' }} /> None done</span>
-                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#e5e7eb', marginRight: 3, border: '1px solid #000' }} /> Rest / No items</span>
+                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: 'var(--bg-tertiary)', marginRight: 3, border: '1px solid #000' }} /> Rest / No items</span>
                 <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#f9fafb', marginRight: 3, border: '1px solid #000' }} /> Future</span>
               </div>
 
@@ -609,7 +609,7 @@ export default function CoordinatorStudentDetail() {
                   </span>
                   <span style={{ fontWeight: 900, fontSize: '1.1rem', color: pct >= 50 ? '#16a34a' : '#dc2626' }}>{pct}%</span>
                 </div>
-                <div style={{ height: 12, background: '#e5e7eb', border: '2px solid #000', marginBottom: 8 }}>
+                <div style={{ height: 12, background: 'var(--bg-tertiary)', border: '2px solid #000', marginBottom: 8 }}>
                   <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width 0.4s ease' }} />
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
@@ -757,15 +757,14 @@ export default function CoordinatorStudentDetail() {
       <div style={{ ...CARD, marginBottom: 'var(--space-lg)' }}>
         <h2 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <Layers size={16} /> Batch
-        </h2>
-        {student.batch ? (
-          <div style={{ fontSize: '0.85rem' }}>
+        </h2>            {student.batch ? (
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
             <p><strong>Batch:</strong> {student.batch.name || '\u2014'}</p>
             {student.batch.code && (
-              <p><strong>Code:</strong> <code style={{ background: '#f5f5f5', padding: '2px 6px', border: '2px solid #000', fontFamily: 'monospace' }}>{student.batch.code}</code></p>
+              <p><strong>Code:</strong> <code style={{ background: 'var(--bg-tertiary)', padding: '2px 6px', border: '2px solid var(--border-color)', fontFamily: 'monospace', color: 'var(--text-primary)' }}>{student.batch.code}</code></p>
             )}
             {student.batch.status && (
-              <p><strong>Status:</strong> <span style={{ padding: '2px 6px', border: '2px solid #000', background: student.batch.status === 'active' ? '#f0fdf4' : '#f5f5f5', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>{student.batch.status}</span></p>
+              <p><strong>Status:</strong> <span style={{ padding: '2px 6px', border: '2px solid var(--border-color)', background: student.batch.status === 'active' ? 'var(--success-bg)' : 'var(--bg-tertiary)', color: student.batch.status === 'active' ? 'var(--success-text)' : 'var(--text-primary)', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase' }}>{student.batch.status}</span></p>
             )}
           </div>
         ) : (

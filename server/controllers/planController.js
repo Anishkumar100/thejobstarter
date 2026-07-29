@@ -113,12 +113,12 @@ export async function createPlan(req, res) {
       name,
       description: description || '',
       durationDays,
-      status: 'draft',
+      status: req.body.status || 'draft',
       createdBy: user._id,
       items: items || []
     });
 
-    console.log('[PLAN] Plan created:', plan.name);
+    console.log('[PLAN] Plan created:', plan.name, '| status:', plan.status);
     res.status(201).json({ data: plan });
   } catch (error) {
     console.error('[PLAN] Error creating plan:', error.message);
@@ -242,12 +242,12 @@ export async function createCoordinatorPlan(req, res) {
       name,
       description: description || '',
       durationDays,
-      status: 'draft',
+      status: req.body.status || 'draft',
       createdBy: user._id,
       items: items || []
     });
 
-    console.log('[PLAN] Coordinator plan created:', plan.name);
+    console.log('[PLAN] Coordinator plan created:', plan.name, '| status:', plan.status);
     res.status(201).json({ data: plan });
   } catch (error) {
     console.error('[PLAN] Error creating coordinator plan:', error.message);

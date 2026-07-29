@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { useProgressStore } from '../stores/useProgressStore.js';
 import { useAuthStore } from '../stores/useAuthStore.js';
 import { useProgressMessageStore } from '../stores/useProgressMessageStore.js';
+import { useAssignmentStore } from '../stores/useAssignmentStore.js';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
 import SuspendedGate from '../components/ui/SuspendedGate.jsx';
@@ -17,7 +18,8 @@ import {
   Brain, GraduationCap, ClipboardList, ArrowLeft, MessageSquare,
   ChevronRight, Zap, Flag, Layers, Users, Gauge, ListChecks,
   Activity, Lightbulb, PencilLine, BookMarked,
-  FolderOpen, Timer, Percent, Hash, Layers3, FlagTriangleRight, ListTodo
+  FolderOpen, Timer, Percent, Hash, Layers3, FlagTriangleRight, ListTodo,
+  Send
 } from 'lucide-react';
 
 /* ─── Theme-aware design tokens ─── */
@@ -72,11 +74,18 @@ export default function StudentDashboard() {
   const [userBdLoading, setUserBdLoading] = useState(false);
   const [planSelectedDay, setPlanSelectedDay] = useState(null);
   const [remarks, setRemarks] = useState('');
+  const { studentAssignments, studentLoading, fetchStudentAssignments } = useAssignmentStore();
 
   useEffect(() => {
     if (!progressSummary) fetchProgressSummary();
     fetchProgressMessages();
   }, []);
+
+  useEffect(() => {
+    if (user?.batch?._id) {
+      fetchStudentAssignments();
+    }
+  }, [user?.batch?._id]);
 
   useEffect(() => {
     const pp = progressSummary?.planProgress;
@@ -114,14 +123,24 @@ export default function StudentDashboard() {
   const FeedbackIcon = feedback.icon;
   const timePct = pp ? Math.round((pp.currentDayOffset / (pp.durationDays || 1)) * 100) : 0;
 
+  /* Count only items from PAST days (not the current day) as behind */
   const behindCount = useMemo(() => {
     if (userPlanBreakdown?.days) {
       return userPlanBreakdown.days
-        .filter(d => !d.isFuture)
+        .filter(d => d.isPast)
         .reduce((sum, d) => sum + (d.itemsCount - d.completedCount), 0);
     }
     return pp?.itemsBehind?.length || 0;
   }, [userPlanBreakdown, pp]);
+
+  /* Compute remaining items for today only (not behind, just pending) */
+  const todayPendingCount = useMemo(() => {
+    if (userPlanBreakdown?.days) {
+      const today = userPlanBreakdown.days.find(d => d.isCurrent);
+      return today ? (today.itemsCount - today.completedCount) : 0;
+    }
+    return 0;
+  }, [userPlanBreakdown]);
 
   /* ── Aggregate plan data ── */
   const planAgg = useMemo(() => {
@@ -308,6 +327,152 @@ export default function StudentDashboard() {
       </div>
 
       {/* ═══════════════════════════════════════════════ */}
+      {/*  PENDING ASSIGNMENTS                           */}
+      {/* ═══════════════════════════════════════════════ */}
+      {user?.batch?._id && (
+        (() => {
+          const activeAssignments = (studentAssignments || []).filter(a =>
+            !a._submission && !a._isOverdue
+          );
+          const overdueAssignments = (studentAssignments || []).filter(a =>
+            !a._submission && a._isOverdue
+          );
+          const totalPending = activeAssignments.length + overdueAssignments.length;
+
+          if (studentLoading && studentAssignments.length === 0) return null;
+          if (totalPending === 0 && studentAssignments.length === 0) return null;
+
+          return (
+            <div style={{ ...card(), marginBottom: 28, borderLeft: `6px solid ${overdueAssignments.length > 0 ? '#dc2626' : '#2563eb'}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: studentAssignments.length > 0 ? 14 : 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FileText size={18} style={{ color: totalPending > 0 ? (overdueAssignments.length > 0 ? '#dc2626' : '#2563eb') : '#16a34a' }} />
+                  <h2 style={{ fontSize: '1rem', fontWeight: 900, margin: 0, color: TXT }}>
+                    Assignments
+                  </h2>
+                  {totalPending > 0 && (
+                    <span style={{
+                      fontSize: '0.6rem', fontWeight: 800, padding: '3px 10px',
+                      border: `2px solid ${B}`, background: '#fef2f2', color: '#dc2626'
+                    }}>
+                      {totalPending} pending
+                    </span>
+                  )}
+                </div>
+                <Link to="/assignments"
+                  style={{
+                    fontSize: '0.65rem', fontWeight: 700, padding: '6px 14px',
+                    border: `2px solid ${B}`, textDecoration: 'none', color: TXT,
+                    background: SURF, display: 'inline-flex', alignItems: 'center', gap: 4,
+                    boxShadow: SH(3)
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = SH(5); }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = SH(3); }}>
+                  View All <ChevronRight size={12} />
+                </Link>
+              </div>
+
+              {studentLoading && studentAssignments.length === 0 ? (
+                <p style={{ fontSize: '0.82rem', color: TXT3 }}>Loading assignments...</p>
+              ) : studentAssignments.length === 0 ? (
+                <p style={{ fontSize: '0.82rem', color: TXT3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CheckCircle size={14} color="#16a34a" /> No pending assignments. Great!
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {/* Overdue first */}
+                  {overdueAssignments.slice(0, 3).map(a => (
+                    <Link key={a._id} to={`/assignments/${a._id}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', border: `2px solid #dc2626`,
+                        background: '#fef2f2', textDecoration: 'none', color: TXT,
+                        transition: 'transform 0.12s',
+                        borderLeft: `6px solid #dc2626`
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '4px 4px 0 var(--shadow-color)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                      <AlertCircle size={14} style={{ flexShrink: 0, color: '#dc2626' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{a.title}</span>
+                        <span style={{ fontSize: '0.65rem', color: '#dc2626', marginLeft: 6 }}>Overdue</span>
+                      </div>
+                      <span style={{ fontSize: '0.65rem', color: TXT3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Clock size={10} /> {new Date(a.endDate).toLocaleDateString()} — expired
+                      </span>
+                      <ChevronRight size={14} style={{ color: TXT3, flexShrink: 0 }} />
+                    </Link>
+                  ))}
+                  {/* Active pending */}
+                  {activeAssignments.slice(0, 3).map(a => (
+                    <Link key={a._id} to={`/assignments/${a._id}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', border: `2px solid ${B}`,
+                        background: SURF, textDecoration: 'none', color: TXT,
+                        transition: 'transform 0.12s',
+                        borderLeft: `6px solid #2563eb`
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '4px 4px 0 var(--shadow-color)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                      <FileText size={14} style={{ flexShrink: 0, color: '#2563eb' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{a.title}</span>
+                        {a.instructions && (
+                          <span style={{ fontSize: '0.68rem', color: TXT2, marginLeft: 6, display: 'inline-block', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                            {a.instructions.slice(0, 60)}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.65rem', color: TXT3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Calendar size={10} /> Due: {new Date(a.endDate).toLocaleDateString()} at 11:59 PM
+                      </span>
+                      <ChevronRight size={14} style={{ color: TXT3, flexShrink: 0 }} />
+                    </Link>
+                  ))}
+                  {totalPending > 3 && (
+                    <Link to="/assignments"
+                      style={{
+                        fontSize: '0.72rem', fontWeight: 700, padding: '8px',
+                        textAlign: 'center', border: `2px dashed ${B}`,
+                        textDecoration: 'none', color: TXT2, background: TERT,
+                        display: 'block'
+                      }}>
+                      +{totalPending - 3} more assignment{totalPending - 3 !== 1 ? 's' : ''} — View All
+                    </Link>
+                  )}
+                  {/* Recently submitted status */}
+                  {(studentAssignments.filter(a => a._submission).length > 0) && (
+                    <div style={{ fontSize: '0.7rem', color: TXT2, borderTop: `1px solid ${B}`, paddingTop: 8, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Send size={11} color="#16a34a" />
+                      {studentAssignments.filter(a => a._submission).length} submitted —{' '}
+                      <Link to="/assignments" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}>View status</Link>
+                    </div>
+                  )}
+
+                  {/* Red warning banner for overdue assignments */}
+                  {overdueAssignments.length > 0 && (
+                    <div style={{
+                      fontSize: '0.82rem', padding: '12px 16px',
+                      border: `3px solid #dc2626`,
+                      background: '#fef2f2',
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      color: '#dc2626'
+                    }}>
+                      <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                      <span style={{ fontWeight: 700 }}>
+                        {overdueAssignments.length} overdue assignment{overdueAssignments.length !== 1 ? 's' : ''} — deadline has passed. Submit immediately or contact your coordinator.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()
+      )}
+
+      {/* ═══════════════════════════════════════════════ */}
       {/*  NO PLAN STATE                                 */}
       {/* ═══════════════════════════════════════════════ */}
       {!pp && !progressLoading && (
@@ -473,16 +638,16 @@ export default function StudentDashboard() {
               {
                 icon: Calendar, label: 'Plan Timeline',
                 value: pp ? `Day ${pp.currentDayOffset}` : '—',
-                desc: `Your current position in the ${pp?.durationDays || 0}-day learning plan — how far along you are.`,
+                desc: `Your current position in the ${pp?.durationDays || 0}-day learning plan — how far along you are. Current day expires at 11:59 PM tonight.`,
                 color: TXT
               },
               {
                 icon: Zap, label: 'Pace Status',
                 value: pp?.paceStatus === 'just-started' ? 'Started' : (pp?.paceStatus || '—'),
-                desc: pp?.paceStatus === 'ahead' ? 'You are ahead of schedule — excellent discipline and consistency.' :
-                       pp?.paceStatus === 'behind' ? 'You have pending items from past days. Catch up to stay on track.' :
-                       pp?.paceStatus === 'on-track' ? 'You are keeping pace with your plan — steady and consistent.' :
-                       'Your plan has just begun. Complete today\'s tasks to build momentum.',
+                desc: pp?.paceStatus === 'ahead' ? 'You are ahead of schedule — excellent discipline and consistency. Day expires at midnight.' :
+                       pp?.paceStatus === 'behind' ? (behindCount > 0 ? 'You have pending items from past days. Catch up to stay on track.' : 'You have pending items from today. Complete them before midnight.') + ' Day expires tonight at 11:59 PM.' :
+                       pp?.paceStatus === 'on-track' ? 'You are keeping pace with your plan — steady and consistent. Day ends at 11:59 PM.' :
+                       'Your plan has just begun. Complete today\'s tasks to build momentum. Day ends at midnight.',
                 color: PACE_COLORS[pp?.paceStatus] || TXT3
               },
             ].map((stat, i) => {
@@ -578,6 +743,13 @@ export default function StudentDashboard() {
                 <span>{timePct}% of plan duration used</span>
               </div>
               <div style={{
+                display: 'flex', justifyContent: 'space-between',
+                fontSize: '0.68rem', fontWeight: 600, color: TXT3, marginBottom: 4
+              }}>
+                <span>Day {pp.currentDayOffset} · Expires at 11:59 PM tonight</span>
+                <span>{pp.durationDays - pp.currentDayOffset} day{(pp.durationDays - pp.currentDayOffset) !== 1 ? 's' : ''} remaining in plan</span>
+              </div>
+              <div style={{
                 height: 18, background: TERT, border: `3px solid ${B}`, overflow: 'hidden'
               }}>
                 <div style={{
@@ -589,7 +761,9 @@ export default function StudentDashboard() {
               </div>
               <p style={{ fontSize: '0.72rem', color: TXT2, marginTop: 6, lineHeight: 1.55 }}>
                 {pp.paceStatus === 'behind'
-                  ? '⚠ You are behind schedule. Prioritise pending items from past days to catch up.'
+                  ? (behindCount > 0
+                    ? '⚠ You are behind schedule. Prioritise pending items from past days to catch up.'
+                    : '⚠ You have pending items from today. Complete them before 11:59 PM tonight.')
                   : pp.paceStatus === 'ahead'
                     ? '⚡ Ahead of schedule! Maintain this momentum and you will finish strong.'
                     : '✓ Stay consistent — showing up every day is the key to mastering the material.'}
@@ -668,6 +842,19 @@ export default function StudentDashboard() {
                     <span><span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--error)', marginRight: 5, border: `2px solid ${B}` }} /> Not started</span>
                     <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#a8a29e', marginRight: 5, border: `2px solid ${B}` }} /> Rest day</span>
                     <span><span style={{ display: 'inline-block', width: 12, height: 12, background: TERT, marginRight: 5, border: `2px solid ${B}` }} /> Future day</span>
+                  </div>
+                  {/* Plan day time logic note */}
+                  <div style={{
+                    fontSize: '0.68rem', color: '#92400e', background: '#fffbeb',
+                    padding: '8px 12px', marginTop: 4,
+                    border: `2px solid ${B}`,
+                    display: 'flex', alignItems: 'center', gap: 8
+                  }}>
+                    <Clock size={14} style={{ flexShrink: 0 }} />
+                    <span>
+                      <strong>Day {pp.currentDayOffset}</strong> expires <strong>tonight at 11:59 PM</strong> —
+                      full calendar day (midnight to midnight). Next day starts automatically at midnight.
+                    </span>
                   </div>
 
                   {/* ═══ DAY DRILLDOWN ═══ */}
@@ -784,8 +971,8 @@ export default function StudentDashboard() {
                     </div>
                   )}
 
-                  {/* Behind alert */}
-                  {behindCount > 0 && (
+                  {/* Behind alert — shows for past-days items OR today's pending items */}
+                  {(behindCount > 0 || todayPendingCount > 0) && (
                     <div style={{
                       fontSize: '0.85rem', padding: '12px 18px',
                       border: `3px solid var(--error)`,
@@ -795,7 +982,9 @@ export default function StudentDashboard() {
                     }}>
                       <AlertCircle size={20} style={{ flexShrink: 0 }} />
                       <span style={{ fontWeight: 700 }}>
-                        {behindCount} item{behindCount !== 1 ? 's' : ''} pending from past days.{' '}
+                        {behindCount > 0
+                          ? `${behindCount} item${behindCount !== 1 ? 's' : ''} pending from past days. `
+                          : `${todayPendingCount} item${todayPendingCount !== 1 ? 's' : ''} pending from today — complete before 11:59 PM tonight. `}
                         {planSelectedDay
                           ? 'Keep working through your tasks above.'
                           : 'Click a highlighted day above to see what needs attention.'}
@@ -944,7 +1133,7 @@ export default function StudentDashboard() {
                   {
                     icon: FlagTriangleRight, label: 'Items Behind',
                     value: behindCount,
-                    desc: 'Unfinished items from past days — tackle these first before new content.',
+                    desc: behindCount > 0 ? 'Unfinished items from past days — tackle these first before new content.' : 'Unfinished items from today — complete them before 11:59 PM tonight.',
                     color: behindCount > 0 ? 'var(--error)' : 'var(--success)'
                   },
                 ].map((s, i) => {
@@ -1312,6 +1501,26 @@ export default function StudentDashboard() {
           )}
         </>
       )}
+
+      {/* ═══════════════════════════════════════════════ */}
+      {/*  TIME LOGIC EXPLANATION — calendar-day system  */}
+      {/* ═══════════════════════════════════════════════ */}
+      <div style={{
+        border: `3px solid ${B}`, padding: '14px 18px', marginBottom: 4,
+        background: '#fffbeb', boxShadow: '4px 4px 0 var(--shadow-color)',
+        display: 'flex', alignItems: 'flex-start', gap: 12
+      }}>
+        <Clock size={20} style={{ flexShrink: 0, color: '#92400e', marginTop: 2 }} />
+        <div style={{ fontSize: '0.78rem', color: '#92400e', lineHeight: 1.65 }}>
+          <strong style={{ fontWeight: 800 }}>How Calendar Days Work:</strong> Everything runs on <strong>calendar days</strong> (midnight to midnight).
+          <br /><br />
+          <strong>Assignments:</strong> If the deadline is July 30, you have until <strong>11:59 PM on July 30</strong> — the full calendar day.
+          If your coordinator creates an assignment at 4:30 PM with today's end date, you still get the remaining hours of today.
+          <br /><br />
+          <strong>Plan Days:</strong> Each plan day is also a calendar day. Day 1 runs from <strong>midnight to midnight</strong> (full 24 hours).
+          When the clock hits midnight, Day 2 automatically starts. Today's tasks expire at <strong>11:59 PM tonight</strong>.
+        </div>
+      </div>
     </div>
     </SuspendedGate>
   );

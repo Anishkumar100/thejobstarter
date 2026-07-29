@@ -10,6 +10,16 @@
   --color-border-main: var(--border-color);
   --color-shadow-main: var(--shadow-color);
   --color-accent-brand: var(--accent);
+  --color-accent-highlight: var(--accent-highlight);
   --color-inverse-bg: var(--bg-inverse);
   --color-inverse-text: var(--text-inverse);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-text: var(--success-text);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-text: var(--warning-text);
+  --color-error: var(--error);
+  --color-error-bg: var(--error-bg);
+  --color-error-text: var(--error-text);
 }

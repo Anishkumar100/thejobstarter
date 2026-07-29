@@ -283,9 +283,11 @@ export async function removeStudentFromCenter(req, res) {
 
     student.coachingCenter = null;
     student.coachingCenterJoinedAt = null;
+    student.batch = null;
+    student.courseOffering = null;
     await student.save();
 
-    console.log('[COACHING] Student removed from center:', userId);
+    console.log('[COACHING] Student removed from center:', userId, '— batch and courseOffering also cleared');
     res.json({ success: true, data: { _id: student._id, displayName: student.displayName, username: student.username } });
   } catch (error) {
     console.error('[COACHING] Error removing student from center:', error.message);

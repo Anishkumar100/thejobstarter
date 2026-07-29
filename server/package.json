@@ -8,10 +8,12 @@
     "dev": "node --import dotenv/config --watch app.js",
     "start": "node --no-node-snapshot --import dotenv/config app.js",
     "seed": "node --import dotenv/config seeds/seed.js",
-    "seed:dbms-meta": "node --import dotenv/config seeds/seedDbmsMeta.js"
+    "seed:dbms-meta": "node --import dotenv/config seeds/seedDbmsMeta.js",
+    "migrate:subscription": "node --import dotenv/config scripts/fixMissingSubscription.js"
   },
   "dependencies": {
     "@clerk/backend": "^1.27.2",
+    "cashfree-pg": "^6.0.4",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

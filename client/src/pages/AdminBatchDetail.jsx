@@ -200,12 +200,12 @@ export default function AdminBatchDetail() {
       return;
     }
     try {
-      const res = await apiRequest(`/plans/batches/${id}/assign-plan`, {
+      await apiRequest(`/plans/batches/${id}/assign-plan`, {
         method: 'POST',
         body: JSON.stringify({ planId: selectedPlanId, startDate })
       });
-      setActivePlan(res.data);
       setShowPlanPicker(false);
+      fetchActivePlan(); /* Re-fetch from active-plan endpoint which includes currentDay */
     } catch (err) {
       alert(err.message || 'Failed to assign plan');
     }

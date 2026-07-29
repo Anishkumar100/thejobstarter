@@ -1,13 +1,15 @@
 import Problem from '../models/Problem.js';
 import DsaLesson from '../models/DsaLesson.js';
 import Subtopic from '../models/Subtopic.js';
+import User from '../models/User.js';
 import { clearCache } from '../middleware/cache.js';
+import { resolveUser, canAccessSubject, getLockedLessons, isLessonFree } from '../utils/accessControl.js';
 
 /* ===================== LESSONS ===================== */
 
 /*
  * GET /api/dsa/lessons
- * Fetch all DSA lessons, optionally filtered by category, each with problem count
+ * Fetch all DSA lessons with locked flags based on user's access level
  */
 export async function getLessons(req, res) {
   try {
@@ -15,9 +17,11 @@ export async function getLessons(req, res) {
     const { category } = req.query;
     const query = {};
     if (category) query.category = category;
-    const lessons = await DsaLesson.find(query).sort({ order: 1, title: 1 });
-    console.log('[DSA] Lessons fetched:', lessons.length);
-    res.json({ data: lessons });
+    const lessons = await DsaLesson.find(query).sort({ order: 1, title: 1 }).lean();
+    const user = await resolveUser(req);
+    const enriched = getLockedLessons(lessons, user);
+    console.log('[DSA] Lessons fetched:', enriched.length);
+    res.json({ data: enriched });
   } catch (error) {
     console.error('[DSA] Error fetching lessons:', error.message);
     res.status(500).json({ error: error.message });
@@ -26,19 +30,29 @@ export async function getLessons(req, res) {
 
 /*
  * GET /api/dsa/lessons/:slug
- * Fetch a single lesson with its problems
+ * Fetch a single lesson with its problems.
+ * Returns a locked response if the lesson is behind the paywall.
  */
 export async function getLessonBySlug(req, res) {
   try {
     console.log('[DSA] Fetching lesson by slug:', req.params.slug);
-    const lesson = await DsaLesson.findOne({ slug: req.params.slug });
+    const lesson = await DsaLesson.findOne({ slug: req.params.slug }).lean();
     if (!lesson) {
       console.log('[DSA] Lesson not found:', req.params.slug);
       return res.status(404).json({ error: 'Lesson not found' });
     }
-    const problems = await Problem.find({ lessonSlug: req.params.slug }).sort({ createdAt: -1 });
+    const user = await resolveUser(req);
+    const allLessons = await DsaLesson.find().sort({ order: 1 }).lean();
+    const free = isLessonFree(lesson.slug, allLessons);
+    if (!free && !canAccessSubject(user)) {
+      console.log('[DSA] Lesson locked:', lesson.title);
+      return res.json({
+        data: { ...lesson, locked: true, problems: [], subtopics: [] }
+      });
+    }
+    const problems = await Problem.find({ lessonSlug: req.params.slug }).sort({ createdAt: -1 }).lean();
     console.log('[DSA] Lesson fetched:', lesson.title, 'with', problems.length, 'problems');
-    res.json({ data: { ...lesson.toObject(), problems } });
+    res.json({ data: { ...lesson, locked: false, problems } });
   } catch (error) {
     console.error('[DSA] Error fetching lesson:', error.message);
     res.status(500).json({ error: error.message });
@@ -103,6 +117,7 @@ export async function deleteLesson(req, res) {
 /*
  * GET /api/dsa/problems
  * Fetch problems with optional filters: lesson, difficulty, company, topic, search, page
+ * Gated by parent lesson access — returns empty array if lesson is locked.
  */
 export async function getProblems(req, res) {
   try {
@@ -116,8 +131,18 @@ export async function getProblems(req, res) {
     if (topic) query.topics = topic;
     if (search) query.title = { $regex: search, $options: 'i' };
 
+    /* Gate by parent lesson if filtering by lesson */
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await DsaLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
+        console.log('[DSA] Problems blocked — lesson locked:', lesson);
+        return res.json({ data: [], total: 0, page: Number(page), totalPages: 0 });
+      }
+    }
+
     const skip = (page - 1) * limit;
-    const problems = await Problem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
+    const problems = await Problem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }).lean();
     const total = await Problem.countDocuments(query);
 
     console.log('[DSA] Problems fetched:', total);
@@ -130,21 +155,33 @@ export async function getProblems(req, res) {
 
 /*
  * GET /api/dsa/problems/:slug
- * Fetch single problem by slug, increment view count
+ * Fetch single problem by slug, increment view count.
+ * Gated by parent lesson access — returns locked if lesson is behind paywall.
  */
 export async function getProblemBySlug(req, res) {
   try {
     console.log('[DSA] Fetching problem by slug:', req.params.slug);
-    const problem = await Problem.findOne({ slug: req.params.slug });
+    const problem = await Problem.findOne({ slug: req.params.slug }).lean();
     if (!problem) {
       console.log('[DSA] Problem not found:', req.params.slug);
       return res.status(404).json({ error: 'Problem not found' });
     }
+
+    /* Gate by parent lesson */
+    const lesson = await DsaLesson.findOne({ slug: problem.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await DsaLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[DSA] Problem blocked — lesson locked:', problem.title);
+        return res.json({ data: { ...problem, locked: true, lesson, subtopic: null } });
+      }
+    }
+
     await Problem.findByIdAndUpdate(problem._id, { $inc: { views: 1 } });
-    const lesson = await DsaLesson.findOne({ slug: problem.lessonSlug });
-    const subtopic = problem.subtopicSlug ? await Subtopic.findOne({ slug: problem.subtopicSlug }) : null;
+    const subtopic = problem.subtopicSlug ? await Subtopic.findOne({ slug: problem.subtopicSlug }).lean() : null;
     console.log('[DSA] Problem fetched:', problem.title);
-    res.json({ data: { ...problem.toObject(), lesson, subtopic } });
+    res.json({ data: { ...problem, lesson, subtopic } });
   } catch (error) {
     console.error('[DSA] Error fetching problem:', error.message);
     res.status(500).json({ error: error.message });

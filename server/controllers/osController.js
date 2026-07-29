@@ -6,19 +6,22 @@ import OsLesson from '../models/OsLesson.js';
 import OsSubtopic from '../models/OsSubtopic.js';
 import OsProblem from '../models/OsProblem.js';
 import { clearCache } from '../middleware/cache.js';
+import { resolveUser, canAccessSubject, getLockedLessons, isLessonFree } from '../utils/accessControl.js';
 
 /* ===================== LESSONS ===================== */
 
 /*
  * GET /api/os/lessons
- * Fetch all OS lessons sorted by order
+ * Fetch all OS lessons sorted by order, with locked flags
  */
 export async function getLessons(req, res) {
   try {
     console.log('[OS] Fetching lessons...');
-    const lessons = await OsLesson.find().sort({ order: 1, title: 1 });
-    console.log('[OS] Lessons fetched:', lessons.length);
-    res.json({ data: lessons });
+    const lessons = await OsLesson.find().sort({ order: 1, title: 1 }).lean();
+    const user = await resolveUser(req);
+    const enriched = getLockedLessons(lessons, user);
+    console.log('[OS] Lessons fetched:', enriched.length);
+    res.json({ data: enriched });
   } catch (error) {
     console.error('[OS] Error fetching lessons:', error.message);
     res.status(500).json({ error: error.message });
@@ -27,19 +30,26 @@ export async function getLessons(req, res) {
 
 /*
  * GET /api/os/lessons/:slug
- * Fetch a single OS lesson with its problems
+ * Fetch a single OS lesson with its problems, gated by access
  */
 export async function getLessonBySlug(req, res) {
   try {
     console.log('[OS] Fetching lesson by slug:', req.params.slug);
-    const lesson = await OsLesson.findOne({ slug: req.params.slug });
+    const lesson = await OsLesson.findOne({ slug: req.params.slug }).lean();
     if (!lesson) {
       console.log('[OS] Lesson not found:', req.params.slug);
       return res.status(404).json({ error: 'Lesson not found' });
     }
-    const problems = await OsProblem.find({ lessonSlug: req.params.slug }).sort({ createdAt: -1 });
+    const user = await resolveUser(req);
+    const allLessons = await OsLesson.find().sort({ order: 1 }).lean();
+    const free = isLessonFree(lesson.slug, allLessons);
+    if (!free && !canAccessSubject(user)) {
+      console.log('[OS] Lesson locked:', lesson.title);
+      return res.json({ data: { ...lesson, locked: true, problems: [], subtopics: [] } });
+    }
+    const problems = await OsProblem.find({ lessonSlug: req.params.slug }).sort({ createdAt: -1 }).lean();
     console.log('[OS] Lesson fetched:', lesson.title, 'with', problems.length, 'problems');
-    res.json({ data: { ...lesson.toObject(), problems } });
+    res.json({ data: { ...lesson, locked: false, problems } });
   } catch (error) {
     console.error('[OS] Error fetching lesson:', error.message);
     res.status(500).json({ error: error.message });
@@ -103,15 +113,20 @@ export async function deleteLesson(req, res) {
 
 /*
  * GET /api/os/subtopics?lesson=slug
- * Fetch subtopics, optionally filtered by lesson
+ * Fetch subtopics, optionally filtered by lesson. Gated by parent lesson access.
  */
 export async function getSubtopics(req, res) {
   try {
     console.log('[OS] Fetching subtopics with filters:', req.query);
     const { lesson } = req.query;
-    const query = {};
-    if (lesson) query.lessonSlug = lesson;
-    const subtopics = await OsSubtopic.find(query).sort({ order: 1, title: 1 });
+    if (!lesson) return res.status(400).json({ error: 'lesson query param required' });
+    const user = await resolveUser(req);
+    const allLessons = await OsLesson.find().sort({ order: 1 }).lean();
+    if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
+      console.log('[OS] Subtopics blocked — lesson locked:', lesson);
+      return res.json({ data: [], locked: true });
+    }
+    const subtopics = await OsSubtopic.find({ lessonSlug: lesson }).sort({ order: 1, title: 1 }).lean();
     console.log('[OS] Subtopics fetched:', subtopics.length);
     res.json({ data: subtopics });
   } catch (error) {
@@ -122,19 +137,28 @@ export async function getSubtopics(req, res) {
 
 /*
  * GET /api/os/subtopics/:slug
- * Fetch a single OS subtopic with its problems
+ * Fetch a single OS subtopic with its problems, gated by parent lesson access.
  */
 export async function getSubtopicBySlug(req, res) {
   try {
     console.log('[OS] Fetching subtopic by slug:', req.params.slug);
-    const subtopic = await OsSubtopic.findOne({ slug: req.params.slug });
+    const subtopic = await OsSubtopic.findOne({ slug: req.params.slug }).lean();
     if (!subtopic) {
       console.log('[OS] Subtopic not found:', req.params.slug);
       return res.status(404).json({ error: 'Subtopic not found' });
     }
-    const problems = await OsProblem.find({ subtopicSlug: req.params.slug }).sort({ createdAt: -1 });
+    const lesson = await OsLesson.findOne({ slug: subtopic.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await OsLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[OS] Subtopic blocked — lesson locked:', subtopic.title);
+        return res.json({ data: { ...subtopic, locked: true, problems: [] } });
+      }
+    }
+    const problems = await OsProblem.find({ subtopicSlug: req.params.slug }).sort({ createdAt: -1 }).lean();
     console.log('[OS] Subtopic fetched:', subtopic.title, 'with', problems.length, 'problems');
-    res.json({ data: { ...subtopic.toObject(), problems } });
+    res.json({ data: { ...subtopic, locked: false, problems } });
   } catch (error) {
     console.error('[OS] Error fetching subtopic:', error.message);
     res.status(500).json({ error: error.message });
@@ -196,16 +220,27 @@ export async function deleteSubtopic(req, res) {
 
 /*
  * GET /api/os/subtopics/:slug/problems
- * Fetch problems belonging to a specific OS subtopic with pagination and difficulty filter
+ * Fetch problems belonging to a specific OS subtopic, gated by parent lesson access.
  */
 export async function getSubtopicProblems(req, res) {
   try {
     console.log('[OS] Fetching problems for subtopic:', req.params.slug);
     const { difficulty, page = 1, limit = 20 } = req.query;
+    const subtopic = await OsSubtopic.findOne({ slug: req.params.slug }).lean();
+    if (!subtopic) return res.status(404).json({ error: 'Subtopic not found' });
+    const lesson = await OsLesson.findOne({ slug: subtopic.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await OsLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[OS] Subtopic problems blocked — lesson locked:', subtopic.lessonSlug);
+        return res.json({ data: [], total: 0, page: Number(page), totalPages: 0 });
+      }
+    }
     const query = { subtopicSlug: req.params.slug };
     if (difficulty) query.difficulty = difficulty;
     const skip = (page - 1) * limit;
-    const problems = await OsProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
+    const problems = await OsProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }).lean();
     const total = await OsProblem.countDocuments(query);
     console.log('[OS] Subtopic problems fetched:', total);
     res.json({ data: problems, total, page: Number(page), totalPages: Math.ceil(total / limit) });
@@ -219,7 +254,7 @@ export async function getSubtopicProblems(req, res) {
 
 /*
  * GET /api/os/problems
- * Fetch all OS problems with filters (lesson, subtopic, difficulty, company, topic, search)
+ * Fetch all OS problems with filters, gated by lesson access.
  */
 export async function getProblems(req, res) {
   try {
@@ -233,8 +268,17 @@ export async function getProblems(req, res) {
     if (topic) query.topics = topic;
     if (search) query.title = { $regex: search, $options: 'i' };
 
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await OsLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
+        console.log('[OS] Problems blocked — lesson locked:', lesson);
+        return res.json({ data: [], total: 0, page: Number(page), totalPages: 0 });
+      }
+    }
+
     const skip = (page - 1) * limit;
-    const problems = await OsProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
+    const problems = await OsProblem.find(query).skip(skip).limit(Number(limit)).sort({ createdAt: -1 }).lean();
     const total = await OsProblem.countDocuments(query);
 
     console.log('[OS] Problems fetched:', total);
@@ -247,21 +291,29 @@ export async function getProblems(req, res) {
 
 /*
  * GET /api/os/problems/:slug
- * Fetch a single OS problem by slug, increment view count
+ * Fetch a single OS problem by slug, increment view count, gated by lesson access.
  */
 export async function getProblemBySlug(req, res) {
   try {
     console.log('[OS] Fetching problem by slug:', req.params.slug);
-    const problem = await OsProblem.findOne({ slug: req.params.slug });
+    const problem = await OsProblem.findOne({ slug: req.params.slug }).lean();
     if (!problem) {
       console.log('[OS] Problem not found:', req.params.slug);
       return res.status(404).json({ error: 'Problem not found' });
     }
+    const lesson = await OsLesson.findOne({ slug: problem.lessonSlug }).lean();
+    if (lesson) {
+      const user = await resolveUser(req);
+      const allLessons = await OsLesson.find().sort({ order: 1 }).lean();
+      if (!isLessonFree(lesson.slug, allLessons) && !canAccessSubject(user)) {
+        console.log('[OS] Problem blocked — lesson locked:', problem.title);
+        return res.json({ data: { ...problem, locked: true, lesson, subtopic: null } });
+      }
+    }
     await OsProblem.findByIdAndUpdate(problem._id, { $inc: { views: 1 } });
-    const lesson = await OsLesson.findOne({ slug: problem.lessonSlug });
-    const subtopic = problem.subtopicSlug ? await OsSubtopic.findOne({ slug: problem.subtopicSlug }) : null;
+    const subtopic = problem.subtopicSlug ? await OsSubtopic.findOne({ slug: problem.subtopicSlug }).lean() : null;
     console.log('[OS] Problem fetched:', problem.title);
-    res.json({ data: { ...problem.toObject(), lesson, subtopic } });
+    res.json({ data: { ...problem, lesson, subtopic } });
   } catch (error) {
     console.error('[OS] Error fetching problem:', error.message);
     res.status(500).json({ error: error.message });

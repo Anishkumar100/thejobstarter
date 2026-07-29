@@ -57,6 +57,95 @@ const siteConfigSchema = new mongoose.Schema({
     ctaSecondary: { type: String, default: '' },
     ctaSecondaryLink: { type: String, default: '' },
     videoUrl: { type: String, default: '' }
+  },
+  /*
+   * subscriptionSettings — Configurable subscription price and duration.
+   * Admin can change these via the Subscription Settings admin page.
+   */
+  subscriptionSettings: {
+    price: { type: Number, default: 99 },
+    durationDays: { type: Number, default: 30 }
+  },
+  /*
+   * pricingPlans — Array of pricing plans for the public /pricing page.
+   * Fully customizable from the admin dashboard under Payments > Pricing Plans.
+   * Each plan has: id, name, description, price, interval, features[], ctaText,
+   * highlighted (boolean), badge (optional string), and active (boolean).
+   */
+  pricingPlans: {
+    type: [{
+      id: { type: String, required: true },
+      name: { type: String, required: true },
+      description: { type: String, default: '' },
+      price: { type: Number, required: true },
+      interval: { type: String, default: 'monthly' },
+      features: [{ type: String }],
+      ctaText: { type: String, default: 'Get Started' },
+      ctaLink: { type: String, default: '' },
+      highlighted: { type: Boolean, default: false },
+      badge: { type: String, default: '' },
+      active: { type: Boolean, default: true }
+    }],
+    default: [
+      {
+        id: 'free',
+        name: 'Free',
+        description: 'Get started with basic access to the platform.',
+        price: 0,
+        interval: 'forever',
+        features: [
+          'Access to DSA problems',
+          'Community Q&A read-only',
+          'Basic articles & blog posts',
+          'Public profile'
+        ],
+        ctaText: 'Get Started',
+        ctaLink: '/sign-up',
+        highlighted: false,
+        badge: '',
+        active: true
+      },
+      {
+        id: 'premium',
+        name: 'Premium',
+        description: 'Full access to everything TheJobStarter offers.',
+        price: 99,
+        interval: 'monthly',
+        features: [
+          'Everything in Free',
+          'Unlimited code submissions',
+          'Premium articles & cheatsheets',
+          'Direct messaging',
+          'Download PDFs & PPTX',
+          'Priority community support'
+        ],
+        ctaText: 'Subscribe Now',
+        ctaLink: '/subscribe',
+        highlighted: true,
+        badge: 'Most Popular',
+        active: true
+      },
+      {
+        id: 'lifetime',
+        name: 'Lifetime',
+        description: 'One-time payment. Access forever.',
+        price: 999,
+        interval: 'once',
+        features: [
+          'Everything in Premium',
+          'All future premium content',
+          'Lifetime updates',
+          'Exclusive Discord access',
+          'Priority email support',
+          'Early access to new features'
+        ],
+        ctaText: 'Get Lifetime',
+        ctaLink: '/subscribe',
+        highlighted: false,
+        badge: '',
+        active: true
+      }
+    ]
   }
 }, { timestamps: true });
 

@@ -5,7 +5,7 @@ import {
   BookOpen, Code2, Tags, Database, Monitor, FileText,
   Users, HelpCircle, Globe, Mail, Image as ImageIcon,
   Home, Settings, Plus, Terminal, Layers, TrendingUp, AlertCircle, Clock,
-  Building2, GraduationCap, BarChart3, ArrowRight
+  Building2, GraduationCap, BarChart3, ArrowRight, IndianRupee
 } from 'lucide-react';
 import { useAdminStore } from '../stores/useAdminStore.js';
 import { apiRequest } from '../api/client.js';
@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   const { stats, loading, fetchStats } = useAdminStore();
   const [batchPlanStats, setBatchPlanStats] = useState(null);
   const [bpLoading, setBpLoading] = useState(true);
+  const [paymentStats, setPaymentStats] = useState(null);
 
   useEffect(() => { fetchStats(); }, []);
 
@@ -65,6 +66,18 @@ export default function AdminDashboard() {
         console.error('[ADMIN] Error fetching batch/plan stats:', err.message);
       }
       setBpLoading(false);
+    })();
+  }, []);
+
+  /* Fetch payment stats for revenue cards */
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiRequest('/admin/payments/stats');
+        setPaymentStats(res.data);
+      } catch (err) {
+        console.error('[ADMIN] Error fetching payment stats:', err.message);
+      }
     })();
   }, []);
 
@@ -148,6 +161,32 @@ export default function AdminDashboard() {
                 <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>{batchPlanStats.activeBatchPlans || 0}</div>
                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-tertiary)' }}>Batches Running Plans</div>
               </div>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ REVENUE ═══ */}
+      {paymentStats && (
+        <div style={{ marginBottom: 'var(--space-2xl)' }}>
+          <h2 style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: 'var(--space-md)', paddingBottom: 'var(--space-sm)', borderBottom: '3px solid var(--border-color)' }}>
+            Revenue
+          </h2>
+          <div className="admin-stats">
+            <Link to="/admin/payments" className="admin-stats__card" style={{ textDecoration: 'none', display: 'block' }}>
+              <IndianRupee size={24} style={{ color: '#16a34a', marginBottom: 8 }} />
+              <div className="admin-stats__num">{paymentStats.activeSubscriptions || 0}</div>
+              <div className="admin-stats__label">Active Subscribers</div>
+            </Link>
+            <div className="admin-stats__card">
+              <IndianRupee size={24} style={{ color: '#2563eb', marginBottom: 8 }} />
+              <div className="admin-stats__num">₹{((paymentStats.activeSubscriptions || 0) * (paymentStats.currentPrice || 99)).toLocaleString()}</div>
+              <div className="admin-stats__label">Expected Monthly</div>
+            </div>
+            <Link to="/admin/payments/promos" className="admin-stats__card" style={{ textDecoration: 'none', display: 'block' }}>
+              <IndianRupee size={24} style={{ color: '#f59e0b', marginBottom: 8 }} />
+              <div className="admin-stats__num">{paymentStats.canceledSubscriptions || 0}</div>
+              <div className="admin-stats__label">Promo Codes Active</div>
             </Link>
           </div>
         </div>

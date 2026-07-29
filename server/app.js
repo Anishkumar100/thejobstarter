@@ -43,6 +43,9 @@ import programmingMetaRoutes from './routes/programmingMetaRoutes.js';
 import batchRoutes from './routes/batchRoutes.js';
 import courseOfferingRoutes from './routes/courseOfferingRoutes.js';
 import planRoutes from './routes/planRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import coordinatorAssignmentRoutes from './routes/coordinatorAssignmentRoutes.js';
+import studentAssignmentRoutes from './routes/studentAssignmentRoutes.js';
 
 /* Initialize Express app */
 const app = express();
@@ -82,6 +85,8 @@ app.use(cors({
   origin: function (origin, callback) {
     /* Allow requests with no origin (server-to-server, curl, etc.) */
     if (!origin) return callback(null, true);
+    /* Allow requests from sandboxed contexts where origin is literally the string "null" */
+    if (origin === 'null') return callback(null, true);
     if (allowedOrigins.indexOf(origin) !== -1) {
       return callback(null, true);
     }
@@ -95,9 +100,10 @@ app.use(cors({
 }));
 
 /*
- * JSON body parser (skip for Clerk webhook which needs raw body)
+ * JSON body parser (skip for webhooks which need raw body for signature verification)
  */
 app.use('/api/users/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -137,6 +143,11 @@ app.use('/api/programming-meta', programmingMetaRoutes);
 app.use('/api/batches', batchRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/course-offerings', courseOfferingRoutes);
+app.use('/api/payments', paymentRoutes);
+
+/* ── Assignment routes ── */
+app.use('/api/coordinator/assignments', coordinatorAssignmentRoutes);
+app.use('/api/student/assignments', studentAssignmentRoutes);
 
 /*
  * SSR placeholder — Client will use Next.js in v2.

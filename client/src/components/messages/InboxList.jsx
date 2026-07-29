@@ -8,7 +8,7 @@ const NOTIF_CONFIG = {
   answer: {
     badgeIcon: MessageNotification01Icon,
     badgeBg: 'var(--accent)',
-    action: (from) => `${from.displayName || from.username || 'Someone'} answered your question`
+    action: () => `answered your question`
   },
   question_approved: {
     badgeIcon: CheckmarkCircle01Icon,
@@ -23,12 +23,12 @@ const NOTIF_CONFIG = {
   answer_approved: {
     badgeIcon: CheckmarkCircle01Icon,
     badgeBg: '#16a34a',
-    action: (from) => `${from.displayName || from.username || 'Someone'} approved your answer`
+    action: () => `approved your answer`
   },
   answer_rejected: {
     badgeIcon: Cancel01Icon,
     badgeBg: '#dc2626',
-    action: (from) => `${from.displayName || from.username || 'Someone'} rejected your answer`
+    action: () => `rejected your answer`
   },
   profile_incomplete: {
     badgeIcon: AlertCircleIcon,
@@ -39,6 +39,21 @@ const NOTIF_CONFIG = {
     badgeIcon: AlertCircleIcon,
     badgeBg: '#dc2626',
     action: () => 'You need attention — review your progress and quizzes'
+  },
+  assignment_created: {
+    badgeIcon: MessageNotification01Icon,
+    badgeBg: 'var(--accent)',
+    action: () => `created a new assignment`
+  },
+  assignment_approved: {
+    badgeIcon: CheckmarkCircle01Icon,
+    badgeBg: '#16a34a',
+    action: () => `approved your assignment submission`
+  },
+  assignment_rejected: {
+    badgeIcon: Cancel01Icon,
+    badgeBg: '#dc2626',
+    action: () => `rejected your assignment submission`
   }
 };
 
@@ -90,12 +105,14 @@ export default function InboxList({ conversations = [], notifications = [], unre
             const BadgeIcon = config.badgeIcon;
             const isAdminAction = item.type === 'question_approved' || item.type === 'question_rejected';
             const isSystemNotif = item.type === 'profile_incomplete' || item.type === 'needs_attention';
+            const isAssignmentNotif = item.type === 'assignment_created' || item.type === 'assignment_approved' || item.type === 'assignment_rejected';
 
             const questionDeleted = item.questionDeleted;
             const isProfileLink = item.type === 'profile_incomplete';
             const isAttentionLink = item.type === 'needs_attention';
             const hasQaLink = item.questionId;
-            const noLink = (questionDeleted || !hasQaLink) && !isProfileLink && !isAttentionLink;
+            const hasAssignmentLink = isAssignmentNotif && item.link;
+            const noLink = (questionDeleted || !hasQaLink) && !isProfileLink && !isAttentionLink && !hasAssignmentLink;
             const Wrapper = noLink ? 'div' : Link;
             const wrapperProps = noLink
               ? { className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}` }
@@ -103,7 +120,9 @@ export default function InboxList({ conversations = [], notifications = [], unre
                 ? { to: '/', className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) }
                 : isProfileLink
                   ? { to: '/settings/profile', className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) }
-                  : { to: `/qa/${item.questionId}`, className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) };
+                  : hasAssignmentLink
+                    ? { to: item.link, className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) }
+                    : { to: `/qa/${item.questionId}`, className: `inbox-item ${!item.read ? 'inbox-item--unread' : ''}`, onClick: () => handleNotifClick(item) };
 
             return (
               <div key={`notif-${item._id}`} className="inbox-item__wrap">
@@ -114,6 +133,18 @@ export default function InboxList({ conversations = [], notifications = [], unre
                         background: item.type === 'needs_attention' ? '#dc2626' : item.type === 'profile_incomplete' ? '#f59e0b' : '#000'
                       }}>
                         {isSystemNotif ? <AlertCircleIcon size={18} /> : <CheckmarkCircle01Icon size={18} />}
+                      </div>
+                    ) : isAssignmentNotif ? (
+                      /* Show center logo for all assignment notifications */
+                      <div className="inbox-item__admin-avatar" style={{
+                        background: 'var(--accent)',
+                        overflow: 'hidden'
+                      }}>
+                        {item.centerLogo ? (
+                          <img src={item.centerLogo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <MessageNotification01Icon size={18} />
+                        )}
                       </div>
                     ) : (
                       <Avatar src={from.avatar} name={from.displayName || from.username} size={36} />
@@ -133,6 +164,9 @@ export default function InboxList({ conversations = [], notifications = [], unre
                           }}>
                             {item.type === 'needs_attention' ? 'Attention' : 'Profile'}
                           </span>
+                        ) : isAssignmentNotif ? (
+                          /* Show center name for all assignment notifications */
+                          <span>{item.centerName || 'Coordinator'}</span>
                         ) : (
                           from.displayName || from.username || 'Someone'
                         )}
@@ -144,7 +178,7 @@ export default function InboxList({ conversations = [], notifications = [], unre
                     </div>
                     {!isSystemNotif && (
                       <div className={`inbox-item__preview ${!item.read ? 'inbox-item__preview--unread' : ''}`}>
-                        {item.questionTitle}
+                        {isAssignmentNotif ? (item.message || item.title) : item.questionTitle}
                       </div>
                     )}
                     {item.type === 'needs_attention' && item.attentionReasons?.length > 0 && (

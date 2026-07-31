@@ -121,7 +121,9 @@ export default function StudentDashboard() {
   const pp = progressSummary?.planProgress;
   const feedback = getFeedback(overallPct, avgQuizScore);
   const FeedbackIcon = feedback.icon;
-  const timePct = pp ? Math.round((pp.currentDayOffset / (pp.durationDays || 1)) * 100) : 0;
+  const timePct = pp
+    ? (pp.status === 'completed' ? 100 : Math.round((pp.currentDayOffset / (pp.durationDays || 1)) * 100))
+    : 0;
 
   /* Count only items from PAST days (not the current day) as behind */
   const behindCount = useMemo(() => {
@@ -683,335 +685,267 @@ export default function StudentDashboard() {
           {/* ─────────────────────────────────────────────── */}
           {/*  SECTION 2 — PLAN PROGRESS                     */}
           {/* ─────────────────────────────────────────────── */}
-          <div style={{ ...card(), marginBottom: 36, borderLeft: `8px solid var(--accent)` }}>
-            {/* Plan header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h2 style={{
-                  fontSize: '1.1rem', fontWeight: 900, margin: 0,
-                  display: 'flex', alignItems: 'center', gap: 10, color: TXT
-                }}>
-                  <FileText size={22} /> {pp.planName}
-                </h2>
-                <p style={{ fontSize: '0.82rem', color: TXT2, margin: '6px 0 0', lineHeight: 1.65 }}>
-                  Your structured daily plan. Each day has specific lessons, subtopics, and problems assigned for you to complete.
-                  {pp.startDate ? ` Started ${new Date(pp.startDate).toLocaleDateString()}.` : ''}
-                  {pp.endDate ? ` Ends ${new Date(pp.endDate).toLocaleDateString()}.` : ''}
-                </p>
-              </div>
-              <span style={{
-                fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase',
-                padding: '5px 14px', border: `3px solid ${PACE_COLORS[pp.paceStatus] || TXT3}`,
-                color: PACE_COLORS[pp.paceStatus] || TXT3,
-                whiteSpace: 'nowrap', letterSpacing: '0.05em', flexShrink: 0
-              }}>
-                {pp.paceStatus === 'just-started' ? 'JUST STARTED' :
-                 pp.paceStatus === 'on-track' ? 'ON TRACK ✓' :
-                 pp.paceStatus === 'ahead' ? 'AHEAD ⚡' : 'BEHIND ⚠'}
-              </span>
-            </div>
-
-            {/* Plan summary metrics */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 24 }}>
-              {[
-                { icon: Activity, label: 'Current Pace', value: pp.paceStatus === 'just-started' ? 'Just Started' : pp.paceStatus === 'on-track' ? 'On Track' : pp.paceStatus, desc: 'Your progress relative to the plan schedule — how well you are keeping up.', color: PACE_COLORS[pp.paceStatus] || TXT },
-                { icon: Timer, label: 'Plan Day', value: `Day ${pp.currentDayOffset}`, desc: `Out of ${pp.durationDays} total days in this plan. Stay consistent each day.`, color: TXT },
-                { icon: ListChecks, label: 'Items Completed', value: `${pp.completedCount} / ${pp.expectedCount}`, desc: 'How many assigned items you have finished so far. Keep checking them off!', color: TXT },
-                { icon: Percent, label: 'Plan Progress', value: userPlanBreakdown ? `${userPlanBreakdown.overallPct}%` : `${Math.round((pp.completedCount / Math.max(1, pp.expectedCount)) * 100)}%`, desc: 'Overall completion percentage across all plan days combined.', color: (userPlanBreakdown?.overallPct || Math.round((pp.completedCount / Math.max(1, pp.expectedCount)) * 100)) >= 60 ? 'var(--success)' : 'var(--error)' },
-              ].map((s, i) => {
-                const SI = s.icon;
-                return (
-                  <div key={i} style={tinyCard()}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <SI size={12} style={{ color: TXT3 }} />
-                      <div style={labelSm}>{s.label}</div>
-                    </div>
-                    <div style={{ fontSize: '1rem', fontWeight: 900, color: s.color, marginBottom: 2 }}>{s.value}</div>
-                    <div style={{ fontSize: '0.68rem', color: TXT2, marginTop: 2, lineHeight: 1.45 }}>{s.desc}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Time elapsed bar */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between',
-                fontSize: '0.72rem', fontWeight: 700, color: TXT2, marginBottom: 6
-              }}>
-                <span>TIME ELAPSED</span>
-                <span>{timePct}% of plan duration used</span>
-              </div>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between',
-                fontSize: '0.68rem', fontWeight: 600, color: TXT3, marginBottom: 4
-              }}>
-                <span>Day {pp.currentDayOffset} · Expires at 11:59 PM tonight</span>
-                <span>{pp.durationDays - pp.currentDayOffset} day{(pp.durationDays - pp.currentDayOffset) !== 1 ? 's' : ''} remaining in plan</span>
-              </div>
-              <div style={{
-                height: 18, background: TERT, border: `3px solid ${B}`, overflow: 'hidden'
-              }}>
-                <div style={{
-                  height: '100%',
-                  width: `${Math.min(100, timePct)}%`,
-                  background: pp.paceStatus === 'behind' ? 'var(--error)' : 'var(--success)',
-                  transition: 'width 0.5s ease'
-                }} />
-              </div>
-              <p style={{ fontSize: '0.72rem', color: TXT2, marginTop: 6, lineHeight: 1.55 }}>
-                {pp.paceStatus === 'behind'
-                  ? (behindCount > 0
-                    ? '⚠ You are behind schedule. Prioritise pending items from past days to catch up.'
-                    : '⚠ You have pending items from today. Complete them before 11:59 PM tonight.')
-                  : pp.paceStatus === 'ahead'
-                    ? '⚡ Ahead of schedule! Maintain this momentum and you will finish strong.'
-                    : '✓ Stay consistent — showing up every day is the key to mastering the material.'}
-              </p>
-            </div>
-
-            {/* ═══ DAY GRID ═══ */}
-            <div id="today-tasks-section" style={{
-              borderTop: `2px solid ${B}`, paddingTop: 20, marginTop: 4
-            }}>
-              <h3 style={{
-                fontSize: '0.9rem', fontWeight: 900, margin: '0 0 4px',
-                display: 'flex', alignItems: 'center', gap: 8, color: TXT
-              }}>
-                <Calendar size={18} /> DAILY TASK COMPLETION
-                {userPlanBreakdown?.days && (
-                  <span style={{ fontWeight: 400, fontSize: '0.7rem', color: TXT2, marginLeft: 4 }}>
-                    ({userPlanBreakdown.days.filter(d => !d.isFuture).length} days elapsed)
-                  </span>
-                )}
-              </h3>
-              <p style={{
-                fontSize: '0.78rem', color: TXT2, marginBottom: 14,
-                borderLeft: `3px solid var(--accent)`, paddingLeft: 12, lineHeight: 1.6
-              }}>
-                <strong>Green</strong> = all items done &nbsp;|&nbsp; <strong>Yellow</strong> = partial &nbsp;|&nbsp;
-                <strong>Red</strong> = not started &nbsp;|&nbsp; <strong>Gray</strong> = rest day &nbsp;|&nbsp;
-                <strong>Outlined</strong> = future. <strong>Click any day</strong> to drill into its tasks and see what needs attention.
-              </p>
-
-              {userBdLoading ? (
-                <div style={{ padding: 24, textAlign: 'center' }}><Loader text="LOADING DAYS..." /></div>
-              ) : userPlanBreakdown?.days ? (
+          {pp && (
+            <div style={{ ...card(), marginBottom: 36, borderLeft: `8px solid ${pp.status === 'completed' ? 'var(--success)' : 'var(--accent)'}` }}>
+              {pp.status === 'completed' ? (
                 <>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 14 }}>
-                    {userPlanBreakdown.days.map(d => {
-                      const isSelected = planSelectedDay?.day === d.day;
-                      let bg;
-                      if (d.isFuture) bg = TERT;
-                      else if (d.itemsCount === 0) bg = '#a8a29e';
-                      else if (d.completedCount === d.itemsCount) bg = 'var(--success)';
-                      else if (d.completedCount > 0) bg = 'var(--warning)';
-                      else bg = 'var(--error)';
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, display: 'flex', alignItems: 'center', gap: 10, color: TXT }}>
+                        <CheckCircle size={22} style={{ color: 'var(--success)' }} /> {pp.planName}
+                      </h2>
+                      <p style={{ fontSize: '0.82rem', color: TXT2, margin: '6px 0 0', lineHeight: 1.65 }}>
+                        This plan has ended. Here's your final summary.
+                        {pp.startDate ? ` Started ${new Date(pp.startDate).toLocaleDateString()}.` : ''}
+                      </p>
+                    </div>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', padding: '5px 14px', border: `3px solid var(--success)`, color: 'var(--success)', whiteSpace: 'nowrap', letterSpacing: '0.05em', flexShrink: 0 }}>
+                      COMPLETED ✓
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 24 }}>
+                    {[
+                      { icon: CheckCircle, label: 'Completion', value: `${pp.completionPct || 0}%`, desc: 'Overall completion across the entire plan.', color: 'var(--success)' },
+                      { icon: ListChecks, label: 'Items Done', value: `${pp.completedCount || 0} / ${pp.totalItems || 0}`, desc: 'How many assigned items you finished.', color: TXT },
+                    ].map((s, i) => {
+                      const SI = s.icon;
                       return (
-                        <div key={d.day}
-                          onClick={() => setPlanSelectedDay(isSelected ? null : d)}
-                          title={`Day ${d.day}: ${d.completedCount}/${d.itemsCount} items (${d.completedPct}%)${d.isCurrent ? ' — TODAY' : d.isPast ? ' — PAST' : ' — FUTURE'}${d.items.length > 0 ? '. Click to see items.' : ''}`}
-                          style={{
-                            width: 36, height: 36, cursor: d.items?.length > 0 ? 'pointer' : 'default',
-                            border: isSelected ? `3px solid var(--accent)` : d.isCurrent ? `3px solid ${B}` : `2px solid ${B}`,
-                            background: bg,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.7rem', fontWeight: 900,
-                            color: d.isFuture ? TXT3 : '#000',
-                            transition: 'transform 0.12s, box-shadow 0.12s',
-                            outline: isSelected ? `3px solid var(--accent)` : 'none',
-                            outlineOffset: 2,
-                            boxShadow: isSelected ? SH(4) : 'none'
-                          }}
-                          onMouseEnter={e => { if (d.items?.length > 0) { e.currentTarget.style.transform = 'scale(1.15)'; e.currentTarget.style.boxShadow = SH(4); }}}
-                          onMouseLeave={e => { if (!isSelected) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; } else { e.currentTarget.style.transform = 'none'; }}}>
-                          {d.day}
+                        <div key={i} style={tinyCard()}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <SI size={12} style={{ color: TXT3 }} />
+                            <div style={labelSm}>{s.label}</div>
+                          </div>
+                          <div style={{ fontSize: '1rem', fontWeight: 900, color: s.color, marginBottom: 2 }}>{s.value}</div>
+                          <div style={{ fontSize: '0.68rem', color: TXT2, marginTop: 2, lineHeight: 1.45 }}>{s.desc}</div>
                         </div>
                       );
                     })}
                   </div>
-
-                  {/* Legend */}
-                  <div style={{
-                    display: 'flex', gap: 16, fontSize: '0.72rem', color: TXT2,
-                    flexWrap: 'wrap', marginBottom: 18,
-                    padding: '8px 12px', border: `2px solid ${B}`, background: TERT
-                  }}>
-                    <span><span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--success)', marginRight: 5, border: `2px solid ${B}` }} /> All completed</span>
-                    <span><span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--warning)', marginRight: 5, border: `2px solid ${B}` }} /> Partially done</span>
-                    <span><span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--error)', marginRight: 5, border: `2px solid ${B}` }} /> Not started</span>
-                    <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#a8a29e', marginRight: 5, border: `2px solid ${B}` }} /> Rest day</span>
-                    <span><span style={{ display: 'inline-block', width: 12, height: 12, background: TERT, marginRight: 5, border: `2px solid ${B}` }} /> Future day</span>
+                  <div style={{ height: 18, background: TERT, border: `3px solid ${B}`, overflow: 'hidden', marginBottom: 12 }}>
+                    <div style={{ height: '100%', width: `${Math.min(100, pp.completionPct || 0)}%`, background: 'var(--success)', transition: 'width 0.5s ease' }} />
                   </div>
-                  {/* Plan day time logic note */}
-                  <div style={{
-                    fontSize: '0.68rem', color: '#92400e', background: '#fffbeb',
-                    padding: '8px 12px', marginTop: 4,
-                    border: `2px solid ${B}`,
-                    display: 'flex', alignItems: 'center', gap: 8
-                  }}>
-                    <Clock size={14} style={{ flexShrink: 0 }} />
-                    <span>
-                      <strong>Day {pp.currentDayOffset}</strong> expires <strong>tonight at 11:59 PM</strong> —
-                      full calendar day (midnight to midnight). Next day starts automatically at midnight.
+                  <p style={{ fontSize: '0.82rem', color: TXT2, lineHeight: 1.55 }}>
+                    {pp.completionPct >= 80
+                      ? 'Excellent work! You completed most of the plan. Well done!'
+                      : pp.completionPct >= 50
+                        ? 'Good effort! You made it through more than half the plan.'
+                        : 'The plan is over, but you can still go back and review the remaining items at your own pace.'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, display: 'flex', alignItems: 'center', gap: 10, color: TXT }}>
+                        <FileText size={22} /> {pp.planName}
+                      </h2>
+                      <p style={{ fontSize: '0.82rem', color: TXT2, margin: '6px 0 0', lineHeight: 1.65 }}>
+                        Your structured daily plan. Each day has specific lessons, subtopics, and problems assigned for you to complete.
+                        {pp.startDate ? ` Started ${new Date(pp.startDate).toLocaleDateString()}.` : ''}
+                        {pp.endDate ? ` Ends ${new Date(pp.endDate).toLocaleDateString()}.` : ''}
+                      </p>
+                    </div>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', padding: '5px 14px', border: `3px solid ${PACE_COLORS[pp.paceStatus] || TXT3}`, color: PACE_COLORS[pp.paceStatus] || TXT3, whiteSpace: 'nowrap', letterSpacing: '0.05em', flexShrink: 0 }}>
+                      {pp.paceStatus === 'just-started' ? 'JUST STARTED' :
+                       pp.paceStatus === 'on-track' ? 'ON TRACK ✓' :
+                       pp.paceStatus === 'ahead' ? 'AHEAD ⚡' : 'BEHIND ⚠'}
                     </span>
                   </div>
-
-                  {/* ═══ DAY DRILLDOWN ═══ */}
-                  {planSelectedDay && planSelectedDay.items?.length > 0 && (
-                    <div style={{
-                      border: `3px solid var(--accent)`, padding: 20,
-                      background: TERT, boxShadow: SH(6), marginBottom: 16
-                    }}>
-                      <div style={{
-                        display: 'flex', justifyContent: 'space-between',
-                        alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16
-                      }}>
-                        <h4 style={{
-                          fontSize: '0.95rem', fontWeight: 900, margin: 0,
-                          display: 'flex', alignItems: 'center', gap: 10, color: TXT
-                        }}>
-                          <Calendar size={20} /> DAY {planSelectedDay.day} — TASKS
-                          <span style={{
-                            fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase',
-                            padding: '4px 12px', border: `3px solid ${B}`,
-                            background: planSelectedDay.isFuture ? TERT : planSelectedDay.isCurrent ? 'var(--accent-light)' : 'var(--success-bg)',
-                            color: planSelectedDay.isFuture ? TXT3 : planSelectedDay.isCurrent ? 'var(--accent)' : 'var(--success-text)',
-                            marginLeft: 6
-                          }}>
-                            {planSelectedDay.isFuture ? 'FUTURE' : planSelectedDay.isCurrent ? 'TODAY' : 'PAST'}
-                          </span>
-                        </h4>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: TXT }}>
-                          {planSelectedDay.completedCount}/{planSelectedDay.itemsCount} DONE
-                          <span style={{
-                            marginLeft: 10,
-                            color: planSelectedDay.completedPct >= 80 ? 'var(--success)' :
-                                   planSelectedDay.completedPct >= 50 ? 'var(--warning)' : 'var(--error)',
-                            fontWeight: 900
-                          }}>
-                            ({planSelectedDay.completedPct}%)
-                          </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 24 }}>
+                    {[
+                      { icon: Activity, label: 'Current Pace', value: pp.paceStatus === 'just-started' ? 'Just Started' : pp.paceStatus === 'on-track' ? 'On Track' : pp.paceStatus, desc: 'Your progress relative to the plan schedule.', color: PACE_COLORS[pp.paceStatus] || TXT },
+                      { icon: Timer, label: 'Plan Day', value: `Day ${pp.currentDayOffset}`, desc: `Out of ${pp.durationDays} total days.`, color: TXT },
+                      { icon: ListChecks, label: 'Items Completed', value: `${pp.completedCount} / ${pp.expectedCount}`, desc: 'How many assigned items you have finished so far.', color: TXT },
+                      { icon: Percent, label: 'Plan Progress', value: userPlanBreakdown ? `${userPlanBreakdown.overallPct}%` : `${Math.round((pp.completedCount / Math.max(1, pp.expectedCount)) * 100)}%`, desc: 'Overall completion percentage.', color: (userPlanBreakdown?.overallPct || Math.round((pp.completedCount / Math.max(1, pp.expectedCount)) * 100)) >= 60 ? 'var(--success)' : 'var(--error)' },
+                    ].map((s, i) => {
+                      const SI = s.icon;
+                      return (
+                        <div key={i} style={tinyCard()}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <SI size={12} style={{ color: TXT3 }} />
+                            <div style={labelSm}>{s.label}</div>
+                          </div>
+                          <div style={{ fontSize: '1rem', fontWeight: 900, color: s.color, marginBottom: 2 }}>{s.value}</div>
+                          <div style={{ fontSize: '0.68rem', color: TXT2, marginTop: 2, lineHeight: 1.45 }}>{s.desc}</div>
                         </div>
-                      </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700, color: TXT2, marginBottom: 6 }}>
+                      <span>TIME ELAPSED</span>
+                      <span>{timePct}% of plan duration used</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 600, color: TXT3, marginBottom: 4 }}>
+                      <span>Day {pp.currentDayOffset} · Expires at 11:59 PM tonight</span>
+                      <span>{pp.durationDays - pp.currentDayOffset} day{(pp.durationDays - pp.currentDayOffset) !== 1 ? 's' : ''} remaining in plan</span>
+                    </div>
+                    <div style={{ height: 18, background: TERT, border: `3px solid ${B}`, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.min(100, timePct)}%`, background: pp.paceStatus === 'behind' ? 'var(--error)' : 'var(--success)', transition: 'width 0.5s ease' }} />
+                    </div>
+                    <p style={{ fontSize: '0.72rem', color: TXT2, marginTop: 6, lineHeight: 1.55 }}>
+                      {pp.paceStatus === 'behind'
+                        ? (behindCount > 0
+                          ? 'You are behind schedule. Prioritise pending items from past days to catch up.'
+                          : 'You have pending items from today. Complete them before 11:59 PM tonight.')
+                        : pp.paceStatus === 'ahead'
+                          ? 'Ahead of schedule! Maintain this momentum and you will finish strong.'
+                          : 'Stay consistent — showing up every day is the key to mastering the material.'}
+                    </p>
+                  </div>
+                </>
+              )}
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {planSelectedDay.items.map((item, idx) => {
-                          const badge = SUBJECT_BADGE[item.subject] || { bg: TERT, text: TXT };
-                          return (
-                            <div key={idx} style={{
-                              display: 'flex', alignItems: 'flex-start', gap: 14,
-                              padding: '14px 18px',
-                              border: `3px solid ${item.completed ? 'var(--success)' : B}`,
-                              background: item.completed ? 'var(--success-bg)' : SURF,
-                              boxShadow: item.completed ? SH(4) : SH(4)
-                            }}>
-                              <div style={{
-                                flexShrink: 0, marginTop: 4,
-                                width: 28, height: 28,
-                                border: `3px solid ${item.completed ? 'var(--success)' : B}`,
-                                background: item.completed ? 'var(--success)' : SURF,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center'
-                              }}>
-                                {item.completed
-                                  ? <CheckCircle size={16} color="#000" />
-                                  : <ListTodo size={16} style={{ color: TXT }} />}
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{
-                                  display: 'flex', alignItems: 'center', gap: 8,
-                                  flexWrap: 'wrap', marginBottom: 4
-                                }}>
-                                  <span style={{
-                                    fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
-                                    padding: '3px 10px', border: `3px solid ${B}`,
-                                    background: badge.bg, color: badge.text
-                                  }}>
-                                    {item.subject?.toUpperCase()}
-                                  </span>
-                                  <span style={{
-                                    fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
-                                    padding: '3px 8px', border: `3px solid ${B}`, background: SURF, color: TXT
-                                  }}>
-                                    {TARGET_LABELS[item.targetType] || item.targetType}
-                                  </span>
-                                  {item.completed ? (
-                                    <span style={{ fontSize: '0.55rem', fontWeight: 800, padding: '3px 8px', border: `3px solid var(--success)`, background: 'var(--success-bg)', color: 'var(--success-text)' }}>DONE</span>
-                                  ) : (
-                                    <span style={{ fontSize: '0.55rem', fontWeight: 800, padding: '3px 8px', border: `3px solid var(--error)`, background: 'var(--error-bg)', color: 'var(--error-text)' }}>PENDING</span>
+              {/* Day grid — shown for both active AND completed plans */}
+              <div id="today-tasks-section" style={{
+                borderTop: `2px solid ${B}`, paddingTop: 20, marginTop: 4
+              }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: 900, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8, color: TXT }}>
+                  <Calendar size={18} /> DAILY TASK COMPLETION
+                  {userPlanBreakdown?.days && (
+                    <span style={{ fontWeight: 400, fontSize: '0.7rem', color: TXT2, marginLeft: 4 }}>
+                      ({userPlanBreakdown.days.filter(d => !d.isFuture).length} days elapsed)
+                    </span>
+                  )}
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: TXT2, marginBottom: 14, borderLeft: `3px solid var(--accent)`, paddingLeft: 12, lineHeight: 1.6 }}>
+                  <strong>Green</strong> = all items done &nbsp;|&nbsp; <strong>Yellow</strong> = partial &nbsp;|&nbsp;
+                  <strong>Red</strong> = not started &nbsp;|&nbsp; <strong>Gray</strong> = rest day &nbsp;|&nbsp;
+                  <strong>Outlined</strong> = future. <strong>Click any day</strong> to drill into its tasks and see what needs attention.
+                </p>
+
+                {userBdLoading ? (
+                  <div style={{ padding: 24, textAlign: 'center' }}><Loader text="LOADING DAYS..." /></div>
+                ) : userPlanBreakdown?.days ? (
+                  <>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 14 }}>
+                      {userPlanBreakdown.days.map(d => {
+                        const isSelected = planSelectedDay?.day === d.day;
+                        let bg;
+                        if (d.isFuture) bg = TERT;
+                        else if (d.itemsCount === 0) bg = '#a8a29e';
+                        else if (d.completedCount === d.itemsCount) bg = 'var(--success)';
+                        else if (d.completedCount > 0) bg = 'var(--warning)';
+                        else bg = 'var(--error)';
+                        return (
+                          <div key={d.day}
+                            onClick={() => setPlanSelectedDay(isSelected ? null : d)}
+                            title={`Day ${d.day}: ${d.completedCount}/${d.itemsCount} items (${d.completedPct}%)${d.isCurrent ? ' — TODAY' : d.isPast ? ' — PAST' : ' — FUTURE'}${d.items.length > 0 ? '. Click to see items.' : ''}`}
+                            style={{ width: 36, height: 36, cursor: d.items?.length > 0 ? 'pointer' : 'default', border: isSelected ? `3px solid var(--accent)` : d.isCurrent ? `3px solid ${B}` : `2px solid ${B}`, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 900, color: d.isFuture ? TXT3 : '#000', transition: 'transform 0.12s, box-shadow 0.12s', outline: isSelected ? `3px solid var(--accent)` : 'none', outlineOffset: 2, boxShadow: isSelected ? SH(4) : 'none' }}
+                            onMouseEnter={e => { if (d.items?.length > 0) { e.currentTarget.style.transform = 'scale(1.15)'; e.currentTarget.style.boxShadow = SH(4); }}}
+                            onMouseLeave={e => { if (!isSelected) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; } else { e.currentTarget.style.transform = 'none'; }}}>
+                            {d.day}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 16, fontSize: '0.72rem', color: TXT2, flexWrap: 'wrap', marginBottom: 18, padding: '8px 12px', border: `2px solid ${B}`, background: TERT }}>
+                      <span><span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--success)', marginRight: 5, border: `2px solid ${B}` }} /> All completed</span>
+                      <span><span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--warning)', marginRight: 5, border: `2px solid ${B}` }} /> Partially done</span>
+                      <span><span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--error)', marginRight: 5, border: `2px solid ${B}` }} /> Not started</span>
+                      <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#a8a29e', marginRight: 5, border: `2px solid ${B}` }} /> Rest day</span>
+                      <span><span style={{ display: 'inline-block', width: 12, height: 12, background: TERT, marginRight: 5, border: `2px solid ${B}` }} /> Future day</span>
+                    </div>
+
+                    {/* Time logic note — only for active plans */}
+                    {pp.status !== 'completed' && (
+                      <div style={{ fontSize: '0.68rem', color: '#92400e', background: '#fffbeb', padding: '8px 12px', marginTop: 4, border: `2px solid ${B}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Clock size={14} style={{ flexShrink: 0 }} />
+                        <span>
+                          <strong>Day {pp.currentDayOffset}</strong> expires <strong>tonight at 11:59 PM</strong> —
+                          full calendar day (midnight to midnight). Next day starts automatically at midnight.
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Day drilldown */}
+                    {planSelectedDay && planSelectedDay.items?.length > 0 && (
+                      <div style={{ border: `3px solid var(--accent)`, padding: 20, background: TERT, boxShadow: SH(6), marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 900, margin: 0, display: 'flex', alignItems: 'center', gap: 10, color: TXT }}>
+                            <Calendar size={20} /> DAY {planSelectedDay.day} — TASKS
+                            <span style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', padding: '4px 12px', border: `3px solid ${B}`, background: planSelectedDay.isFuture ? TERT : planSelectedDay.isCurrent ? 'var(--accent-light)' : 'var(--success-bg)', color: planSelectedDay.isFuture ? TXT3 : planSelectedDay.isCurrent ? 'var(--accent)' : 'var(--success-text)', marginLeft: 6 }}>
+                              {planSelectedDay.isFuture ? 'FUTURE' : planSelectedDay.isCurrent ? 'TODAY' : 'PAST'}
+                            </span>
+                          </h4>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: TXT }}>
+                            {planSelectedDay.completedCount}/{planSelectedDay.itemsCount} DONE
+                            <span style={{ marginLeft: 10, color: planSelectedDay.completedPct >= 80 ? 'var(--success)' : planSelectedDay.completedPct >= 50 ? 'var(--warning)' : 'var(--error)', fontWeight: 900 }}>
+                              ({planSelectedDay.completedPct}%)
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {planSelectedDay.items.map((item, idx) => {
+                            const badge = SUBJECT_BADGE[item.subject] || { bg: TERT, text: TXT };
+                            return (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 18px', border: `3px solid ${item.completed ? 'var(--success)' : B}`, background: item.completed ? 'var(--success-bg)' : SURF, boxShadow: SH(4) }}>
+                                <div style={{ flexShrink: 0, marginTop: 4, width: 28, height: 28, border: `3px solid ${item.completed ? 'var(--success)' : B}`, background: item.completed ? 'var(--success)' : SURF, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  {item.completed ? <CheckCircle size={16} color="#000" /> : <ListTodo size={16} style={{ color: TXT }} />}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                                    <span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', padding: '3px 10px', border: `3px solid ${B}`, background: badge.bg, color: badge.text }}>
+                                      {item.subject?.toUpperCase()}
+                                    </span>
+                                    <span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', padding: '3px 8px', border: `3px solid ${B}`, background: SURF, color: TXT }}>
+                                      {TARGET_LABELS[item.targetType] || item.targetType}
+                                    </span>
+                                    {item.completed ? (
+                                      <span style={{ fontSize: '0.55rem', fontWeight: 800, padding: '3px 8px', border: `3px solid var(--success)`, background: 'var(--success-bg)', color: 'var(--success-text)' }}>DONE</span>
+                                    ) : (
+                                      <span style={{ fontSize: '0.55rem', fontWeight: 800, padding: '3px 8px', border: `3px solid var(--error)`, background: 'var(--error-bg)', color: 'var(--error-text)' }}>PENDING</span>
+                                    )}
+                                  </div>
+                                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: TXT, marginBottom: 2 }}>
+                                    {item.targetTitle}
+                                  </div>
+                                  {renderHierarchy(item)}
+                                  {item.instruction && (
+                                    <div style={{ fontSize: '0.85rem', marginTop: 10, padding: '10px 14px', border: `3px solid ${B}`, background: 'var(--accent-light)', color: TXT, lineHeight: 1.6 }}>
+                                      <span style={{ fontWeight: 800, display: 'block', marginBottom: 3, textTransform: 'uppercase', fontSize: '0.55rem', color: TXT2 }}>INSTRUCTION:</span>
+                                      {item.instruction}
+                                    </div>
                                   )}
                                 </div>
-                                <div style={{
-                                  fontWeight: 800, fontSize: '0.9rem',
-                                  color: TXT, marginBottom: 2
-                                }}>
-                                  {item.targetTitle}
-                                </div>
-                                {renderHierarchy(item)}
-                                {item.instruction && (
-                                  <div style={{
-                                    fontSize: '0.85rem', marginTop: 10,
-                                    padding: '10px 14px', border: `3px solid ${B}`,
-                                    background: 'var(--accent-light)', color: TXT,
-                                    lineHeight: 1.6
-                                  }}>
-                                    <span style={{
-                                      fontWeight: 800, display: 'block', marginBottom: 3,
-                                      textTransform: 'uppercase', fontSize: '0.55rem',
-                                      color: TXT2
-                                    }}>INSTRUCTION:</span>
-                                    {item.instruction}
-                                  </div>
-                                )}
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Behind alert — shows for past-days items OR today's pending items */}
-                  {(behindCount > 0 || todayPendingCount > 0) && (
-                    <div style={{
-                      fontSize: '0.85rem', padding: '12px 18px',
-                      border: `3px solid var(--error)`,
-                      background: 'var(--error-bg)',
-                      boxShadow: SH(4), display: 'flex', alignItems: 'center', gap: 10,
-                      marginBottom: 4, color: 'var(--error-text)'
-                    }}>
-                      <AlertCircle size={20} style={{ flexShrink: 0 }} />
-                      <span style={{ fontWeight: 700 }}>
-                        {behindCount > 0
-                          ? `${behindCount} item${behindCount !== 1 ? 's' : ''} pending from past days. `
-                          : `${todayPendingCount} item${todayPendingCount !== 1 ? 's' : ''} pending from today — complete before 11:59 PM tonight. `}
-                        {planSelectedDay
-                          ? 'Keep working through your tasks above.'
-                          : 'Click a highlighted day above to see what needs attention.'}
-                      </span>
-                    </div>
-                  )}
-                </>
-              ) : pp.itemsBehind && pp.itemsBehind.length > 0 ? (
-                <div style={{
-                  fontSize: '0.85rem', padding: '12px 18px',
-                  border: `3px solid var(--error)`,
-                  background: 'var(--error-bg)',
-                  boxShadow: SH(4), display: 'flex', alignItems: 'center', gap: 10,
-                  color: 'var(--error-text)'
-                }}>
-                  <AlertCircle size={20} style={{ flexShrink: 0 }} />
-                  <span style={{ fontWeight: 700 }}>
-                    <strong>{pp.itemsBehind.length}</strong> item(s) behind schedule. Complete these to catch up!
-                  </span>
-                </div>
-              ) : (
-                <p style={{ fontSize: '0.9rem', color: TXT3, fontStyle: 'italic' }}>
-                  Loading day breakdown data...
-                </p>
-              )}
+                    {/* Behind alert */}
+                    {(behindCount > 0 || todayPendingCount > 0) && (
+                      <div style={{ fontSize: '0.85rem', padding: '12px 18px', border: `3px solid var(--error)`, background: 'var(--error-bg)', boxShadow: SH(4), display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, color: 'var(--error-text)' }}>
+                        <AlertCircle size={20} style={{ flexShrink: 0 }} />
+                        <span style={{ fontWeight: 700 }}>
+                          {behindCount > 0
+                            ? `${behindCount} item${behindCount !== 1 ? 's' : ''} pending from past days. `
+                            : `${todayPendingCount} item${todayPendingCount !== 1 ? 's' : ''} pending from today — complete before 11:59 PM tonight. `}
+                          {planSelectedDay
+                            ? 'Keep working through your tasks above.'
+                            : 'Click a highlighted day above to see what needs attention.'}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : pp.itemsBehind && pp.itemsBehind.length > 0 ? (
+                  <div style={{ fontSize: '0.85rem', padding: '12px 18px', border: `3px solid var(--error)`, background: 'var(--error-bg)', boxShadow: SH(4), display: 'flex', alignItems: 'center', gap: 10, color: 'var(--error-text)' }}>
+                    <AlertCircle size={20} style={{ flexShrink: 0 }} />
+                    <span style={{ fontWeight: 700 }}>
+                      <strong>{pp.itemsBehind.length}</strong> item(s) behind schedule. Complete these to catch up!
+                    </span>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '0.9rem', color: TXT3, fontStyle: 'italic' }}>
+                    Loading day breakdown data...
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ─────────────────────────────────────────────── */}
           {/*  SECTION 3 — FEEDBACK BANNER                    */}

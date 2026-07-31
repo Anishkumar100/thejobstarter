@@ -13,10 +13,20 @@ export async function getSubtopics(req, res) {
   try {
     console.log('[DSA] Fetching subtopics with filters:', req.query);
     const { lesson } = req.query;
-    if (!lesson) return res.status(400).json({ error: 'lesson query param required' });
+    const user = await resolveUser(req);
+
+    /* No lesson filter — admin/paid "all subtopics" view (gated by access) */
+    if (!lesson) {
+      if (!canAccessSubject(user)) {
+        console.log('[DSA] Subtopics blocked — lesson query param required for free users');
+        return res.status(400).json({ error: 'lesson query param required' });
+      }
+      const allSubtopics = await Subtopic.find().sort({ order: 1, title: 1 }).lean();
+      console.log('[DSA] All subtopics fetched:', allSubtopics.length);
+      return res.json({ data: allSubtopics });
+    }
 
     /* Gate by parent lesson */
-    const user = await resolveUser(req);
     const allLessons = await DsaLesson.find().sort({ order: 1 }).lean();
     if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
       console.log('[DSA] Subtopics blocked — lesson locked:', lesson);

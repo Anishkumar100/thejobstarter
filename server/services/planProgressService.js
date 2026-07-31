@@ -10,6 +10,11 @@
  *   4. completedOfExpected = count of those items with a matching Progress doc.
  *   5. paceStatus = 'ahead' | 'on-track' | 'behind' | 'just-started'.
  *
+ * When the plan end date has passed (today >= startDate + durationDays),
+ * the BatchPlan is auto-updated to status 'completed' and a completed
+ * metadata object is returned (status: 'completed') so the UI can show
+ * a "Plan Completed" state instead of stale "0 days remaining".
+ *
  * Returns null if the user has no batch or the batch has no active plan —
  * this signals the UI not to render the plan-progress block.
  */
@@ -32,10 +37,13 @@ export async function getPlanProgress(userId, batchId) {
       return null;
     }
 
-    /* Find the active BatchPlan for this batch */
-    const batchPlan = await BatchPlan.findOne({ batch: batchId, status: 'active' });
+    /* Find the BatchPlan for this batch — try active first, fall back to most recent */
+    let batchPlan = await BatchPlan.findOne({ batch: batchId, status: 'active' });
     if (!batchPlan) {
-      console.log('[PLANPROGRESS] No active plan for batch:', batchId);
+      batchPlan = await BatchPlan.findOne({ batch: batchId }).sort({ startDate: -1 });
+    }
+    if (!batchPlan) {
+      console.log('[PLANPROGRESS] No plan found for batch:', batchId);
       return null;
     }
 
@@ -53,6 +61,50 @@ export async function getPlanProgress(userId, batchId) {
     startDate.setHours(0, 0, 0, 0);
     const diffTime = today.getTime() - startDate.getTime();
     const currentDayOffset = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
+
+    /*
+     * Check if the plan's end date has passed.
+     * End date = startDate + durationDays (plan ends at end of the last day).
+     * If currentDayOffset > durationDays, the plan period is over.
+     */
+    const planEnded = currentDayOffset > plan.durationDays;
+
+    if (planEnded) {
+      console.log('[PLANPROGRESS] Plan has ended — marking BatchPlan as completed');
+      /* Auto-update the BatchPlan status to prevent future queries from finding it as 'active' */
+      await BatchPlan.findByIdAndUpdate(batchPlan._id, { status: 'completed' });
+
+      /* Compute final completion stats for the entire plan */
+      const totalItems = plan.items.length;
+      const progressDocs = await Progress.find({
+        user: userId,
+        $or: plan.items.map(item => ({
+          subject: item.subject,
+          targetType: item.targetType,
+          targetSlug: item.targetSlug
+        }))
+      }).select('subject targetType targetSlug').lean();
+
+      const completedSet = new Set(
+        progressDocs.map(d => `${d.subject}:${d.targetType}:${d.targetSlug}`)
+      );
+      const completedCount = plan.items.filter(
+        item => completedSet.has(`${item.subject}:${item.targetType}:${item.targetSlug}`)
+      ).length;
+      const completionPct = totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
+
+      console.log('[PLANPROGRESS] Plan completed —', { completedCount, totalItems, completionPct });
+      return {
+        planName: plan.name,
+        planId: plan._id,
+        status: 'completed',
+        durationDays: plan.durationDays,
+        startDate: batchPlan.startDate,
+        totalItems,
+        completedCount,
+        completionPct
+      };
+    }
 
     console.log('[PLANPROGRESS] Plan:', plan.name, 'start:', batchPlan.startDate, 'day:', currentDayOffset, 'of', plan.durationDays);
 

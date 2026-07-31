@@ -1,353 +1,400 @@
-# DSA Learning Document — Searching
+# DSA Learning Document — Stacks
 
-> A comprehensive, student-friendly guide to Searching — linear search and binary search.
-> Master the divide-and-conquer approach and understand why binary search is exponentially faster than linear search.
-
----
-
-# 2. Searching
-
-> **Lesson Overview:** Searching is one of the most fundamental operations in programming. Learn two approaches: Linear Search (check every element) and Binary Search (repeatedly cut the search space in half).
-> - **Category:** Searching, Sorting & Hashing
-> - **Difficulty:** Easy
-> - **Problems:** 1
+> A comprehensive, student-friendly guide to Stacks — the Last-In-First-Out superpower behind undo buttons, browser back, and bracket matching.
+> Master the core push/pop operations and the monotonic stack trick with two classics: Valid Parentheses and Next Greater Element.
 
 ---
 
-## 2.1 Linear & Binary Search
+# 8. Stacks
 
-### What is Searching?
+> **Lesson Overview:** A stack is a LIFO (Last-In-First-Out) collection with O(1) push/pop/peek. Learn when to reach for it — nesting, history, and undo — then supercharge it with the monotonic stack for O(n) solutions to Valid Parentheses (O(n)) and Next Greater Element (O(n)).
+> - **Category:** Linked Lists, Stacks & Queues
+> - **Difficulty:** Medium
+> - **Problems:** 2
 
-Imagine you have lost your keys somewhere in your house. You have two strategies:
+---
 
-1. **The Room-by-Room Method** — Start in one corner and check every single drawer, every shelf, every pocket until you find them. You might find them in the first place you look, or you might check every single spot in the entire house before giving up.
+## 8.1 Stack Basics
 
-2. **The Smart Method** — But this only works if you know something about where you lost them. You remember you last had them in either the kitchen or the living room, so you check only those two rooms first. Then you narrow it down further.
+### What is a Stack?
 
-Searching in programming is the same idea: given a list of items and a target value, find out whether the target exists in the list, and if so, where.
+A stack is a collection of items where you can only add or remove from the TOP. Imagine a stack of plates in a cafeteria: you take the plate on top first, and the plate you put down last is the one you pick up first. That's why a stack is called **Last-In-First-Out** (LIFO).
 
-There are two fundamental approaches, and the one you should use depends entirely on whether your data is **sorted** or not.
+### The Three Core Operations
 
-### Linear Search — The Room-by-Room Method
+Every stack supports three fundamental operations:
 
-#### How It Works
+1. **Push** — add an item on top
+2. **Pop** — remove the top item (and return it)
+3. **Peek / Top** — look at the top item without removing it
 
-Linear search is the simplest search algorithm. You start at the beginning of the list and check every single element, one after another, until you find what you are looking for or reach the end.
+All three run in **O(1)** time — instant, no matter how many items are in the stack.
 
-```text
-FUNCTION linear_search(arr, target):
-    FOR i FROM 0 TO length(arr) - 1:
-        IF arr[i] == target:
-            RETURN i          // Found it at index i
-
-    RETURN -1                   // Not found after checking everything
-```
-
-#### Trace It
-
-Say you have `[4, 2, 9, 1, 7]` and you are looking for `9`:
+### Visualising the Stack
 
 ```
-i=0: arr[0] = 4 -> not 9, keep going
-i=1: arr[1] = 2 -> not 9, keep going
-i=2: arr[2] = 9 -> found! Return 2
+        push 3        push 7        pop  -> 7        pop  -> 3
+
+   +---+          +---+          +---+           +---+
+   |   |          | 7 |          |   |           |   |
+   |   |          | 3 |          | 3 |           |   |
+   |   |          |   |          |   |           |   |
+   +---+          +---+          +---+           +---+
 ```
 
-Only 3 checks out of 5. Lucky.
+The most recently pushed item is always on top and is always the first one out.
 
-But what if you are looking for `10` (which does not exist)?
+### Real-World Uses of a Stack
 
-```
-i=0: 4 != 10
-i=1: 2 != 10
-i=2: 9 != 10
-i=3: 1 != 10
-i=4: 7 != 10
-End of list -> Return -1
-```
+✅ **Undo / Redo** — every action you do is pushed onto a stack; undo pops the latest action
+✅ **Browser back button** — each page you visit is pushed; back pops the previous page
+✅ **Function calls** — the call stack remembers where each function should return when it finishes
+✅ **Bracket matching** — compilers and code editors use a stack to check that ( ) [ ] { } are balanced
+✅ **Expression evaluation** — converting and evaluating expressions (e.g. infix to postfix)
 
-You checked every single element — all 5 of them.
+### Array vs Stack
 
-#### When to Use Linear Search
-
-- The list is **unsorted** (you have no choice)
-- The list is **very small** (the simplicity outweighs any performance gain)
-- You only need to search **once** (the cost of sorting is not worth it)
-
-#### Time Complexity
-
-- **Best case: O(1)** — the target is the very first element
-- **Worst case: O(n)** — the target is last, or does not exist at all. You check all n elements.
-- **Average case: O(n)** — on average, you check n/2 elements
-
-#### Space Complexity
-
-- **O(1)** — you only need a single index variable
-
-### Binary Search — The Divide-and-Conquer Method
-
-#### How It Works
-
-Binary search is dramatically faster, but it comes with one crucial requirement: **the data must be sorted**.
-
-The idea is simple and powerful:
-
-1. Look at the middle element of the list
-2. If it is the target, you are done
-3. If the target is smaller than the middle, repeat the process on the **left half** of the list
-4. If the target is larger, repeat on the **right half**
-5. Keep going until you find it or the search space is empty
-
-At every step, you eliminate **half** of the remaining elements. This is why it is so fast.
-
-```text
-FUNCTION binary_search(arr, target):
-    left = 0
-    right = length(arr) - 1
-
-    WHILE left <= right:
-        mid = left + (right - left) / 2   // Integer division
-
-        IF arr[mid] == target:
-            RETURN mid                     // Found it
-        ELSE IF arr[mid] < target:
-            left = mid + 1                 // Target is in the right half
-        ELSE:
-            right = mid - 1                // Target is in the left half
-
-    RETURN -1                              // Not found
-```
-
-> **Important:** The formula `mid = left + (right - left) / 2` is used instead of `mid = (left + right) / 2` to avoid integer overflow for very large arrays. Both give the same result in practice for most cases.
-
-#### Trace It
-
-Say you have a sorted array `[2, 5, 8, 12, 16, 23, 38, 45, 56]` and you are looking for `23`:
-
-```
-Step 1: left=0, right=8, mid=4 -> arr[4]=16
-        16 < 23 -> target is in the right half
-        left becomes 5
-
-Step 2: left=5, right=8, mid=6 -> arr[6]=38
-        38 > 23 -> target is in the left half
-        right becomes 5
-
-Step 3: left=5, right=5, mid=5 -> arr[5]=23
-        23 == 23 -> Found! Return 5
-```
-
-Only **3 comparisons** to find 23 in a list of 9 elements. Linear search would have taken 6 comparisons.
-
-Now say you are looking for `3` (not in the list):
-
-```
-Step 1: left=0, right=8, mid=4 -> arr[4]=16
-        16 > 3 -> target is in the left half
-        right becomes 3
-
-Step 2: left=0, right=3, mid=1 -> arr[1]=5
-        5 > 3 -> left half
-        right becomes 0
-
-Step 3: left=0, right=0, mid=0 -> arr[0]=2
-        2 < 3 -> right half
-        left becomes 1
-
-Step 4: left=1, right=0 -> left > right, loop exits
-        Return -1
-```
-
-Only **3 comparisons** to determine that 3 does not exist in a list of 9 elements. Linear search would have checked all 9 before being sure.
-
-#### The Magic: Why Binary Search Is So Fast
-
-Every comparison eliminates half the remaining elements. This means the number of steps grows very slowly as the list grows:
-
-| List Size | Linear Search (worst case) | Binary Search (worst case) |
+| Feature | Array | Stack |
 |---|---|---|
-| 10 | 10 checks | 4 checks |
-| 1,000 | 1,000 checks | 10 checks |
-| 1,000,000 | 1,000,000 checks | 20 checks |
-| 1,000,000,000 | 1,000,000,000 checks | 30 checks |
+| Access any position | Yes (random access) | No (only top) |
+| Add/remove from end | O(1) append | O(1) push |
+| Remove from start | O(n) shift | O(1) pop |
+| Best for | Storing and searching data | Keeping a history of decisions |
 
-This is the difference between O(n) and O(log n). For a billion elements, linear search takes a billion steps. Binary search takes just 30.
+### When to Use a Stack
 
-#### When to Use Binary Search
+✅ The problem needs to process items in reverse order of arrival (LIFO)
+✅ Nested structures — brackets, parentheses, HTML tags, function calls
+✅ You need to keep a 'history' of choices and roll back to the most recent one
 
-- The data is **sorted** (this is mandatory)
-- The list is **large enough** that O(n) would be too slow
-- You need to search **many times** (it is worth keeping the data sorted)
+❌ When you need random access to items in the middle
+❌ When First-In-First-Out (FIFO) order is needed — that's a queue's job
 
-#### Time Complexity
+### Complexity Summary
 
-- **Best case: O(1)** — the target is at the middle on the first check
-- **Worst case: O(log n)** — you keep halving until only one element remains. For n elements, that is about log2(n) steps.
-- **Average case: O(log n)**
+| Operation | Time |
+|---|---|
+| Push | O(1) |
+| Pop | O(1) |
+| Peek | O(1) |
+| Search | O(n) |
 
-#### Space Complexity
+### Key Takeaway
 
-- **O(1)** for the iterative version — just three variables (left, right, mid)
-- **O(log n)** for the recursive version — the call stack grows with each recursive call
-
-### Linear vs Binary: Side by Side
-
-| Aspect | Linear Search | Binary Search |
-|---|---|---|
-| Data requirement | Any data | Must be sorted |
-| Time complexity | O(n) | O(log n) |
-| Space complexity | O(1) | O(1) iterative, O(log n) recursive |
-| Implementation | Trivial | Slightly more complex |
-| Best for | Small or unsorted data | Large sorted data |
-| Real-world example | Finding a name in an unsorted list | Looking up a word in a dictionary |
-
-### The Key Takeaway
-
-Binary search is one of the most important algorithms in computer science because it demonstrates a core principle: **if your data is organized, you can exploit that organization to solve problems exponentially faster.**
-
-The same "divide and conquer" pattern appears again and again — in tree search, in sorting algorithms like Merge Sort and Quick Sort, and in many advanced data structures.
+A stack is a **Last-In-First-Out** collection with O(1) push/pop/peek. Whenever a problem mentions brackets, undo, history, or nested structure — reach for a stack.
 
 ---
 
-# 3. Problems
+## 8.2 Monotonic Stack
 
-## 3.1 Binary Search
+### The Problem With Brute Force
 
-**Difficulty:** Easy  
-**Topics:** Searching, Binary Search  
-**Companies:** Amazon, Google, Microsoft, Facebook, Apple
+Many problems ask: for each element, find the NEXT element to its right that is bigger (or smaller) than it.
+
+The naive way: for every element, scan everything to its right until you find a bigger one. That's two nested loops — **O(n^2)** — too slow for big inputs.
+
+### The Idea: A Sorted Stack
+
+A **monotonic stack** is a stack that always stays sorted — every new element you push makes the stack either strictly increasing or strictly decreasing.
+
+How? Before pushing a new element, you **pop everything that violates the order**. This is the whole trick!
+
+### How to Build a Decreasing Monotonic Stack
+
+Imagine you want to keep the stack strictly decreasing from bottom to top (bigger at bottom, smaller at top):
+
+```
+To push value X:
+  WHILE stack is not empty AND top of stack <= X:
+      POP the top                     # smaller/equal elements can't stay
+  PUSH X                              # now the order is restored
+```
+
+Watch it in action on [4, 2, 5]:
+
+```
+Push 4 -> stack: [4]
+Push 2 -> 2 < 4, so just push -> stack: [4, 2]
+Push 5 -> 5 >= 2, pop 2; 5 >= 4, pop 4 -> stack: [] -> push 5 -> stack: [5]
+```
+
+The stack stays strictly decreasing from bottom to top. Each element is pushed once and popped at most once — that's why the total work is **O(n)**, not O(n^2)!
+
+### Why This Helps 'Next Greater Element'
+
+While keeping the stack decreasing, the elements still sitting in the stack are exactly the ones **waiting for a greater element** to their right. The moment you push a bigger element X:
+
+- Every element X pops (i.e. is smaller than X) has found its **next greater element = X**
+
+So the popping step itself answers the question for those elements — for free!
+
+### When to Use a Monotonic Stack
+
+✅ 'Find the next greater / next smaller element' problems
+✅ Daily temperatures, stock span, largest rectangle in histogram
+✅ Problems where each element cares about the nearest element that is bigger/smaller
+
+❌ When the order of answers doesn't depend on the nearest bigger/smaller neighbour
+
+### Complexity
+
+| Approach | Time | Space |
+|---|---|---|
+| Brute force (nested loops) | O(n^2) | O(1) |
+| Monotonic stack | O(n) | O(n) |
+
+### Key Takeaway
+
+A monotonic stack keeps itself sorted by popping violators before pushing. Because each element enters and leaves the stack once, it solves 'next greater/smaller element' problems in **O(n)** time instead of O(n^2).
+
+---
+
+# 9. Problems
+
+## 9.1 Valid Parentheses
+
+| | |
+|---|---|
+| **Difficulty** | Easy |
+| **Subtopic** | Stack Basics |
+| **Companies** | Amazon, Google, Microsoft, Meta, Apple, Adobe |
 
 ### Problem Statement
 
-You are given a sorted array of integers (sorted in increasing order) and a target integer. Find the index of the target in the array using binary search.
+Given a string s containing only '(', ')', '{', '}', '[' and ']', determine if it is valid. A string is valid if open brackets are closed by the same type, in the correct order, and every close bracket has a matching open bracket.
 
-If the target exists in the array, return its index (0-based). If it does not exist, return -1.
+```
+Input:  s = "()[]{}"
+Output: true
 
-You must implement the binary search algorithm — do not use a simple linear scan.
-
-For example, given `arr = [-1, 0, 3, 5, 9, 12]` and `target = 9`, the answer is 4 because 9 is at index 4.
+Input:  s = "([)]"
+Output: false   (brackets not closed in the correct order)
+```
 
 ### Examples
 
 | Input | Output | Explanation |
 |---|---|---|
-| arr = [-1, 0, 3, 5, 9, 12], target = 9 | 4 | mid=2 -> arr[2]=3 < 9, search right; mid=4 -> arr[4]=9, found |
-| arr = [-1, 0, 3, 5, 9, 12], target = 2 | -1 | Eliminates halves until left > right, returns -1 |
-| arr = [5], target = 5 | 0 | Single element: left=0, right=0, mid=0 -> arr[0]=5, found |
-| arr = [], target = 1 | -1 | Empty array: left > right immediately, return -1 |
+| "()" | true | '(' closes with ')' of the same type |
+| "()[]{}" | true | Three independent pairs, each closed correctly |
+| "(]" | false | '(' must close with ')' — wrong type |
+| "([)]" | false | ')' closes the wrong bracket — out of order |
 
 ### Constraints
 
-- The array length is between 0 and 100,000 elements.
-- Each element is a 32-bit integer.
-- The array is sorted in strictly increasing order.
+- String length: 1 to 10,000
+- Only the characters '(', ')', '{', '}', '[' and ']'
 
 ### Approach
 
-#### Step 1 — The Linear Search Way (Too Slow)
+**The Stack Idea**
 
-The naive approach is to scan every element:
+Walk through the string one character at a time:
 
-```text
-FUNCTION linear_search(arr, target):
-    FOR i FROM 0 TO length(arr) - 1:
-        IF arr[i] == target:
-            RETURN i
-    RETURN -1
-```
+- Opening bracket → **push** onto the stack
+- Closing bracket → the **top** of the stack must be its matching opener; if it matches, **pop**; otherwise invalid
 
-This works, but it is O(n). For 100,000 elements, that is up to 100,000 checks. If you are searching many times, this becomes way too slow.
+At the end, the string is valid only if the stack is empty.
 
-#### Step 2 — The Binary Search Insight
-
-Since the array is sorted, we can use the divide-and-conquer approach:
-
-1. Start with two pointers: `left` at index 0 and `right` at the last index
-2. Find the middle index: `mid = left + (right - left) / 2`
-3. Compare `arr[mid]` with the target:
-   - **Equal** — found it! Return mid
-   - **Less than target** — the target must be to the right. Move `left` to `mid + 1`
-   - **Greater than target** — the target must be to the left. Move `right` to `mid - 1`
-4. Repeat until left passes right (meaning the search space is empty)
-
-#### Step 3 — Trace the Full Algorithm
-
-Walk through `arr = [-1, 0, 3, 5, 9, 12]`, target = 9:
+**Pseudocode:**
 
 ```
-Initial: left = 0, right = 5
+FUNCTION isValid(s):
+    stack = empty stack
+    mapping = { ')': '(', ']': '[', '}': '{' }
 
-Iteration 1:
-  mid = 0 + (5 - 0) / 2 = 2
-  arr[2] = 3
-  3 < 9 -> target is in the right half
-  left = mid + 1 = 3
+    FOR each character c in s:
+        IF c is an opening bracket (c is in '(' '[' '{'):
+            PUSH c onto stack
+        ELSE:
+            IF stack is empty:
+                RETURN false          # no opener to match
+            IF top of stack != mapping[c]:
+                RETURN false          # wrong type of opener
+            POP the stack
 
-Iteration 2:
-  mid = 3 + (5 - 3) / 2 = 4
-  arr[4] = 9
-  9 == 9 -> found!
-  Return 4
+    RETURN true IF stack is empty ELSE false
 ```
 
-Only 2 iterations to find the target in a 6-element array. Linear search would have taken 5.
+**Trace on s = "([)]":**
 
-#### Step 4 — Edge Cases to Watch For
+```
+'(' -> push -> stack: ['(']
+'[' -> push -> stack: ['(', '[']
+')' -> top is '[' but expected '(' -> MISMATCH -> RETURN false
+```
 
-1. **Empty array**: left (0) > right (-1) immediately. The loop never runs. Return -1.
-2. **Single element**: left == right. The loop runs once. If it matches, return the index. If not, left becomes > right and we return -1.
-3. **Target not in array**: Eventually left will pass right and we return -1.
-4. **Target smaller than every element**: After the first comparison, right moves to before mid, and eventually left > right.
-5. **Target larger than every element**: left keeps moving right until it passes right.
+**Why a stack works:** the most recent opener is on top, so any closer must match it — out-of-order closings are caught instantly.
 
-#### Step 5 — Handling the Mid Calculation
+**Complexity:** Time **O(n)** — each character visited once. Space **O(n)** — the stack holds up to n openers.
 
-Always use `mid = left + (right - left) / 2` instead of `mid = (left + right) / 2`. Why? If left and right are very large (close to the maximum integer value), their sum can overflow. The alternative formula avoids this by calculating the offset from left instead.
-
-#### Complexity Analysis
-
-- **Time Complexity: O(log n)** — each iteration eliminates half the remaining search space.
-- **Space Complexity: O(1)** — we only use three variables (left, right, mid) regardless of input size.
-
-### Python Solution
+### Code Solution
 
 ```python
-def binary_search(arr, target):
-    left = 0
-    right = len(arr) - 1
+def isValid(s):
+    stack = []
+    mapping = {')': '(', ']': '[', '}': '{'}
 
-    while left <= right:
-        mid = left + (right - left) // 2
-
-        if arr[mid] == target:
-            return mid
-        elif arr[mid] < target:
-            left = mid + 1
+    for c in s:
+        # Opening bracket: push it
+        if c in '([{':
+            stack.append(c)
         else:
-            right = mid - 1
+            # Closing bracket: top must match its opener
+            if not stack or stack[-1] != mapping[c]:
+                return False
+            stack.pop()
 
-    return -1
+    # Valid only if every opener was closed
+    return len(stack) == 0
 ```
 
-### JavaScript Solution
-
 ```javascript
-function binarySearch(arr, target) {
-    let left = 0;
-    let right = arr.length - 1;
+function isValid(s) {
+    const stack = [];
+    const mapping = {')': '(', ']': '[', '}': '{'};
 
-    while (left <= right) {
-        const mid = left + Math.floor((right - left) / 2);
-
-        if (arr[mid] === target) {
-            return mid;
-        } else if (arr[mid] < target) {
-            left = mid + 1;
+    for (const c of s) {
+        // Opening bracket: push it
+        if (c === '(' || c === '[' || c === '{') {
+            stack.push(c);
         } else {
-            right = mid - 1;
+            // Closing bracket: top must match its opener
+            if (stack.length === 0 || stack[stack.length - 1] !== mapping[c]) {
+                return false;
+            }
+            stack.pop();
         }
     }
 
-    return -1;
+    // Valid only if every opener was closed
+    return stack.length === 0;
 }
 ```
+
+---
+
+## 9.2 Next Greater Element
+
+| | |
+|---|---|
+| **Difficulty** | Medium |
+| **Subtopic** | Monotonic Stack |
+| **Companies** | Amazon, Google, Microsoft, Meta, Nvidia |
+
+### Problem Statement
+
+Given an array of integers, for each element find the NEXT GREATER element — the first element to its RIGHT that is strictly greater. If none exists, use -1.
+
+```
+Input:  nums = [4, 1, 2, 3]
+Output: [-1, 2, 3, -1]
+
+4 -> nothing bigger on the right -> -1
+1 -> next bigger is 2
+2 -> next bigger is 3
+3 -> nothing to its right -> -1
+```
+
+### Examples
+
+| Input | Output | Explanation |
+|---|---|---|
+| [4, 1, 2, 3] | [-1, 2, 3, -1] | 4 none; 1→2; 2→3; 3 none |
+| [2, 4] | [4, -1] | 2→4; 4 is last |
+| [1, 3, 2, 4] | [3, 4, 4, -1] | 1→3; 3→4; 2→4; 4 last |
+| [5, 4, 3, 2, 1] | [-1, -1, -1, -1, -1] | Decreasing — nothing bigger to the right |
+
+### Constraints
+
+- Array length: 1 to 10,000
+- Each element between -10,000 and 10,000
+
+### Approach
+
+**The Key Insight**
+
+Keep a **decreasing monotonic stack**. When we meet a new element, pop everything from the stack that is smaller or equal — those popped elements have found their answer. Scanning **right to left**, whatever remains on top after popping is exactly the current element's next greater element.
+
+**Pseudocode:**
+
+```
+FUNCTION nextGreaterElements(nums):
+    n = length of nums
+    answer = array of size n filled with -1
+    stack = empty stack
+
+    FOR i from n-1 down to 0:            # scan right to left
+        WHILE stack is not empty AND stack.top <= nums[i]:
+            POP                                # smaller/equal elements are useless
+        IF stack is not empty:
+            answer[i] = stack.top              # nearest greater element to the right
+        PUSH nums[i] onto stack                # nums[i] now waits for ITS greater element
+
+    RETURN answer
+```
+
+**Trace on nums = [4, 1, 2, 3]:**
+
+```
+i=3, val=3 -> stack empty -> ans[3] = -1; push 3 -> stack: [3]
+i=2, val=2 -> 3 > 2 -> ans[2] = 3;   push 2 -> stack: [3, 2]
+i=1, val=1 -> 2 > 1 -> ans[1] = 2;   push 1 -> stack: [3, 2, 1]
+i=0, val=4 -> pop 1, pop 2, pop 3 (all <= 4) -> stack empty -> ans[0] = -1; push 4
+
+answer = [-1, 2, 3, -1]  ✓
+```
+
+**Why each element is processed once:** every element is pushed exactly once and popped at most once — that single fact guarantees linear time.
+
+**Complexity:** Time **O(n)** — each element pushed once, popped at most once. Space **O(n)** — the stack.
+
+### Code Solution
+
+```python
+def nextGreaterElements(nums):
+    n = len(nums)
+    answer = [-1] * n
+    stack = []
+
+    # Scan right to left, keeping a decreasing stack
+    for i in range(n - 1, -1, -1):
+        # Pop everything smaller or equal — it can't be the answer
+        while stack and stack[-1] <= nums[i]:
+            stack.pop()
+        # Whatever remains on top is the next greater element
+        if stack:
+            answer[i] = stack[-1]
+        # nums[i] now waits for its own greater element
+        stack.append(nums[i])
+
+    return answer
+```
+
+```javascript
+function nextGreaterElements(nums) {
+    const n = nums.length;
+    const answer = new Array(n).fill(-1);
+    const stack = [];
+
+    // Scan right to left, keeping a decreasing stack
+    for (let i = n - 1; i >= 0; i--) {
+        // Pop everything smaller or equal — it can't be the answer
+        while (stack.length > 0 && stack[stack.length - 1] <= nums[i]) {
+            stack.pop();
+        }
+        // Whatever remains on top is the next greater element
+        if (stack.length > 0) {
+            answer[i] = stack[stack.length - 1];
+        }
+        // nums[i] now waits for its own greater element
+        stack.push(nums[i]);
+    }
+
+    return answer;
+}
+```
+
+---
+
+*Happy coding! — TheWebytes DSA Team*

@@ -119,8 +119,19 @@ export async function getSubtopics(req, res) {
   try {
     console.log('[OS] Fetching subtopics with filters:', req.query);
     const { lesson } = req.query;
-    if (!lesson) return res.status(400).json({ error: 'lesson query param required' });
     const user = await resolveUser(req);
+
+    /* No lesson filter — admin/paid "all subtopics" view (gated by access) */
+    if (!lesson) {
+      if (!canAccessSubject(user)) {
+        console.log('[OS] Subtopics blocked — lesson query param required for free users');
+        return res.status(400).json({ error: 'lesson query param required' });
+      }
+      const allSubtopics = await OsSubtopic.find().sort({ order: 1, title: 1 }).lean();
+      console.log('[OS] All subtopics fetched:', allSubtopics.length);
+      return res.json({ data: allSubtopics });
+    }
+
     const allLessons = await OsLesson.find().sort({ order: 1 }).lean();
     if (!isLessonFree(lesson, allLessons) && !canAccessSubject(user)) {
       console.log('[OS] Subtopics blocked — lesson locked:', lesson);

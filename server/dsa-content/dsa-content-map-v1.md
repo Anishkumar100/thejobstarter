@@ -43,6 +43,9 @@ This file contains **only what's being built for launch**. Post-launch content (
 | 3 | Linked Lists, Stacks & Queues | Stacks | Monotonic Stack | Next Greater Element |
 | 3 | Linked Lists, Stacks & Queues | Queues | Queue Basics | Implement Queue using Stacks |
 | 3 | Linked Lists, Stacks & Queues | Queues | Deque | Sliding Window Maximum |
+
+(8/1/2026 completed till linked Lists)
+
 | 4 | Trees & Heaps | Binary Trees | Traversals (In/Pre/Post) | Traversal Implementations |
 | 4 | Trees & Heaps | Binary Trees | BFS/Level Order | Level Order Traversal |
 | 4 | Trees & Heaps | Binary Trees | Tree Properties | Maximum Depth of Tree |

@@ -1,39 +1,39 @@
-# Present DSA Content — 2026-07-27
+# Next DSA Content — Queues
 
 ## Category
 
-- Order: 0
-- Name: Fundamentals: Arrays & Strings
-- Slug: `fundamentals-arrays-strings`
+- Order: 3
+- Name: Linked Lists, Stacks & Queues
+- Slug: `linked-lists-stacks-queues`
 
 ## Lesson
 
 ```json
 {
-  "title": "Strings",
-  "slug": "strings",
-  "category": "fundamentals-arrays-strings",
-  "description": "Learn how strings work under the hood — character encoding, immutability, common operations, and two classic problems: palindrome checking and anagram detection.",
+  "title": "Queues",
+  "slug": "queues",
+  "category": "linked-lists-stacks-queues",
+  "description": "Meet the queue — the First-In-First-Out data structure behind printer lines, task scheduling, and BFS. Learn the core enqueue/dequeue operations, how to build a queue from two stacks, and the deque trick that powers sliding window maximum.",
   "image": "",
-  "icon": "Type",
+  "icon": "ListOrdered",
   "order": 2,
-  "difficulty": "easy",
+  "difficulty": "medium",
   "problemCount": 2
 }
 ```
 
 ## Subtopics (2)
 
-### String Basics
+### Queue Basics
 
 ```json
 {
-  "title": "String Basics",
-  "slug": "string-basics",
-  "lessonSlug": "strings",
+  "title": "Queue Basics",
+  "slug": "queue-basics",
+  "lessonSlug": "queues",
   "order": 0,
-  "description": "Learn what strings are, how they're stored in memory, why immutability matters, and the time complexity of common operations like access, concatenation, comparison, and substring.",
-  "explanation": "## What is a String?\n\nImagine a row of lockers, but instead of holding numbers, each locker holds a single letter. The lockers are numbered 0, 1, 2, 3, and so on — and the sequence of letters they contain, read from left to right, forms a word, a sentence, or any text you want to represent.\n\nA **string** is exactly that: an ordered sequence of characters stored in contiguous memory. Under the hood, a string is essentially an array of characters, with a few important differences that depend on the programming language you're using.\n\nIn most languages, the characters are encoded as numbers internally. Every character on your keyboard — and thousands that aren't — maps to a numeric code. The most common encodings you'll encounter are:\n\n- **ASCII** — The original standard, covering 128 characters (English letters, digits, punctuation, control codes). Each character takes 1 byte. 'A' is 65, 'a' is 97, '0' is 48.\n- **Unicode (UTF-8)** — The modern standard covering virtually every writing system on Earth. UTF-8 is backward-compatible with ASCII for the first 128 characters, and uses 1 to 4 bytes per character for everything else.\n\nWhen you see the string \"Hello\", the computer actually stores something like this in memory:\n\n```\nMemory: [72] [101] [108] [108] [111]\nChar:    H     e     l     l     o\nIndex:   0     1     2     3     4\n```\n\nEach slot holds the numeric encoding of the character. The computer knows to interpret those bytes as text rather than as integers.\n\n## Common String Operations and Their Cost\n\n### Access a Character by Index — O(1)\n\nGrabbing the character at a specific position (like `s[3]`) is just like array access — the computer calculates the memory address in one step. This is always O(1).\n\n### Find the Length — O(1) in most languages\n\nMost languages store the length of a string as metadata alongside the string data itself. Asking \"how long is this string?\" returns a pre-computed value instantly — no counting required.\n\n### Character Comparison — O(1)\n\nChecking whether two characters are the same is a single integer comparison. 'a' == 'a' is just checking whether 97 == 97 — one step.\n\n### String Equality (Full Comparison) — O(n)\n\nComparing whether two strings are identical character-by-character requires checking every position until you find a mismatch. In the worst case (they're equal, or they differ only in the last character), you check all n characters.\n\n```text\nFUNCTION strings_equal(a, b):\n    IF lengths of a and b are different:\n        RETURN False\n\n    FOR i FROM 0 TO length(a) - 1:\n        IF a[i] != b[i]:\n            RETURN False\n\n    RETURN True\n```\n\n### Concatenation — O(n + m) or worse\n\nJoining two strings together (\"Hello\" + \"World\") creates a brand new string in memory that combines both. If the original strings are immutable (as they are in Python, Java, JavaScript, and many other languages), the old strings aren't modified — a completely new block of memory is allocated, and both strings are copied into it.\n\nThis is why building a long string by repeatedly concatenating small pieces is expensive — every `+` operation creates a new string, copies everything, and discards the old one. For `k` concatenations, this can become O(k x total_length).\n\n### Substring — O(n) for extraction\n\nExtracting a portion of a string typically creates a new string and copies the characters. Even if the language uses a reference-based optimization (like JavaScript's shared substring in some engines), extraction usually involves a copy.\n\n## Immutability: The Most Important Concept\n\nIn many languages — Python, Java, JavaScript, C# — strings are **immutable**. Once a string is created, it can never be changed. Any operation that seems to \"modify\" a string actually creates a new one:\n\n```text\ns = \"Hello\"\ns = s + \" World\"   // Does NOT modify \"Hello\" — it creates \"Hello World\" and assigns it to s\n\n// The original \"Hello\" is still somewhere in memory, waiting to be garbage-collected\n```\n\nThis has real practical consequences:\n- Modifying a string in a loop is slow (each iteration creates a new string)\n- String comparisons can be optimized: if two strings are the same object (same reference), they must be equal\n- Strings are thread-safe — since they can't change, no synchronization is needed\n\n### The Fix: StringBuilder / String Buffer\n\nLanguages provide a mutable alternative for building strings efficiently:\n- Java: `StringBuilder` (not thread-safe, faster) or `StringBuffer` (thread-safe)\n- C#: `StringBuilder`\n- Python: using `list` of strings with `.join()`\n- JavaScript: using array of strings with `.join('')` or template literals\n\nThe idea is the same across all of them: maintain a mutable buffer that can grow without creating new objects, and only produce the final string when you're done.\n\n```text\n// Instead of:\ns = \"\"\nFOR EACH word IN words:\n    s = s + word + \", \"     // Creates a new string every iteration\n\n// Use:\nbuffer = []\nFOR EACH word IN words:\n    buffer.append(word)\n    buffer.append(\", \")\n\ns = join(buffer, \"\")         // One allocation at the end\n```\n\n## Strings vs Character Arrays\n\nIf strings are just arrays of characters, why not always use character arrays?\n\n| Aspect | String | Character Array |\n|---|---|---|\n| Mutability | Immutable (usually) | Mutable |\n| Convenience | Built-in methods (search, split, case conversion) | Manual loop for everything |\n| Performance | Copy on modification | Modify in place |\n| Use when | Text processing, display, comparison | Low-level manipulation, performance-critical hot paths |\n\n## When to Use Strings vs When to Think Differently\n\n- Use strings for **any text data** — names, sentences, paragraphs, identifiers\n- Think about **immutability** when you're building strings in loops (use StringBuilder or join)\n- Remember that **string comparison is O(n)** — comparing long strings repeatedly can become a bottleneck\n- Character encoding matters — a \"character\" might be 1 byte (ASCII) or up to 4 bytes (UTF-8 emoji)",
+  "description": "Learn the First-In-First-Out (FIFO) queue: the enqueue, dequeue, and peek operations, its real-world uses (printers, task scheduling, BFS), and how to implement one using two stacks.",
+  "explanation": "## What is a Queue?\\n\\nA queue is a collection where you add items at the BACK and remove them from the FRONT. Think of a line of people at a ticket counter: the first person to join the line is the first person served. That's why a queue is called **First-In-First-Out** (FIFO).\\n\\n## The Core Operations\\n\\nEvery queue supports three fundamental operations:\\n\\n1. **Enqueue** — add an item at the back\\n2. **Dequeue** — remove the item at the front (and return it)\\n3. **Peek / Front** — look at the front item without removing it\\n\\nAll three run in **O(1)** time when implemented with a proper circular buffer.\\n\\n## Visualising the Queue\\n\\n```\\n        enqueue 3    enqueue 7    dequeue -> 3    dequeue -> 7\\n\\nFRONT            BACK\\n  +---+---+---+     +---+---+---+     +---+---+---+     +---+---+---+\\n  | 3 |   |   | --> | 3 | 7 |   | --> |   | 7 |   | --> |   |   |   |\\n  +---+---+---+     +---+---+---+     +---+---+---+     +---+---+---+\\n```\\n\\nItems enter at the back and leave at the front — the opposite of a stack.\\n\\n## Stack vs Queue\\n\\n| Feature | Stack | Queue |\\n|---|---|---|\\n| Order | Last-In-First-Out (LIFO) | First-In-First-Out (FIFO) |\\n| Add | Push (top) | Enqueue (back) |\\n| Remove | Pop (top) | Dequeue (front) |\\n| Analogy | Stack of plates | Line of people |\\n| Best for | History / undo / nesting | Scheduling / waiting lines |\\n\\n## Real-World Uses of a Queue\\n\\n✅ **Printer queues** — documents print in the order they were submitted\\n✅ **Task scheduling** — CPU and OS schedules processes FIFO (round-robin is queue-based)\\n✅ **Breadth-First Search (BFS)** — explores a graph level by level using a queue\\n✅ **Buffers** — keyboard input, network packets, message queues\\n✅ **Customer service lines** — first come, first served\\n\\n## The Tricky Part: Queue Using Two Stacks\\n\\nStacks are LIFO; queues are FIFO. To build a queue from stacks, use the **two-stack trick**:\\n\\n- **Enqueue**: always push into the 'in' stack (newest on top)\\n- **Dequeue**: if the 'out' stack is empty, dump ALL items from 'in' into 'out' (this flips their order, oldest ends up on top); then pop the top of 'out'\\n\\n```\\nin:  [1, 2, 3]   (3 is on top)\\n\\ndequeue: dump in -> out flips to [3, 2, 1] (1 on top), pop 1\\n\\nnext dequeue: out still has 2 on top -> pop 2  (no dumping needed)\\n```\\n\\nEach element is moved between stacks at most twice, so the amortised cost is O(1) per operation.\\n\\n## When to Use a Queue\\n\\n✅ The problem processes items in the order they arrive (FIFO)\\n✅ Level-order / BFS traversal, sliding windows that need order\\n✅ Task scheduling, buffering, and producer-consumer patterns\\n\\n❌ When you need the most recent item first — that's a stack's job\\n\\n## Complexity Summary\\n\\n| Operation | Time |\\n|---|---|\\n| Enqueue | O(1) |\\n| Dequeue | O(1) |\\n| Peek | O(1) |\\n| Search | O(n) |\\n\\n## Key Takeaway\\n\\nA queue is a **First-In-First-Out** collection with O(1) enqueue/dequeue/peek. Whenever a problem needs fairness, scheduling, or BFS order — reach for a queue. And remember the two-stack trick to build one from LIFO primitives.",
   "image": "",
   "youtubeUrl": "",
   "pdfUrl": "",
@@ -41,16 +41,16 @@
 }
 ```
 
-### Pattern Matching
+### Deque
 
 ```json
 {
-  "title": "Pattern Matching",
-  "slug": "pattern-matching",
-  "lessonSlug": "strings",
+  "title": "Deque",
+  "slug": "deque",
+  "lessonSlug": "queues",
   "order": 1,
-  "description": "Learn how to check whether one string contains another, how to count character frequencies efficiently, and how to detect anagrams by comparing frequency maps instead of brute-force permutations.",
-  "explanation": "## What is Pattern Matching?\n\nImagine you have a deck of cards with letters on them, and someone asks: \"Does this smaller deck of cards appear somewhere in this larger deck, in the same order?\" You'd slide the smaller deck along the larger one, checking at each position whether the cards match.\n\nThat's pattern matching in strings: checking whether a **pattern** (a smaller string) appears inside a **text** (a larger string), and if so, at what position.\n\nIn this lesson, we focus on a specific kind of pattern matching: **character frequency matching** — not whether a pattern appears in order, but whether two strings are made of the same characters in the same quantities. This is the essence of anagram detection.\n\n## Character Frequency: The Core Idea\n\nEvery string is built from characters, each of which appears a certain number of times. In \"hello\", the character 'h' appears once, 'e' once, 'l' twice, and 'o' once. The **frequency** of a character is simply how many times it occurs.\n\nIf two strings have identical character frequencies, they are **anagrams** — they contain the same letters in the same quantities, just in a different order.\n\n- \"listen\" and \"silent\" — both have one 'l', one 'i', one 's', one 't', one 'e', one 'n' — anagrams\n- \"hello\" and \"bello\" — different first characters — not anagrams\n- \"aabbcc\" and \"abcabc\" — each has two 'a', two 'b', two 'c' — anagrams\n\n## How to Count Characters: The Frequency Map\n\nThe most natural way to count character frequencies is with a **hash map** (also called a dictionary or object):\n\n```text\nFUNCTION build_frequency_map(s):\n    freq = empty hash map\n\n    FOR EACH character c IN s:\n        IF c is in freq:\n            freq[c] = freq[c] + 1\n        ELSE:\n            freq[c] = 1\n\n    RETURN freq\n```\n\nThis runs in O(n) time — we visit each character exactly once — and uses O(k) space, where k is the number of distinct characters (at most 26 for lowercase English letters, or 128 for ASCII, or more for Unicode).\n\n### Alternative: Fixed-Size Array (for Known Alphabets)\n\nIf we know the character set is limited — for example, only lowercase English letters — we can use a fixed-size array instead of a hash map:\n\n```text\nFUNCTION build_frequency_array(s):\n    freq = array of size 26, all initialized to 0\n\n    FOR EACH character c IN s:\n        index = c - 'a'      // 'a' -> 0, 'b' -> 1, ..., 'z' -> 25\n        freq[index] = freq[index] + 1\n\n    RETURN freq\n```\n\nThis is slightly faster (array access is cheaper than hash map lookups) and uses exactly O(1) space — the array is always 26 elements, regardless of how long the string is.\n\n## Comparing Two Strings by Frequency\n\nOnce we have frequency maps (or arrays) for two strings, comparing them is straightforward:\n\n```text\nFUNCTION are_anagrams(s, t):\n    IF lengths of s and t are different:\n        RETURN False                      // Quick exit — must be same length\n\n    freq_s = build_frequency_map(s)\n    freq_t = build_frequency_map(t)\n\n    RETURN freq_s == freq_t               // Compare the two maps\n```\n\n### Why Length Check First?\n\nIf two strings have different lengths, they cannot possibly be anagrams — regardless of what characters they contain. This is a constant-time check that can save us from building frequency maps unnecessarily.\n\n## Time and Space Analysis\n\n| Approach | Time | Space | Notes |\n|---|---|---|---|\n| Brute force (generate all permutations) | O(n!) | O(n) | Impractical — 10! = 3,628,800 |\n| Sort both strings and compare | O(n log n) | O(n) (or O(1) if in-place) | Simple but slower for large n |\n| Frequency map (hash map) | O(n) | O(k) where k = distinct chars | Best general approach |\n| Frequency array (fixed alphabet) | O(n) | O(1) | Best when character set is known |\n\n## Beyond Anagrams: General Pattern Matching\n\nThe ideas you learn here extend beyond anagrams:\n\n- **Substring search** — does \"abc\" appear in \"xabcy\"? Use the sliding window technique you learned in Arrays.\n- **Character counting with sliding window** — find the longest substring with at most k distinct characters.\n- **Frequency difference** — what's the minimum number of character changes to make two strings anagrams?\n\nEach of these builds on the same foundation: efficiently counting and comparing character frequencies.",
+  "description": "Learn the deque (double-ended queue) — add and remove from BOTH ends in O(1). Master the monotonic-deque trick that computes the maximum of every sliding window in O(n) total time.",
+  "explanation": "## What is a Deque?\\n\\nA **deque** (pronounced 'deck', short for double-ended queue) is a queue where you can add or remove items from BOTH the front and the back — all in O(1) time.\\n\\n```\\n        remove front (popleft)          remove back (pop)\\n              ^                              ^\\nFRONT  |  1  |  2  |  3  |  4  |  BACK\\n              v                              v\\n        add front (appendleft)          add back (append)\\n```\\n\\nIt combines the best of a stack and a queue: four O(1) operations.\\n\\n## Why We Need It: Sliding Window Maximum\\n\\nA classic problem: given an array and a window size k, find the maximum of every window as it slides right.\\n\\nBrute force checks every element in every window: O(n * k). For a big array that's too slow.\\n\\n## The Monotonic Deque Trick\\n\\nKeep a **deque of indices** whose values are strictly decreasing from front to back. The FRONT always holds the index of the current window's maximum.\\n\\nFor each new element (index i):\\n\\n1. **Remove expired indices** — pop from the front while the index is outside the current window (i - k)\\n2. **Maintain decreasing order** — pop from the back while the value at that index is <= the new value (those smaller values can never be the max again while the new bigger value is around)\\n3. **Add the new index** at the back\\n4. **Record the answer** — once the window is full (i >= k - 1), the front of the deque is the window maximum\\n\\n## Watch It In Action\\n\\nArray [1, 3, -1, -3, 5], window k = 3:\\n\\n```\\ni=0: deque [0] (1)          -> window not full\\ni=1: 3 > 1, pop 0 -> deque [1] (3)   -> not full\\ni=2: -1 < 3, keep -> deque [1,2] (3,-1) -> max = 3 ✓\\ni=3: -3 < -1, keep -> deque [1,2,3] (3,-1,-3) -> max = 3 ✓\\ni=4: 5 pops -3, -1, 3 -> deque [4] (5) -> max = 5 ✓\\n\\nanswers: [3, 3, 5]\\n```\\n\\nEach index is added once and removed at most once — total work is O(n).\\n\\n## When to Use a Deque\\n\\n✅ Sliding window min/max problems\\n✅ Problems needing O(1) add/remove at BOTH ends\\n✅ Monotonic queue patterns (decreasing for max, increasing for min)\\n\\n❌ When a plain FIFO queue suffices and you never touch the back\\n\\n## Complexity\\n\\n| Approach | Time | Space |\\n|---|---|---|\\n| Brute force per window | O(n * k) | O(1) |\\n| Monotonic deque | O(n) | O(k) |\\n\\nEach element enters and leaves the deque once, giving linear total time.\\n\\n## Key Takeaway\\n\\nA deque is a double-ended queue with O(1) operations on both ends. Keep a **monotonic deque** (decreasing for maxima) and each element is processed once — sliding window maximum drops from O(n*k) to O(n).",
   "image": "",
   "youtubeUrl": "",
   "pdfUrl": "",
@@ -62,65 +62,68 @@
 
 ## Problems (2)
 
-### Check Palindrome
+### Implement Queue using Stacks
 
 ```json
 {
-  "title": "Check Palindrome",
-  "slug": "check-palindrome",
-  "lessonSlug": "strings",
-  "subtopicSlug": "string-basics",
+  "title": "Implement Queue using Stacks",
+  "slug": "implement-queue-using-stacks",
+  "lessonSlug": "queues",
+  "subtopicSlug": "queue-basics",
   "difficulty": "easy",
   "topics": [
-    "Strings",
-    "Two Pointers"
+    "Queue",
+    "Stack",
+    "Design"
   ],
   "companies": [
     "Amazon",
     "Google",
     "Microsoft",
+    "Meta",
     "Apple"
   ],
-  "problemStatement": "You are given a string made up of lowercase English letters. Your task is to determine whether it reads the same forward and backward — in other words, whether it is a palindrome.\n\nA palindrome is a word, phrase, or sequence that reads the same forwards and backwards. For example, \"racecar\" reversed is still \"racecar\".\n\nWrite a function that takes the string and returns True if it is a palindrome, and False otherwise.\n\nNote: You should ignore case differences and non-alphanumeric characters — only consider letters and digits, and treat uppercase and lowercase as the same. For this version of the problem, the input will only contain lowercase letters, so you don't need to handle case conversion or filtering.",
+  "problemStatement": "Implement a First-In-First-Out (FIFO) queue using only two stacks. The implemented queue must support all standard operations:\\n\\n- push(x): push element x to the back of the queue\\n- pop(): remove the element from the front of the queue and return it\\n- peek(): return the element at the front of the queue without removing it\\n- empty(): return whether the queue is empty\\n\\nYou may only use the standard stack operations — push to top, peek/pop from top, size, and is empty — which are all O(1) each.\\n\\nFor example, after push(1), push(2), push(3): pop() should return 1 (the first element pushed).",
   "examples": [
     {
-      "input": "\"racecar\"",
-      "output": "True",
-      "explanation": "r-a-c-e-c-a-r reads the same forwards and backwards."
+      "input": "push(1), push(2), push(3), pop()",
+      "output": "1",
+      "explanation": "Elements enter in order 1, 2, 3 — the first one in must be the first one out, so pop returns 1."
     },
     {
-      "input": "\"hello\"",
-      "output": "False",
-      "explanation": "h-e-l-l-o reversed is o-l-l-e-h, which is not the same."
+      "input": "push(1), push(2), peek(), pop(), empty()",
+      "output": "1, 1, false",
+      "explanation": "peek sees the front (1); pop removes it; the queue still holds 2 so it is not empty."
     },
     {
-      "input": "\"a\"",
-      "output": "True",
-      "explanation": "A single character is always a palindrome."
+      "input": "push(1), pop(), empty()",
+      "output": "1, true",
+      "explanation": "After pushing and popping the only element, the queue is empty."
     },
     {
-      "input": "\"\"",
-      "output": "True",
-      "explanation": "An empty string is considered a palindrome."
+      "input": "push(1), push(2), push(3), pop(), peek()",
+      "output": "1, 2",
+      "explanation": "pop removes 1; the new front is 2 so peek returns 2."
     }
   ],
   "constraints": [
-    "The string length is between 0 and 100,000 characters.",
-    "The string contains only lowercase English letters (a-z)."
+    "At most 100 operations will be called.",
+    "pop and peek are only called when the queue is non-empty.",
+    "All values pushed are integers."
   ],
-  "approach": "## Understanding the Problem\n\nA palindrome is a string that reads the same forwards and backwards. \"racecar\" is a palindrome because when you reverse it, you get \"racecar\" back. \"hello\" is not because reversing gives \"olleh\".\n\nThis problem tests whether you understand array/string indexing and whether you can write a clean, efficient solution without unnecessary work.\n\n### Step 1 — The Obvious Approach: Reverse and Compare\n\nThe simplest way to check for a palindrome is to reverse the string and compare it to the original:\n\n```text\nFUNCTION is_palindrome_reverse(s):\n    reversed_s = reverse(s)\n    RETURN s == reversed_s\n```\n\nThis works, but it creates a copy of the entire string (O(n) extra memory) and requires O(n) time for the reversal plus O(n) for the comparison.\n\n### Step 2 — The Two-Pointer Approach (Optimal)\n\nThis is where the two-pointer technique comes in again:\n\n1. Place one pointer at the beginning (index 0) and one at the end (last index)\n2. Compare the characters at these two positions\n3. If they match, move the left pointer right by 1 and the right pointer left by 1\n4. If they don't match, return False — it's not a palindrome\n5. If the pointers meet or cross without finding a mismatch, return True\n\nLet's trace on \"racecar\":\n\n```\nInitial:  r  a  c  e  c  a  r\n          L                    R\n\nStep 1: r == r -> move pointers\nStep 2: a == a -> move pointers\nStep 3: c == c -> move pointers\nStep 4: e (middle) — pointers meet, L == R\n\nAll characters matched -> True (it's a palindrome)\n```\n\nNow trace on \"hello\":\n\n```\nInitial:  h  e  l  l  o\n          L              R\n\nStep 1: h != o -> return False immediately\n\nFirst pair doesn't match -> not a palindrome\n```\n\n### Step 3 — Why This Works\n\nA palindrome requires that every character at position i matches the character at position (n-1-i). By comparing from both ends simultaneously, we check all required pairs. As soon as we find one mismatch, we can stop — the string cannot be a palindrome.\n\n### Complexity Analysis\n\n- **Time Complexity: O(n)** — we check at most n/2 pairs of characters.\n- **Space Complexity: O(1)** — only two index variables, regardless of string length.\n\n### Python Code\n\n```python\ndef is_palindrome(s):\n    left = 0\n    right = len(s) - 1\n\n    while left < right:\n        if s[left] != s[right]:\n            return False\n        left += 1\n        right -= 1\n\n    return True\n```\n\n### JavaScript Code\n\n```javascript\nfunction isPalindrome(s) {\n    let left = 0;\n    let right = s.length - 1;\n\n    while (left < right) {\n        if (s[left] !== s[right]) {\n            return false;\n        }\n        left++;\n        right--;\n    }\n\n    return true;\n}\n```",
+  "approach": "## Understanding the Problem\\n\\nA stack is LIFO (last in, first out); a queue is FIFO (first in, first out). We must fake FIFO behaviour using only LIFO stacks. The trick: use ONE stack for entering ('in') and ONE stack for leaving ('out'), and FLIP the order when we move items between them.\\n\\n## The Two-Stack Idea\\n\\n- **push(x)**: always push x onto the 'in' stack. (Newest is on top of 'in'.)\\n- **pop() / peek()**: we need the OLDEST element. If 'out' is empty, dump everything from 'in' into 'out' — this reverses the order, so the oldest element lands on top of 'out'. Then pop/peek the top of 'out'.\\n\\nThe 'out' stack is a lazily-flipped buffer: we only dump when it runs dry.\\n\\n## Pseudocode\\n\\n```\\nCLASS MyQueue:\\n    in  = empty stack   # for pushes\\n    out = empty stack   # for pops/peeks\\n\\n    FUNCTION push(x):\\n        in.push(x)                      # newest goes on top of 'in'\\n\\n    FUNCTION transferIfNeeded():\\n        IF out is empty:\\n            WHILE in is not empty:\\n                out.push(in.pop())      # flip: oldest ends up on top of 'out'\\n\\n    FUNCTION pop():\\n        transferIfNeeded()\\n        RETURN out.pop()                 # remove the front\\n\\n    FUNCTION peek():\\n        transferIfNeeded()\\n        RETURN out.top()                 # look at the front\\n\\n    FUNCTION empty():\\n        RETURN in is empty AND out is empty\\n```\\n\\n## Trace\\n\\n```\\npush(1) -> in: [1]\\npush(2) -> in: [2, 1]   (2 on top)\\npush(3) -> in: [3, 2, 1]\\n\\npop(): out empty -> dump: in -> out flips to [1, 2, 3] (1 on top)\\n       pop -> 1 ✓\\npeek(): out has 2 on top -> 2 ✓   (no dump needed)\\npop(): -> 2 ✓\\nempty(): out still has 3 -> false\\n```\\n\\nThe flip happens rarely, and each element is moved at most twice, so everything is fast on average.\\n\\n## Complexity Analysis\\n\\n- **Time Complexity: O(1) amortised per operation** — each element is pushed once and moved to 'out' at most once. A single pop can cost O(n), but across n operations it averages out to O(1).\\n- **Space Complexity: O(n)** — the two stacks together hold all n elements.",
   "codeBlocks": [
     {
       "language": "python",
-      "code": "def is_palindrome(s):\n    left = 0\n    right = len(s) - 1\n\n    while left < right:\n        if s[left] != s[right]:\n            return False\n        left += 1\n        right -= 1\n\n    return True"
+      "code": "class MyQueue:\n    def __init__(self):\n        self.in_stack = []   # newest elements on top\n        self.out_stack = []  # oldest elements on top\n\n    def push(self, x):\n        self.in_stack.append(x)\n\n    def _transfer(self):\n        # Flip 'in' into 'out' so the oldest element is on top\n        if not self.out_stack:\n            while self.in_stack:\n                self.out_stack.append(self.in_stack.pop())\n\n    def pop(self):\n        self._transfer()\n        return self.out_stack.pop()\n\n    def peek(self):\n        self._transfer()\n        return self.out_stack[-1]\n\n    def empty(self):\n        return not self.in_stack and not self.out_stack"
     },
     {
       "language": "javascript",
-      "code": "function isPalindrome(s) {\n    let left = 0;\n    let right = s.length - 1;\n\n    while (left < right) {\n        if (s[left] !== s[right]) {\n            return false;\n        }\n        left++;\n        right--;\n    }\n\n    return true;\n}"
+      "code": "var MyQueue = function () {\n    this.inStack = [];   // newest elements on top\n    this.outStack = [];  // oldest elements on top\n};\n\nMyQueue.prototype.push = function (x) {\n    this.inStack.push(x);\n};\n\nMyQueue.prototype._transfer = function () {\n    // Flip 'in' into 'out' so the oldest element is on top\n    if (this.outStack.length === 0) {\n        while (this.inStack.length > 0) {\n            this.outStack.push(this.inStack.pop());\n        }\n    }\n};\n\nMyQueue.prototype.pop = function () {\n    this._transfer();\n    return this.outStack.pop();\n};\n\nMyQueue.prototype.peek = function () {\n    this._transfer();\n    return this.outStack[this.outStack.length - 1];\n};\n\nMyQueue.prototype.empty = function () {\n    return this.inStack.length === 0 && this.outStack.length === 0;\n};"
     }
   ],
-  "timeComplexity": "O(n)",
-  "spaceComplexity": "O(1)",
+  "timeComplexity": "O(1) amortised",
+  "spaceComplexity": "O(n)",
   "youtubeUrl": "",
   "pdfUrl": "",
   "pptxUrl": "",
@@ -136,52 +139,52 @@
 {
   "questions": [
     {
-      "text": "What does it mean for a string to be a palindrome?",
+      "text": "What order does a queue follow?",
       "options": [
-        "It contains only letters that appear twice",
-        "It reads the same forwards and backwards",
-        "It has an even number of characters",
-        "It starts and ends with the same letter"
+        "Last-In-First-Out (LIFO)",
+        "First-In-First-Out (FIFO)",
+        "Random order",
+        "Sorted order"
       ],
       "correctIndex": 1
     },
     {
-      "text": "In the two-pointer approach, when can we safely return False?",
+      "text": "In the two-stack queue, where does push(x) put the element?",
       "options": [
-        "After checking all pairs",
-        "As soon as we find a pair of characters that don't match",
-        "When the left pointer passes the middle",
-        "When the string length is odd"
+        "Onto the 'out' stack",
+        "Onto the 'in' stack",
+        "Into the middle of both stacks",
+        "Nowhere — queues don't use stacks"
       ],
       "correctIndex": 1
     },
     {
-      "text": "How many character comparisons does the two-pointer approach make in the worst case?",
+      "text": "When is the 'out' stack refilled from the 'in' stack?",
       "options": [
-        "n comparisons (every character against the middle)",
-        "n/2 comparisons (half the string against the other half)",
-        "n^2 comparisons (every character against every other)",
-        "1 comparison (just the first and last)"
+        "On every operation",
+        "Only when the 'out' stack is empty",
+        "Only when the 'in' stack is empty",
+        "When the queue is full"
       ],
       "correctIndex": 1
     },
     {
-      "text": "For the input \"abcdefedcba\", what does the algorithm return?",
+      "text": "What is the amortised time complexity of each queue operation?",
       "options": [
-        "True, because it's a palindrome",
-        "False, because the length is odd",
-        "False, because 'b' doesn't match 'a'",
-        "True, because all characters are unique"
+        "O(n)",
+        "O(log n)",
+        "O(n^2)",
+        "O(1)"
       ],
-      "correctIndex": 0
+      "correctIndex": 3
     },
     {
-      "text": "What is the space complexity of the two-pointer palindrome check?",
+      "text": "After push(1), push(2), push(3), what does pop() return?",
       "options": [
-        "O(n) — we need to reverse the string first",
-        "O(n) — we need extra space for the pointers",
-        "O(1) — we only use a constant amount of extra memory",
-        "O(log n) — we halve the string at each step"
+        "3",
+        "2",
+        "1",
+        "Nothing — the queue is empty"
       ],
       "correctIndex": 2
     }
@@ -191,66 +194,70 @@
 
 ---
 
-### Valid Anagram
+### Sliding Window Maximum
 
 ```json
 {
-  "title": "Valid Anagram",
-  "slug": "valid-anagram",
-  "lessonSlug": "strings",
-  "subtopicSlug": "pattern-matching",
-  "difficulty": "easy",
+  "title": "Sliding Window Maximum",
+  "slug": "sliding-window-maximum",
+  "lessonSlug": "queues",
+  "subtopicSlug": "deque",
+  "difficulty": "hard",
   "topics": [
-    "Strings",
-    "Hash Map"
+    "Deque",
+    "Queue",
+    "Monotonic Queue",
+    "Array"
   ],
   "companies": [
     "Amazon",
     "Google",
     "Microsoft",
-    "Facebook",
+    "Meta",
+    "Apple",
     "Uber"
   ],
-  "problemStatement": "You are given two strings, s and t, made up of lowercase English letters. Your task is to determine whether t is an anagram of s.\n\nAn anagram is a word or phrase formed by rearranging the letters of another word or phrase, using all original letters exactly once. For example, \"listen\" and \"silent\" are anagrams because they contain the same letters: one 'l', one 'i', one 's', one 't', one 'e', one 'n'.\n\nWrite a function that takes s and t, and returns True if t is an anagram of s, and False otherwise.\n\nNote: both strings contain only lowercase English letters, so you don't need to worry about spaces, punctuation, or case sensitivity.",
+  "problemStatement": "You are given an array of integers and a window size k. The window starts at the left and slides one position to the right at a time — always covering exactly k elements.\\n\\nFor every position of the window, find the MAXIMUM value inside it, and return these maxima as an array.\\n\\nFor example, with nums = [1, 3, -1, -3, 5, 3, 6, 7] and k = 3:\\n- Window [1, 3, -1] -> max 3\\n- Window [3, -1, -3] -> max 3\\n- Window [-1, -3, 5] -> max 5\\n- ...and so on\\n\\nThe final answer is [3, 3, 5, 5, 6, 7].",
   "examples": [
     {
-      "input": "s = \"anagram\", t = \"nagaram\"",
-      "output": "True",
-      "explanation": "Both strings contain three 'a's, one 'n', one 'g', one 'r', one 'm' — just in different orders."
+      "input": "nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3",
+      "output": "[3, 3, 5, 5, 6, 7]",
+      "explanation": "Each window's maximum: [1,3,-1]->3, [3,-1,-3]->3, [-1,-3,5]->5, [-3,5,3]->5, [5,3,6]->6, [3,6,7]->7."
     },
     {
-      "input": "s = \"rat\", t = \"car\"",
-      "output": "False",
-      "explanation": "\"rat\" contains r, a, t. \"car\" contains c, a, r. They share 'a' and 'r', but 't' vs 'c' means they're not anagrams."
+      "input": "nums = [1], k = 1",
+      "output": "[1]",
+      "explanation": "A single window of size 1 contains just 1, so its max is 1."
     },
     {
-      "input": "s = \"a\", t = \"ab\"",
-      "output": "False",
-      "explanation": "Different lengths — they can't be anagrams. 'a' has only one letter, 'ab' has two."
+      "input": "nums = [1, -1], k = 1",
+      "output": "[1, -1]",
+      "explanation": "Every window is a single element, so the maxima are the elements themselves."
     },
     {
-      "input": "s = \"\", t = \"\"",
-      "output": "True",
-      "explanation": "Two empty strings are trivially anagrams — both contain zero of every character."
+      "input": "nums = [9, 11], k = 2",
+      "output": "[11]",
+      "explanation": "One window [9, 11] — the maximum is 11."
     }
   ],
   "constraints": [
-    "Each string length is between 0 and 50,000 characters.",
-    "Both strings contain only lowercase English letters (a-z)."
+    "The array length is between 1 and 100,000.",
+    "k is between 1 and the array length.",
+    "Each element is an integer between -10,000 and 10,000."
   ],
-  "approach": "## Understanding the Problem\n\nTwo strings are anagrams if they use the same characters in the same quantities. The order doesn't matter — only the frequency of each character.\n\n### Step 1 — The Quick Exit: Different Lengths\n\nIf s and t have different lengths, they cannot possibly be anagrams. This is an O(1) check that lets us return False immediately without any further work.\n\n### Step 2 — The Frequency Array Approach\n\nSince we know both strings contain only lowercase English letters (26 possible characters), we can use a fixed-size array of 26 integers instead of a hash map. This is more efficient:\n\n1. Create an array of size 26, initialized to 0\n2. For each character in s, increment the corresponding position in the array\n3. For each character in t, decrement the corresponding position\n4. If every position in the array is 0 at the end, they're anagrams\n\nWhy does this work? If we add 1 for each character in s and subtract 1 for each character in t, and the strings use the same characters in the same quantities, everything cancels out to zero.\n\nLet's trace on \"anagram\" and \"nagaram\":\n\n```\nInitialize: count[26] = [0, 0, 0, ..., 0]\n\nProcessing s = \"anagram\":\n  'a' -> count[0] = 1\n  'n' -> count[13] = 1\n  'a' -> count[0] = 2\n  'g' -> count[6] = 1\n  'r' -> count[17] = 1\n  'a' -> count[0] = 3\n  'm' -> count[12] = 1\n\nProcessing t = \"nagaram\":\n  'n' -> count[13] = 0  (subtract 1)\n  'a' -> count[0] = 2\n  'g' -> count[6] = 0\n  'a' -> count[0] = 1\n  'r' -> count[17] = 0\n  'a' -> count[0] = 0\n  'm' -> count[12] = 0\n\nFinal count array: all zeros -> True (they are anagrams)\n```\n\n### Step 3 — The Hash Map Approach (General Case)\n\nIf the strings could contain any Unicode characters (not just 'a' to 'z'), a fixed-size array won't work. Instead, use a hash map:\n\n```text\nFUNCTION is_anagram(s, t):\n    IF length(s) != length(t):\n        RETURN False\n\n    freq = empty hash map\n\n    FOR EACH character c IN s:\n        freq[c] = freq[c] + 1\n\n    FOR EACH character c IN t:\n        IF c NOT IN freq OR freq[c] == 0:\n            RETURN False       // Extra character or wrong count\n        freq[c] = freq[c] - 1\n\n    RETURN True\n```\n\nNotice: instead of building a separate map for t and comparing, we increment for s and decrement for t. This saves memory and lets us detect mismatches early.\n\n### Step 4 — Why This Works\n\nThe counting approach works because anagram detection is fundamentally about comparing multisets (sets where elements can appear multiple times). By counting each character's occurrences and checking that the counts match, we're effectively asking: \"Are these two strings identical as multisets of characters?\"\n\n### Complexity Analysis\n\n- **Time Complexity: O(n)** — we make two passes over strings of length n.\n- **Space Complexity: O(1)** — the array is always 26 elements. Even with a hash map, the space is O(k) where k is the number of distinct characters (at most 26 for lowercase letters).\n\n### Python Code\n\n```python\ndef is_anagram(s, t):\n    # Different lengths can't be anagrams\n    if len(s) != len(t):\n        return False\n\n    # Array of 26 zeros for 'a' through 'z'\n    count = [0] * 26\n\n    # Count characters in s, decrement for t\n    for i in range(len(s)):\n        count[ord(s[i]) - ord('a')] += 1\n        count[ord(t[i]) - ord('a')] -= 1\n\n    # All counts should be zero\n    for c in count:\n        if c != 0:\n            return False\n\n    return True\n```\n\n### JavaScript Code\n\n```javascript\nfunction isAnagram(s, t) {\n    // Different lengths can't be anagrams\n    if (s.length !== t.length) {\n        return false;\n    }\n\n    // Array of 26 zeros for 'a' through 'z'\n    const count = new Array(26).fill(0);\n\n    // Count characters in s, decrement for t\n    for (let i = 0; i < s.length; i++) {\n        count[s.charCodeAt(i) - 97]++;\n        count[t.charCodeAt(i) - 97]--;\n    }\n\n    // All counts should be zero\n    for (const c of count) {\n        if (c !== 0) {\n            return false;\n        }\n    }\n\n    return true;\n}\n```",
+  "approach": "## Understanding the Problem\\n\\nWe need the maximum of every k-sized window as it slides across the array. Brute force scans all k elements for each window — O(n * k). With a big array that's far too slow.\\n\\n## The Monotonic Deque Idea\\n\\nKeep a **deque of indices** whose values stay strictly decreasing from front to back. The front of the deque is always the index of the current window's maximum.\\n\\nFor each index i (processing left to right):\\n\\n1. **Remove expired indices** — while the front index is outside the window (front <= i - k), popleft it\\n2. **Keep the deque decreasing** — while the value at the back index is <= nums[i], pop it (that older, smaller-or-equal element can never be a max again while the newer bigger value is in the window)\\n3. **Add index i** at the back\\n4. **Record the answer** — once the window is full (i >= k - 1), the front of the deque is this window's maximum\\n\\n## Pseudocode\\n\\n```\\nFUNCTION maxSlidingWindow(nums, k):\\n    deque = empty deque of indices\\n    answer = empty list\\n\\n    FOR i from 0 to length(nums) - 1:\\n        # 1. Drop indices outside the current window\\n        WHILE deque is not empty AND deque.front <= i - k:\\n            POP FRONT of deque\\n\\n        # 2. Keep values decreasing: remove smaller/equal values from the back\\n        WHILE deque is not empty AND nums[deque.back] <= nums[i]:\\n            POP BACK of deque\\n\\n        # 3. This index is now a candidate\\n        PUSH i onto BACK of deque\\n\\n        # 4. Window full -> record its maximum\\n        IF i >= k - 1:\\n            answer.append(nums[deque.front])\\n\\n    RETURN answer\\n```\\n\\n## Trace on nums = [1, 3, -1, -3, 5], k = 3\\n\\n```\\ni=0 (1): deque [0]                -> window not full\\ni=1 (3): 3 > 1, pop back 0 -> deque [1]      -> not full\\ni=2 (-1): -1 < 3, keep -> deque [1, 2]      -> max = nums[1] = 3 ✓\\ni=3 (-3): -3 < -1, keep -> deque [1, 2, 3]  -> max = 3 ✓\\ni=4 (5): 5 pops -3, -1, 3 -> deque [4]      -> max = 5 ✓\\n\\nanswer = [3, 3, 5]\\n```\\n\\nNotice the big 5 'absorbed' all the smaller elements — they were doomed to never be a max again.\\n\\n## Why Each Element Is Processed Only Once\\n\\nEvery index is added to the deque exactly once and removed at most once. That single fact makes the whole algorithm linear.\\n\\n## Complexity Analysis\\n\\n- **Time Complexity: O(n)** — each index is pushed once and popped at most once.\\n- **Space Complexity: O(k)** — the deque holds at most k indices (one window).",
   "codeBlocks": [
     {
       "language": "python",
-      "code": "def is_anagram(s, t):\n    if len(s) != len(t):\n        return False\n\n    count = [0] * 26\n\n    for i in range(len(s)):\n        count[ord(s[i]) - ord('a')] += 1\n        count[ord(t[i]) - ord('a')] -= 1\n\n    for c in count:\n        if c != 0:\n            return False\n\n    return True"
+      "code": "from collections import deque\n\ndef maxSlidingWindow(nums, k):\n    dq = deque()   # stores indices, values strictly decreasing\n    answer = []\n\n    for i, val in enumerate(nums):\n        # 1. Remove indices outside the current window\n        while dq and dq[0] <= i - k:\n            dq.popleft()\n\n        # 2. Keep values decreasing: pop smaller/equal values from the back\n        while dq and nums[dq[-1]] <= val:\n            dq.pop()\n\n        # 3. This index is now a candidate\n        dq.append(i)\n\n        # 4. Window full -> record its maximum\n        if i >= k - 1:\n            answer.append(nums[dq[0]])\n\n    return answer"
     },
     {
       "language": "javascript",
-      "code": "function isAnagram(s, t) {\n    if (s.length !== t.length) {\n        return false;\n    }\n\n    const count = new Array(26).fill(0);\n\n    for (let i = 0; i < s.length; i++) {\n        count[s.charCodeAt(i) - 97]++;\n        count[t.charCodeAt(i) - 97]--;\n    }\n\n    for (const c of count) {\n        if (c !== 0) {\n            return false;\n        }\n    }\n\n    return true;\n}"
+      "code": "function maxSlidingWindow(nums, k) {\n    const dq = [];   // stores indices, values strictly decreasing\n    let head = 0;    // logical front pointer (O(1) expiry instead of shift())\n    const answer = [];\n\n    for (let i = 0; i < nums.length; i++) {\n        const val = nums[i];\n\n        // 1. Remove indices outside the current window\n        while (head < dq.length && dq[head] <= i - k) {\n            head++;\n        }\n\n        // 2. Keep values decreasing: pop smaller/equal values from the back\n        while (dq.length > head && nums[dq[dq.length - 1]] <= val) {\n            dq.pop();\n        }\n\n        // 3. This index is now a candidate\n        dq.push(i);\n\n        // 4. Window full -> record its maximum\n        if (i >= k - 1) {\n            answer.push(nums[dq[head]]);\n        }\n\n        // Compact occasionally so the deque stays O(k) in memory\n        if (head >= k) {\n            dq.splice(0, head);\n            head = 0;\n        }\n    }\n\n    return answer;\n}"
     }
   ],
   "timeComplexity": "O(n)",
-  "spaceComplexity": "O(1)",
+  "spaceComplexity": "O(k)",
   "youtubeUrl": "",
   "pdfUrl": "",
   "pptxUrl": "",
@@ -266,54 +273,54 @@
 {
   "questions": [
     {
-      "text": "What is the quickest way to determine two strings are NOT anagrams?",
+      "text": "What kind of deque does Sliding Window Maximum keep?",
       "options": [
-        "Check if they are exactly equal",
-        "Check if they have different lengths",
-        "Check if they start with different letters",
-        "Sort both strings and compare"
+        "A monotonic increasing deque",
+        "A monotonic decreasing deque",
+        "A random deque",
+        "No deque at all"
       ],
       "correctIndex": 1
     },
     {
-      "text": "In the frequency array approach, why do we use an array of size 26?",
+      "text": "Where is the current window's maximum stored?",
       "options": [
-        "Because 26 is the maximum string length allowed",
-        "Because there are 26 letters in the English alphabet",
-        "Because arrays can only hold 26 elements",
-        "Because we need to count 26 different frequencies per character"
-      ],
-      "correctIndex": 1
-    },
-    {
-      "text": "After processing both strings, if the frequency array contains all zeros, what does that mean?",
-      "options": [
-        "Both strings were empty",
-        "Every character appeared an even number of times",
-        "The two strings are anagrams of each other",
-        "The two strings are identical"
+        "At the back of the deque",
+        "At the middle of the deque",
+        "At the front of the deque",
+        "Nowhere — it is recomputed each time"
       ],
       "correctIndex": 2
     },
     {
-      "text": "What is the time complexity of the frequency array approach?",
+      "text": "When do we remove an index from the front of the deque?",
       "options": [
-        "O(1) — constant time regardless of string length",
-        "O(log n) — we keep dividing the problem",
-        "O(n log n) — the sorting step is the bottleneck",
-        "O(n) — we iterate through the strings linearly"
+        "When it is smaller than the new element",
+        "When it has fallen out of the current window",
+        "When it is bigger than the new element",
+        "Never"
+      ],
+      "correctIndex": 1
+    },
+    {
+      "text": "Why do we pop smaller-or-equal values from the back before adding the new element?",
+      "options": [
+        "To sort the array",
+        "Because they can never be a window maximum while the newer bigger value is present",
+        "To save memory",
+        "To keep the deque empty"
+      ],
+      "correctIndex": 1
+    },
+    {
+      "text": "What is the time complexity of the sliding window maximum solution?",
+      "options": [
+        "O(n * k)",
+        "O(n^2)",
+        "O(n log n)",
+        "O(n)"
       ],
       "correctIndex": 3
-    },
-    {
-      "text": "When would you use a hash map instead of a fixed-size array for this problem?",
-      "options": [
-        "Never — arrays are always better",
-        "When the strings are very long",
-        "When the characters could be any Unicode character, not just a-z",
-        "When you want the answer to be case-sensitive"
-      ],
-      "correctIndex": 2
     }
   ]
 }
@@ -323,14 +330,13 @@
 
 ## Summary
 
-
 | Entity | Count |
 |---|
 
-| Categories | 1 of 7 |
+| Categories | 0 of 7 (same category: Linked Lists, Stacks & Queues) |
 |---|
 
-| Lessons | 1 of 19 |
+| Lessons | 1 of 19 (order 2 in category) |
 |---|
 
 | Subtopics | 2 of 34 |

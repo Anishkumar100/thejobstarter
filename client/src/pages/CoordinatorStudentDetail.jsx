@@ -331,7 +331,33 @@ export default function CoordinatorStudentDetail() {
       {/* ════════════════════════════════════════════════════════ */}
       {/* ═══ 1. PLAN PROGRESS TRACKING (BATCH-SPECIFIC) ═══ */}
       {/* ════════════════════════════════════════════════════════ */}
-      {pp && (
+      {pp && pp.status === 'completed' ? (
+        <div style={{ ...CARD, marginBottom: 'var(--space-lg)', borderLeft: '6px solid var(--success)' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--space-md)' }}>
+            <FileText size={20} /> Plan Completed: {pp.planName}
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: 'var(--space-md)' }}>
+            <div style={{ border: '2px solid #000', padding: '8px 12px', background: 'var(--bg-tertiary)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)' }}>Status</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#065f46' }}>Completed ✓</div>
+            </div>
+            <div style={{ border: '2px solid #000', padding: '8px 12px', background: 'var(--bg-tertiary)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)' }}>Completed</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900 }}>{pp.completedCount || 0}/{pp.expectedCount || 0} items</div>
+            </div>
+            <div style={{ border: '2px solid #000', padding: '8px 12px', background: 'var(--bg-tertiary)', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)' }}>Completion</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: planBreakdown?.overallPct >= 60 ? '#16a34a' : planBreakdown?.overallPct >= 30 ? '#eab308' : '#dc2626' }}>{planBreakdown?.overallPct || pp.completionPct || 0}%</div>
+            </div>
+          </div>
+          <div style={{ height: 12, background: 'var(--bg-tertiary)', border: '2px solid #000', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.min(100, planBreakdown?.overallPct || pp.completionPct || 0)}%`, background: 'var(--success)', transition: 'width 0.4s ease' }} />
+          </div>
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', marginTop: 8 }}>
+            Plan started {new Date(pp.startDate || planBreakdown?.startDate).toLocaleDateString()}
+          </p>
+        </div>
+      ) : pp && (
         <div style={{ ...CARD, marginBottom: 'var(--space-lg)', borderLeft: '6px solid #000' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 8 }}>

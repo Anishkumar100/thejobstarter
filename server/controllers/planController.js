@@ -590,11 +590,18 @@ export async function getActivePlanForBatch(req, res) {
       }
     }
 
-    const batchPlan = await BatchPlan.findOne({ batch: id, status: 'active' })
+    let batchPlan = await BatchPlan.findOne({ batch: id, status: 'active' })
       .populate('plan');
 
     if (!batchPlan) {
-      console.log('[PLAN] No active plan for batch:', id);
+      /* Fallback: return most recent plan (may be completed) so day-grid etc. still work */
+      batchPlan = await BatchPlan.findOne({ batch: id })
+        .sort({ startDate: -1 })
+        .populate('plan');
+    }
+
+    if (!batchPlan) {
+      console.log('[PLAN] No plan found for batch:', id);
       return res.json({ data: null });
     }
 
@@ -606,7 +613,28 @@ export async function getActivePlanForBatch(req, res) {
 
     const diffMs = today - startDate;
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const currentDay = Math.max(0, Math.min(diffDays + 1, batchPlan.plan.durationDays));
+    const rawDay = diffDays + 1;
+
+    /*
+     * Check if the plan has ended: raw day exceeds duration.
+     * If so, auto-update BatchPlan status to 'completed' and return completed info.
+     */
+    if (rawDay > batchPlan.plan.durationDays) {
+      console.log('[PLAN] Plan has ended for batch:', id, '— marking as completed');
+      await BatchPlan.findByIdAndUpdate(batchPlan._id, { status: 'completed' });
+      return res.json({
+        data: {
+          batchPlan: { ...batchPlan.toObject(), status: 'completed' },
+          plan: batchPlan.plan,
+          currentDay: batchPlan.plan.durationDays,
+          totalDays: batchPlan.plan.durationDays,
+          startDate: batchPlan.startDate,
+          status: 'completed'
+        }
+      });
+    }
+
+    const currentDay = Math.max(0, rawDay);
 
     console.log('[PLAN] Active plan:', batchPlan.plan?.name, 'day', currentDay, 'of', batchPlan.plan.durationDays);
     res.json({
@@ -872,7 +900,7 @@ export async function getDayProgressBreakdown(req, res) {
     const plan = await Plan.findById(planId).lean();
     if (!plan || !plan.items) return res.status(404).json({ error: 'Plan not found' });
 
-    const batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId, status: 'active' }).lean();
+    const batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId }).lean();
     if (!batchPlan) return res.json({ data: null });
 
     const startDate = new Date(batchPlan.startDate);
@@ -902,11 +930,14 @@ export async function getDayProgressBreakdown(req, res) {
       progressDocs.map(d => `${d.subject}:${d.targetType}:${d.targetSlug}`)
     );
 
+    /* Cap currentDayOffset at plan duration so completed plans don't show extra empty days */
+    const cappedOffset = Math.min(currentDayOffset, plan.durationDays);
+
     /* Build day-by-day breakdown with per-item details */
     const days = [];
     let totalItemsAssigned = 0;
     let totalItemsCompleted = 0;
-    for (let d = 1; d <= Math.max(plan.durationDays, currentDayOffset); d++) {
+    for (let d = 1; d <= plan.durationDays; d++) {
       const items = dayGroups[d] || [];
       const itemsWithStatus = items.map(item => {
         const done = completedSet.has(`${item.subject}:${item.targetType}:${item.targetSlug}`);
@@ -923,7 +954,7 @@ export async function getDayProgressBreakdown(req, res) {
         };
       });
       const completedCount = itemsWithStatus.filter(i => i.completed).length;
-      if (d <= currentDayOffset) {
+      if (d <= cappedOffset) {
         totalItemsAssigned += items.length;
         totalItemsCompleted += completedCount;
       }
@@ -932,9 +963,9 @@ export async function getDayProgressBreakdown(req, res) {
         itemsCount: items.length,
         completedCount,
         completedPct: items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0,
-        isCurrent: d === currentDayOffset,
-        isFuture: d > currentDayOffset,
-        isPast: d < currentDayOffset,
+        isCurrent: d === cappedOffset,
+        isFuture: d > cappedOffset,
+        isPast: d < cappedOffset,
         items: itemsWithStatus
       });
     }
@@ -945,7 +976,7 @@ export async function getDayProgressBreakdown(req, res) {
         planName: plan.name,
         planDescription: plan.description || '',
         durationDays: plan.durationDays,
-        currentDayOffset,
+        currentDayOffset: cappedOffset,
         startDate: batchPlan.startDate,
         totalItemsAssigned,
         totalItemsCompleted,
@@ -1036,7 +1067,7 @@ export async function getBatchDayProgress(req, res) {
     const plan = await Plan.findById(planId).lean();
     if (!plan || !plan.items) return res.status(404).json({ error: 'Plan not found' });
 
-    const batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId, status: 'active' }).lean();
+    const batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId }).lean();
     if (!batchPlan) return res.json({ data: null });
 
     const startDate = new Date(batchPlan.startDate);
@@ -1088,9 +1119,12 @@ export async function getBatchDayProgress(req, res) {
       userItemMap[p.user].add(`${p.subject}:${p.targetType}:${p.targetSlug}`);
     }
 
+    /* Cap currentDayOffset at plan duration so completed plans don't show extra empty days */
+    const cappedOffset = Math.min(currentDayOffset, plan.durationDays);
+
     /* Build day-by-day aggregated breakdown with per-student info */
     const days = [];
-    for (let d = 1; d <= Math.max(plan.durationDays, currentDayOffset); d++) {
+    for (let d = 1; d <= plan.durationDays; d++) {
       const items = dayGroups[d] || [];
       if (items.length === 0) {
       days.push({
@@ -1098,9 +1132,9 @@ export async function getBatchDayProgress(req, res) {
         avgCompletionPct: 0, studentCount,
         completedAllIds: [], partialIds: [], noneIds: studentIds.map(s => s.toString()),
         items: [],
-        isCurrent: d === currentDayOffset,
-        isFuture: d > currentDayOffset,
-        isPast: d < currentDayOffset
+        isCurrent: d === cappedOffset,
+        isFuture: d > cappedOffset,
+        isPast: d < cappedOffset
       });
         continue;
       }
@@ -1149,9 +1183,9 @@ export async function getBatchDayProgress(req, res) {
           subtopicTitle: item.subtopicTitle || '',
           lessonTitle: item.lessonTitle || ''
         })),
-        isCurrent: d === currentDayOffset,
-        isFuture: d > currentDayOffset,
-        isPast: d < currentDayOffset
+        isCurrent: d === cappedOffset,
+        isFuture: d > cappedOffset,
+        isPast: d < cappedOffset
       });
     }
 
@@ -1160,7 +1194,7 @@ export async function getBatchDayProgress(req, res) {
       data: {
         planName: plan.name,
         durationDays: plan.durationDays,
-        currentDayOffset,
+        currentDayOffset: cappedOffset,
         startDate: batchPlan.startDate,
         studentCount,
         days

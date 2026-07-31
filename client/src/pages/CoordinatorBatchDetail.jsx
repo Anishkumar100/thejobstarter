@@ -309,10 +309,12 @@ export default function CoordinatorBatchDetail() {
 
   /* ── Plan progress distribution ── */
   const planDistribution = (() => {
-    const counts = { ahead: 0, 'on-track': 0, behind: 0, 'just-started': 0, none: 0 };
+    const counts = { ahead: 0, 'on-track': 0, behind: 0, 'just-started': 0, completed: 0, none: 0 };
     for (const s of enrolledStudents) {
       const pp = s.progress?.planProgress;
-      if (pp && pp.paceStatus) counts[pp.paceStatus] = (counts[pp.paceStatus] || 0) + 1;
+      if (!pp) { counts.none++; continue; }
+      if (pp.status === 'completed') counts.completed++;
+      else if (pp.paceStatus) counts[pp.paceStatus] = (counts[pp.paceStatus] || 0) + 1;
       else counts.none++;
     }
     return counts;
@@ -343,7 +345,10 @@ export default function CoordinatorBatchDetail() {
   }, [enrolledStudents]);
 
   /* Derive performance segments */
-  const topCandidates = enrichedStudents.filter(s => s.progress?.planProgress?.paceStatus && s.progress?.planProgress?.paceStatus !== 'just-started').sort((a, b) => b._pp - a._pp);
+  const topCandidates = enrichedStudents.filter(s => {
+    const sp = s.progress?.planProgress;
+    return sp && (sp.paceStatus || sp.status === 'completed') && sp.paceStatus !== 'just-started';
+  }).sort((a, b) => b._pp - a._pp);
   const onTrackStudents = enrichedStudents.filter(s => s.progress?.planProgress?.paceStatus === 'on-track');
   const behindStudents = enrichedStudents.filter(s => s.progress?.planProgress?.paceStatus === 'behind');
 
@@ -643,9 +648,10 @@ export default function CoordinatorBatchDetail() {
               <span style={{
                 fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
                 padding: '2px 6px', border: '2px solid var(--border-color)',
-                background: 'var(--success-bg)', color: 'var(--success-text)'
+                background: activePlan.status === 'completed' ? '#d1fae5' : 'var(--success-bg)',
+                color: activePlan.status === 'completed' ? '#065f46' : 'var(--success-text)'
               }}>
-                Active
+                {activePlan.status === 'completed' ? 'Completed' : 'Active'}
               </span>
             </div>
             {activePlan.plan?.description && (
@@ -654,6 +660,43 @@ export default function CoordinatorBatchDetail() {
 
             {/* Metric summary grid */}
             {(() => {
+              /* If plan is completed, show final summary */
+              if (activePlan.status === 'completed') {
+                const total = Number(activePlan.totalItems) || 1;
+                const completedCount = Number(activePlan.completedCount) || 0;
+                const completionPct = activePlan.completionPct || Math.round((completedCount / total) * 100);
+                const completedStudents = enrolledStudents.filter(s => s.progress?.planProgress?.status === 'completed').length;
+                return (
+                  <>
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 2 }}>
+                        <span>Plan Completed ✓</span>
+                        <span>{completionPct}% overall</span>
+                      </div>
+                      <div style={{ height: 12, background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.min(100, completionPct)}%`, background: 'var(--success)', transition: 'width 0.4s ease' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, marginBottom: 6 }}>
+                      <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--success)' }}>✓</div>
+                        <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Status</div>
+                        <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>Plan duration has ended</div>
+                      </div>
+                      <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-primary)' }}>{completedCount}/{total}</div>
+                        <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Items Completed</div>
+                        <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>Across all students with data</div>
+                      </div>
+                      <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: completedStudents >= enrolledStudents.length / 2 ? '#16a34a' : '#eab308' }}>{completedStudents}/{enrolledStudents.length}</div>
+                        <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Students Completed</div>
+                        <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>Students who finished all plan items</div>
+                      </div>
+                    </div>
+                  </>
+                );
+              }
               const total = Number(activePlan.totalDays) || 1;
               const current = Math.max(0, Number(activePlan.currentDay) || 0);
               const timePct = current > 0 && total > 0 ? Math.round((current / total) * 100) : 0;
@@ -714,7 +757,10 @@ export default function CoordinatorBatchDetail() {
                     </div>
                     <div style={{ border: '2px solid var(--border-color)', padding: '6px 10px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
                       <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-tertiary)' }}>{
-                        enrolledStudents.filter(s => !s.progress?.planProgress?.paceStatus || s.progress?.planProgress?.paceStatus === 'just-started').length
+                        enrolledStudents.filter(s => {
+                          const sp = s.progress?.planProgress;
+                          return !sp || (!sp.paceStatus && sp.status !== 'completed') || sp.paceStatus === 'just-started';
+                        }).length
                       }</div>
                       <div style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>No Data / Just Started</div>
                       <div style={{ fontSize: '0.5rem', color: 'var(--text-tertiary)', marginTop: 1 }}>No plan progress tracked yet</div>
@@ -961,8 +1007,9 @@ export default function CoordinatorBatchDetail() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                           <span style={{
                             fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 6px',
-                            border: '2px solid var(--border-color)', color: '#16a34a'
-                          }}>{pp?.paceStatus}</span>
+                            border: '2px solid var(--border-color)',
+                            color: pp?.status === 'completed' ? '#065f46' : '#16a34a'
+                          }}>{pp?.status === 'completed' ? 'COMPLETED' : pp?.paceStatus}</span>
                           <div style={{ width: 50, height: 6, background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)' }}>
                             <div style={{ height: '100%', width: `${s._pp}%`, background: s._pp >= 60 ? '#16a34a' : s._pp >= 30 ? '#eab308' : '#dc2626' }} />
                           </div>
@@ -1017,7 +1064,11 @@ export default function CoordinatorBatchDetail() {
                           <span style={{ fontWeight: 700 }}>{s.displayName || s.username}</span>
                           <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 4 }}>{s.college || '—'}</span>
                         </div>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-tertiary)', flexShrink: 0 }}>Day {pp?.currentDayOffset}/{pp?.durationDays} · {s._pp}% · {pp?.completedCount}/{pp?.expectedCount}</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                          {pp?.status === 'completed'
+                            ? `Completed · ${s._pp}% · ${pp?.completedCount || 0}/${pp?.expectedCount || 0}`
+                            : `Day ${pp?.currentDayOffset || 0}/${pp?.durationDays || 0} · ${s._pp}% · ${pp?.completedCount || 0}/${pp?.expectedCount || 0}`}
+                        </span>
                       </Link>
                     );
                   })}
@@ -1603,6 +1654,22 @@ export default function CoordinatorBatchDetail() {
                         {(() => {
                           const pp = s.progress?.planProgress;
                           if (!pp) return <span style={{ color: 'var(--text-tertiary)', fontSize: '0.68rem' }}>—</span>;
+                          if (pp.status === 'completed') {
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{
+                                  fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase',
+                                  padding: '2px 6px', border: '2px solid #000',
+                                  color: '#065f46'
+                                }}>
+                                  COMPLETED
+                                </span>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                                  {pp.completedCount}/{pp.expectedCount}
+                                </span>
+                              </div>
+                            );
+                          }
                           const paceColors = { ahead: '#16a34a', 'on-track': '#2563eb', behind: '#dc2626', 'just-started': 'var(--text-tertiary)' };
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

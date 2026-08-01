@@ -345,17 +345,17 @@ export default function StudentDashboard() {
           if (totalPending === 0 && studentAssignments.length === 0) return null;
 
           return (
-            <div style={{ ...card(), marginBottom: 28, borderLeft: `6px solid ${overdueAssignments.length > 0 ? '#dc2626' : '#2563eb'}` }}>
+            <div style={{ ...card(), marginBottom: 28, borderLeft: `6px solid ${overdueAssignments.length > 0 ? 'var(--error)' : 'var(--accent)'}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: studentAssignments.length > 0 ? 14 : 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FileText size={18} style={{ color: totalPending > 0 ? (overdueAssignments.length > 0 ? '#dc2626' : '#2563eb') : '#16a34a' }} />
+                  <FileText size={18} style={{ color: totalPending > 0 ? (overdueAssignments.length > 0 ? 'var(--error)' : 'var(--accent)') : 'var(--success)' }} />
                   <h2 style={{ fontSize: '1rem', fontWeight: 900, margin: 0, color: TXT }}>
                     Assignments
                   </h2>
                   {totalPending > 0 && (
                     <span style={{
                       fontSize: '0.6rem', fontWeight: 800, padding: '3px 10px',
-                      border: `2px solid ${B}`, background: '#fef2f2', color: '#dc2626'
+                      border: `2px solid ${B}`, background: 'var(--error-bg)', color: 'var(--error-text)'
                     }}>
                       {totalPending} pending
                     </span>
@@ -378,7 +378,7 @@ export default function StudentDashboard() {
                 <p style={{ fontSize: '0.82rem', color: TXT3 }}>Loading assignments...</p>
               ) : studentAssignments.length === 0 ? (
                 <p style={{ fontSize: '0.82rem', color: TXT3, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <CheckCircle size={14} color="#16a34a" /> No pending assignments. Great!
+                  <CheckCircle size={14} color="var(--success)" /> No pending assignments. Great!
                 </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -387,17 +387,17 @@ export default function StudentDashboard() {
                     <Link key={a._id} to={`/assignments/${a._id}`}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 14px', border: `2px solid #dc2626`,
-                        background: '#fef2f2', textDecoration: 'none', color: TXT,
+                        padding: '10px 14px', border: `2px solid var(--error)`,
+                        background: 'var(--error-bg)', textDecoration: 'none', color: TXT,
                         transition: 'transform 0.12s',
-                        borderLeft: `6px solid #dc2626`
+                        borderLeft: `6px solid var(--error)`
                       }}
                       onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '4px 4px 0 var(--shadow-color)'; }}
                       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                      <AlertCircle size={14} style={{ flexShrink: 0, color: '#dc2626' }} />
+                      <AlertCircle size={14} style={{ flexShrink: 0, color: 'var(--error)' }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{a.title}</span>
-                        <span style={{ fontSize: '0.65rem', color: '#dc2626', marginLeft: 6 }}>Overdue</span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--error-text)', marginLeft: 6 }}>Overdue</span>
                       </div>
                       <span style={{ fontSize: '0.65rem', color: TXT3, display: 'flex', alignItems: 'center', gap: 3 }}>
                         <Clock size={10} /> {new Date(a.endDate).toLocaleDateString()} — expired
@@ -413,11 +413,11 @@ export default function StudentDashboard() {
                         padding: '10px 14px', border: `2px solid ${B}`,
                         background: SURF, textDecoration: 'none', color: TXT,
                         transition: 'transform 0.12s',
-                        borderLeft: `6px solid #2563eb`
+                        borderLeft: `6px solid var(--accent)`
                       }}
                       onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '4px 4px 0 var(--shadow-color)'; }}
                       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                      <FileText size={14} style={{ flexShrink: 0, color: '#2563eb' }} />
+                      <FileText size={14} style={{ flexShrink: 0, color: 'var(--accent)' }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{a.title}</span>
                         {a.instructions && (
@@ -446,9 +446,9 @@ export default function StudentDashboard() {
                   {/* Recently submitted status */}
                   {(studentAssignments.filter(a => a._submission).length > 0) && (
                     <div style={{ fontSize: '0.7rem', color: TXT2, borderTop: `1px solid ${B}`, paddingTop: 8, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Send size={11} color="#16a34a" />
+                      <Send size={11} color="var(--success)" />
                       {studentAssignments.filter(a => a._submission).length} submitted —{' '}
-                      <Link to="/assignments" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}>View status</Link>
+                      <Link to="/assignments" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'underline' }}>View status</Link>
                     </div>
                   )}
 
@@ -456,10 +456,10 @@ export default function StudentDashboard() {
                   {overdueAssignments.length > 0 && (
                     <div style={{
                       fontSize: '0.82rem', padding: '12px 16px',
-                      border: `3px solid #dc2626`,
-                      background: '#fef2f2',
+                      border: `3px solid var(--error)`,
+                      background: 'var(--error-bg)',
                       display: 'flex', alignItems: 'center', gap: 10,
-                      color: '#dc2626'
+                      color: 'var(--error-text)'
                     }}>
                       <AlertCircle size={18} style={{ flexShrink: 0 }} />
                       <span style={{ fontWeight: 700 }}>

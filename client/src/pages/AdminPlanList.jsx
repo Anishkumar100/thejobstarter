@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
+import { getLocalDateString } from '../utils/date.js';
 import { useUser } from '@clerk/clerk-react';
 import { useCoachingCenterStore } from '../stores/useCoachingCenterStore.js';
 import Loader from '../components/ui/Loader.jsx';
@@ -429,7 +430,7 @@ export default function AdminPlanList() {
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                   {plan.status === 'published' && (
                     <button className="btn btn--sm"
-                      onClick={() => { setAssignModal({ plan }); fetchBatchesForAssign(); setAssignStartDate(new Date().toISOString().split('T')[0]); }}
+                      onClick={() => { setAssignModal({ plan }); fetchBatchesForAssign(); setAssignStartDate(getLocalDateString()); }}
                       title="Assign to batch"
                       style={{ fontSize: '0.65rem', padding: '4px 10px' }}>
                       <Users size={12} /> Assign

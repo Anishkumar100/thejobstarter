@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
+import { getLocalDateString } from '../utils/date.js';
 import Loader from '../components/ui/Loader.jsx';
 import {
   ArrowLeft, Users, Layers, FileText, BookOpen, AlertCircle,
@@ -48,7 +49,7 @@ export default function AdminBatchDetail() {
   const [showPlanPicker, setShowPlanPicker] = useState(false);
   const [availablePlans, setAvailablePlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState('');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(getLocalDateString());
 
   /* Performance pagination */
   const PER_PAGE_BATCH = 20;
@@ -187,7 +188,7 @@ export default function AdminBatchDetail() {
       const res = await apiRequest('/plans?status=published');
       setAvailablePlans(res.data || []);
       setSelectedPlanId('');
-      setStartDate(new Date().toISOString().split('T')[0]);
+      setStartDate(getLocalDateString());
       setShowPlanPicker(true);
     } catch (err) {
       alert(err.message || 'Failed to load plans');

@@ -900,7 +900,12 @@ export async function getDayProgressBreakdown(req, res) {
     const plan = await Plan.findById(planId).lean();
     if (!plan || !plan.items) return res.status(404).json({ error: 'Plan not found' });
 
-    const batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId }).lean();
+    /* Prefer the ACTIVE BatchPlan, else fall back to the latest startDate — same pattern
+       as getPlanProgress. Without this, re-assigning the same plan to a batch leaves an
+       old 'completed' record that findOne could return, making these endpoints read a
+       stale startDate and show an incorrect day offset. */
+    let batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId, status: 'active' }).lean();
+    if (!batchPlan) batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId }).sort({ startDate: -1, createdAt: -1 }).lean();
     if (!batchPlan) return res.json({ data: null });
 
     const startDate = new Date(batchPlan.startDate);
@@ -1067,7 +1072,12 @@ export async function getBatchDayProgress(req, res) {
     const plan = await Plan.findById(planId).lean();
     if (!plan || !plan.items) return res.status(404).json({ error: 'Plan not found' });
 
-    const batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId }).lean();
+    /* Prefer the ACTIVE BatchPlan, else fall back to the latest startDate — same pattern
+       as getPlanProgress. Without this, re-assigning the same plan to a batch leaves an
+       old 'completed' record that findOne could return, making these endpoints read a
+       stale startDate and show an incorrect day offset. */
+    let batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId, status: 'active' }).lean();
+    if (!batchPlan) batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId }).sort({ startDate: -1, createdAt: -1 }).lean();
     if (!batchPlan) return res.json({ data: null });
 
     const startDate = new Date(batchPlan.startDate);

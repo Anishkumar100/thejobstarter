@@ -271,6 +271,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-sm);
   height: var(--nav-height);
   padding: 0 var(--space-lg) 0 0;
   border-bottom: var(--border);
@@ -279,6 +280,12 @@
   top: 0;
   z-index: 100;
   max-width: 100%;
+}
+
+/* Brand wrapper — never shrinks or clips, keeps the logo visible at every width */
+.navbar__brand {
+  flex-shrink: 0;
+  line-height: 0;
 }
 
 /* ===== BRAND LOGO ===== */
@@ -394,7 +401,11 @@
 .navbar__desktop-links {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
+  flex: 1;
+  min-width: 0;
+  /* Note: no overflow:hidden here — it would clip the absolutely-positioned Community dropdown */
 }
 
 .navbar__link {
@@ -409,6 +420,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
 }
 
 .navbar__link:hover {
@@ -714,7 +726,8 @@
   border: var(--border);
   background: var(--bg-secondary);
   box-shadow: var(--shadow);
-  z-index: 300;
+  /* Highest layer inside the navbar — always paints above the upgrade pill / profile pill */
+  z-index: 400;
   overflow: hidden;
 }
 
@@ -812,8 +825,9 @@
   display: none;
 }
 
-/* Medium screens — tighten spacing to fit all links */
-@media (max-width: 1100px) {
+/* Roomy desktops (1201-1440px) — slightly tighter links so the logo + all 8 nav links +
+   profile/upgrade actions always fit on one row with zero overlap */
+@media (max-width: 1440px) {
   .navbar__desktop-links {
     gap: 2px;
   }
@@ -824,49 +838,33 @@
   .navbar {
     padding: 0 var(--space-md) 0 0;
   }
-  .navbar__upgrade-link {
-    font-size: 0.65rem;
-    padding: 4px 8px;
-  }
   .navbar__username {
     max-width: 80px;
     font-size: 0.72rem;
   }
-}
-
-/* Tight squeeze — reduce further */
-@media (max-width: 960px) {
-  .navbar__link {
-    padding: 4px 6px;
+  .navbar__upgrade-link {
     font-size: 0.65rem;
-    letter-spacing: 0.03em;
-  }
-  .navbar__desktop-links {
-    gap: 1px;
-  }
-  .navbar__login-btn {
-    font-size: 0.7rem;
-    padding: 6px 10px;
-  }
-  .navbar__user {
-    padding: 2px 8px 2px 2px;
-  }
-  .navbar__username {
-    max-width: 60px;
+    padding: 4px 8px;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
+  /* Below 1200px the logo + 8 nav links + profile pill can't safely fit on one row, so the
+     bar collapses to the hamburger + fullscreen overlay. Every nav link (including
+     Pricing and Community) stays available inside the overlay — nothing is hidden and
+     nothing can ever slide behind the logo or the actions area. */
   .navbar__desktop-links {
-    display: none;
-  }
-
-  .navbar__user .navbar__username {
     display: none;
   }
 
   .navbar__hamburger {
     display: flex;
+  }
+
+  /* The Upgrade pill only has room on large desktops (see the 1440px tighten above);
+     below 1200px it lives in the profile dropdown + the mobile menu instead. */
+  .navbar__upgrade-link {
+    display: none;
   }
 
   /* Fullscreen overlay */
@@ -1062,6 +1060,47 @@
     background: var(--bg-tertiary);
     box-shadow: 3px 3px 0 var(--border-color);
     transform: translate(-1px, -1px);
+  }
+}
+
+/* Tight squeeze — hamburger-mode pill / login button tweaks (deliberately after the
+   1200px block: only touches pill/login sizing, never the desktop-link rules) */
+@media (max-width: 960px) {
+  .navbar__login-btn {
+    font-size: 0.7rem;
+    padding: 6px 10px;
+  }
+  .navbar__user {
+    padding: 2px 8px 2px 2px;
+  }
+  .navbar__username {
+    max-width: 60px;
+  }
+}
+
+/* Small screens — avatar-only pill so the bar still fits down to 320px */
+@media (max-width: 768px) {
+  .navbar__user .navbar__username {
+    display: none;
+  }
+}
+
+/* Very small phones — tighten gaps/padding so logo + actions always fit (320px+) */
+@media (max-width: 400px) {
+  .navbar {
+    padding-right: var(--space-sm);
+  }
+  .navbar__actions {
+    gap: 6px;
+  }
+  .navbar__user {
+    gap: 6px;
+    padding: 2px 6px 2px 2px;
+  }
+  .navbar__theme-btn,
+  .navbar__hamburger {
+    width: 36px;
+    height: 36px;
   }
 }
 

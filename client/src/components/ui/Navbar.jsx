@@ -106,7 +106,8 @@ export default function Navbar() {
   return (
     <>
       <nav className="navbar">
-        <div style={{ overflow: 'hidden' }}>
+        {/* Brand wrapper — flex-shrink: 0 via .navbar__brand so the logo NEVER gets squeezed/hidden */}
+        <div className="navbar__brand">
           <BrandLogo onClick={closeMenu} />
         </div>
 

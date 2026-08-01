@@ -1,3 +1,4 @@
+import { Webhook } from 'svix';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import CoachingCenter from '../models/CoachingCenter.js';
@@ -18,8 +19,42 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; /* 1 hour */
  */
 export async function handleClerkWebhook(req, res) {
   try {
-    const event = req.body;
-    console.log('[USER] Clerk webhook received:', event.type);
+    /*
+     * Verify the webhook signature (svix headers) BEFORE trusting the payload.
+     * The raw body is preserved by express.raw() in app.js for /api/users/webhook.
+     */
+    const svixId = req.headers['svix-id'];
+    const svixTimestamp = req.headers['svix-timestamp'];
+    const svixSignature = req.headers['svix-signature'];
+
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      console.error('[USER] Webhook rejected — missing svix headers');
+      return res.status(400).json({ error: 'Missing svix headers' });
+    }
+
+    const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('[USER] Webhook rejected — CLERK_WEBHOOK_SECRET not set');
+      return res.status(500).json({ error: 'Server webhook secret not configured' });
+    }
+
+    /* raw body is a Buffer from express.raw() — svix verifies against the exact string */
+    const payloadString = req.body.toString();
+    const wh = new Webhook(webhookSecret);
+
+    let event;
+    try {
+      event = wh.verify(payloadString, {
+        'svix-id': svixId,
+        'svix-timestamp': svixTimestamp,
+        'svix-signature': svixSignature
+      });
+    } catch (verifyError) {
+      console.error('[USER] Webhook rejected — signature verification failed:', verifyError.message);
+      return res.status(401).json({ error: 'Invalid webhook signature' });
+    }
+
+    console.log('[USER] Clerk webhook verified:', event.type);
 
     if (event.type === 'user.created' || event.type === 'user.updated') {
       const { id, username, first_name, last_name, email_addresses, image_url, public_metadata } = event.data;

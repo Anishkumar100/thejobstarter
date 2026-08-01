@@ -671,9 +671,10 @@ export async function verifySubscription(req, res) {
       console.log('[PAYMENT] verifySubscription: Cashfree status:', JSON.stringify(cfData, null, 2));
     } catch (cfErr) {
       console.error('[PAYMENT] verifySubscription: Cashfree API error:', cfErr.message);
-      /* Fall through — if we can't reach Cashfree, still activate locally since
-       * the user was redirected back from the payment page. In production the
-       * webhook will also fire to confirm. */
+      /* Do NOT activate on API failure — activation requires positive confirmation
+       * from Cashfree (or the signature-verified webhook). A genuine payment will
+       * be confirmed by the webhook shortly; the frontend shows a friendly
+       * 'processing' state until then. */
     }
 
     /*
@@ -683,7 +684,7 @@ export async function verifySubscription(req, res) {
     const cfStatus = cfData?.subscription_status || '';
     const isPaid = ['ACTIVE', 'COMPLETED'].includes(cfStatus);
 
-    if (isPaid || !cfData) {
+    if (isPaid) {
       /* Activate the user locally */
       const hookSubConfig = await getSubscriptionSettings();
       user.subscription.status = 'active';

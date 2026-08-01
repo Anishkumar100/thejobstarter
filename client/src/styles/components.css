@@ -710,6 +710,14 @@
   gap: 4px;
 }
 
+/* The trigger is a .navbar__link too, but its `background: none` (above, later in the file
+   with equal specificity) would wipe the active fill — so the active state must beat it. */
+.navbar__community-trigger.navbar__link--active,
+.navbar__community-trigger.navbar__link--active:hover {
+  background: var(--accent);
+  color: var(--text-inverse) !important;
+}
+
 .navbar__community-chevron {
   transition: transform 0.2s ease;
 }
@@ -739,9 +747,13 @@
   border-bottom: none;
 }
 
-.navbar__dropdown-item--active {
-  background: var(--accent-light);
-  color: var(--accent) !important;
+/* Active sub-link matches the main nav-link active state: solid accent fill + inverse text.
+   The dropdown is only visible while hovering, and the generic .navbar__dropdown-item:hover
+   rule (0,2,0) would otherwise beat this (0,1,0) — so the active state must also win on :hover. */
+.navbar__dropdown-item--active,
+.navbar__dropdown-item--active:hover {
+  background: var(--accent);
+  color: var(--text-inverse) !important;
   font-weight: 800;
 }
 

@@ -184,11 +184,18 @@ export default function InboxList({ conversations = [], notifications = [], unre
                     {item.type === 'needs_attention' && item.attentionReasons?.length > 0 && (
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
                         {item.attentionReasons.map((reason, i) => (
-                          <span key={i} style={{
-                            fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
-                            padding: '2px 6px', border: '2px solid #000',
-                            background: reason.includes('Inactive') ? '#fee2e2' : reason.includes('Bottom') ? '#fef3c7' : '#e0e7ff'
-                          }}>
+                          /* Theme-aware severity chips — use the design-system variables so
+                             they read correctly in both light and dark mode */
+                          <span
+                            key={i}
+                            style={{
+                              fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
+                              padding: '2px 6px',
+                              border: `2px solid ${reason.includes('Inactive') ? 'var(--error)' : reason.includes('Bottom') ? 'var(--warning)' : 'var(--accent)'}`,
+                              background: reason.includes('Inactive') ? 'var(--error-bg)' : reason.includes('Bottom') ? 'var(--warning-bg)' : 'var(--accent-light)',
+                              color: reason.includes('Inactive') ? 'var(--error-text)' : reason.includes('Bottom') ? 'var(--warning-text)' : 'var(--accent)'
+                            }}
+                          >
                             {reason}
                           </span>
                         ))}

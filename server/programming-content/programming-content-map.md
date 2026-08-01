@@ -3,7 +3,7 @@
 Full backlog for the Programming section: Categories → Lessons → Subtopics → Problems.
 Basics-to-advanced coverage of core programming concepts (language-agnostic where possible; code solutions in Python per platform convention).
 
-**Totals:** 7 categories · 19 lessons · 40 subtopics · ~24 problems
+**Totals:** 7 categories · 18 lessons · 48 subtopics · 29 problems
 
 ## Categories
 
@@ -24,6 +24,9 @@ Basics-to-advanced coverage of core programming concepts (language-agnostic wher
 | 0 | Programming Foundations | Variables, Data Types & Operators | Variables & Data Types | Swap Two Variables |
 | 0 | Programming Foundations | Variables, Data Types & Operators | Type Conversion | Convert Between Data Types |
 | 0 | Programming Foundations | Variables, Data Types & Operators | Operators & Expressions | *Theory / worked examples only* |
+
+(8/1/2026 completed till Variables, Data Types & Operators)
+
 | 0 | Programming Foundations | Control Flow | Conditional Statements | *Theory / worked examples only* |
 | 0 | Programming Foundations | Control Flow | Loops | Sum of Digits |
 | 0 | Programming Foundations | Control Flow | Loop Control (break/continue) | FizzBuzz |

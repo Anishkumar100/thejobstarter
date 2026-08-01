@@ -448,6 +448,14 @@ export async function gradeSubmission(req, res) {
       return res.status(404).json({ error: 'Submission not found' });
     }
 
+    /* Security: verify the submission belongs to this assignment — same IDOR guard
+       as deleteSubmission. Without it, a coordinator could grade a submission from
+       a different assignment (or another center's assignment) by passing an
+       arbitrary submissionId against their own assignment id. */
+    if (submission.assignment.toString() !== id) {
+      return res.status(400).json({ error: 'Submission does not belong to this assignment' });
+    }
+
     if (status) submission.status = status;
     if (feedback !== undefined) submission.feedback = feedback;
     await submission.save();

@@ -77,9 +77,14 @@ function getCashfreePlanConfig(plan) {
     console.log('[PAYMENT] Mapping to PERIODIC YEARLY');
     return { plan_type: 'PERIODIC', plan_interval_type: 'YEAR', plan_intervals: 1 };
   }
-  /* One-time / lifetime — no recurring interval */
-  console.log('[PAYMENT] Mapping to ONCE (no interval)');
-  return { plan_type: 'ONCE', plan_interval_type: null, plan_intervals: null };
+  /*
+   * One-time / lifetime — Cashfree has NO 'ONCE' plan_type (valid values are
+   * only PERIODIC and ON_DEMAND; 'ONCE' is rejected with plan_type_invalid).
+   * Map to a PERIODIC plan with a single cycle so the customer is auto-charged
+   * exactly once and the subscription completes.
+   */
+  console.log('[PAYMENT] Mapping to PERIODIC with single cycle (one-time)');
+  return { plan_type: 'PERIODIC', plan_interval_type: 'MONTH', plan_intervals: 1 };
 }
 
 /*
@@ -91,8 +96,8 @@ function getCashfreePlanConfig(plan) {
 async function ensurePlan(cf, plan) {
   const cfg = getCashfreePlanConfig(plan);
   const planId = `plan_${plan.id}_${plan.price}`;
-  const isOnce = cfg.plan_type === 'ONCE';
-  /* Derive max cycles from the pricing plan interval */
+  /* One-time plans use a single cycle; monthly/yearly cap at 12/5 cycles */
+  const isOnce = plan.interval === 'once';
   let maxCycles;
   if (isOnce) {
     maxCycles = 1;
@@ -109,7 +114,11 @@ async function ensurePlan(cf, plan) {
     plan_max_amount: plan.price * maxCycles,
   };
   if (isOnce) {
+    /* Single-cycle PERIODIC plan — charge once, then the subscription completes */
+    planRequest.plan_recurring_amount = plan.price;
     planRequest.plan_max_cycles = 1;
+    planRequest.plan_interval_type = cfg.plan_interval_type;
+    planRequest.plan_intervals = cfg.plan_intervals;
   } else {
     /* PERIODIC plan — requires recurring amount and interval */
     planRequest.plan_recurring_amount = plan.price;
@@ -246,7 +255,7 @@ export async function createSubscription(req, res) {
     const { planId: cfPlanId, planConfig } = await ensurePlan(cf, pricingPlan);
 
     /* Calculate max charges based on the pricing plan's interval */
-    const isOnce = planConfig.plan_type === 'ONCE';
+    const isOnce = pricingPlan.interval === 'once';
     let maxCycles;
     if (isOnce) {
       maxCycles = 1;
@@ -279,11 +288,9 @@ export async function createSubscription(req, res) {
       }
     };
 
-    /* Only set interval fields for PERIODIC subscriptions */
-    if (planConfig.plan_type !== 'ONCE') {
-      subscriptionRequest.plan_details.plan_interval_type = planConfig.plan_interval_type;
-      subscriptionRequest.plan_details.plan_intervals = planConfig.plan_intervals;
-    }
+    /* Interval fields are always sent — every plan is PERIODIC (one-time maps to a single-cycle periodic plan) */
+    subscriptionRequest.plan_details.plan_interval_type = planConfig.plan_interval_type;
+    subscriptionRequest.plan_details.plan_intervals = planConfig.plan_intervals;
 
     /*
      * Set the first charge amount — promo codes may reduce it (e.g. free_month = ₹0,
@@ -344,6 +351,28 @@ export async function createSubscription(req, res) {
   } catch (error) {
     console.error('[PAYMENT] Error creating subscription:', error.message);
     console.error('[PAYMENT] Error details:', error.response?.data || error);
+
+    /*
+     * Cashfree merchant-side errors must not surface as opaque 500s.
+     * Map known API error codes to clear HTTP statuses + user-friendly
+     * messages so the Subscribe page shows exactly what went wrong.
+     */
+    const cfCode = error.response?.data?.code;
+    if (cfCode === 'profile_inactive') {
+      console.log('[PAYMENT] Cashfree merchant profile inactive — returning friendly error');
+      return res.status(400).json({
+        error: 'Payments are temporarily unavailable — your Cashfree account is still being activated. Please try again in a few hours.',
+        code: cfCode
+      });
+    }
+    if (cfCode === 'plan_type_invalid') {
+      console.log('[PAYMENT] Invalid plan type mapped for pricing plan');
+      return res.status(400).json({
+        error: 'This subscription plan is misconfigured. Please contact support.',
+        code: cfCode
+      });
+    }
+
     res.status(500).json({ error: error.message || 'Failed to create subscription' });
   }
 }

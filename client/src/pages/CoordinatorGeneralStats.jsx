@@ -73,7 +73,7 @@ export default function CoordinatorGeneralStats() {
   const computeOverallPct = (progress) => {
     if (!progress) return 0;
     let total = 0, completed = 0;
-    for (const sub of ['dsa', 'dbms', 'os', 'programming']) {
+    for (const sub of ['dsa', 'dbms', 'os', 'programming', 'aptitude']) {
       const s = progress[sub]?.overall;
       if (s) { total += s.total; completed += s.completed; }
     }
@@ -90,7 +90,7 @@ export default function CoordinatorGeneralStats() {
 
   const subjectChartData = useMemo(() => {
     if (!students.length) return [];
-    let dsaT = 0, dsaD = 0, dbmsT = 0, dbmsD = 0, osT = 0, osD = 0, progT = 0, progD = 0;
+    let dsaT = 0, dsaD = 0, dbmsT = 0, dbmsD = 0, osT = 0, osD = 0, progT = 0, progD = 0, aptT = 0, aptD = 0;
     for (const s of students) {
       const p = s.progress;
       if (!p) continue;
@@ -98,12 +98,14 @@ export default function CoordinatorGeneralStats() {
       if (p.dbms?.overall) { dbmsT += p.dbms.overall.total; dbmsD += p.dbms.overall.completed; }
       if (p.os?.overall) { osT += p.os.overall.total; osD += p.os.overall.completed; }
       if (p.programming?.overall) { progT += p.programming.overall.total; progD += p.programming.overall.completed; }
+      if (p.aptitude?.overall) { aptT += p.aptitude.overall.total; aptD += p.aptitude.overall.completed; }
     }
     return [
       { key: 'dsa', subject: 'DSA', done: dsaD, total: dsaT, pct: dsaT > 0 ? Math.round((dsaD / dsaT) * 100) : 0, left: Math.max(0, dsaT - dsaD) },
       { key: 'dbms', subject: 'DBMS', done: dbmsD, total: dbmsT, pct: dbmsT > 0 ? Math.round((dbmsD / dbmsT) * 100) : 0, left: Math.max(0, dbmsT - dbmsD) },
       { key: 'os', subject: 'OS', done: osD, total: osT, pct: osT > 0 ? Math.round((osD / osT) * 100) : 0, left: Math.max(0, osT - osD) },
       { key: 'programming', subject: 'PROG', done: progD, total: progT, pct: progT > 0 ? Math.round((progD / progT) * 100) : 0, left: Math.max(0, progT - progD) },
+      { key: 'aptitude', subject: 'APT', done: aptD, total: aptT, pct: aptT > 0 ? Math.round((aptD / aptT) * 100) : 0, left: Math.max(0, aptT - aptD) },
     ];
   }, [students]);
 

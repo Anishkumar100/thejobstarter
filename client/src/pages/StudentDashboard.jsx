@@ -33,14 +33,15 @@ const SHADOW = 'var(--shadow-color)';
 const SH = (n) => `${n}px ${n}px 0 var(--shadow-color)`;
 
 /* ─── Domain constants ─── */
-const SUBJECT_COLORS = { dsa: '#6366f1', dbms: '#14b8a6', os: '#f59e0b', programming: '#a855f7' };
-const SUBJECT_NAMES = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Prog' };
-const SUBJECT_NAMES_FULL = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming' };
+const SUBJECT_COLORS = { dsa: '#6366f1', dbms: '#14b8a6', os: '#f59e0b', programming: '#a855f7', aptitude: '#f97316' };
+const SUBJECT_NAMES = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Prog', aptitude: 'Apt' };
+const SUBJECT_NAMES_FULL = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming', aptitude: 'Aptitude' };
 const SUBJECT_BADGE = {
   dsa: { bg: 'var(--badge-dsa-bg, #eef2ff)', text: 'var(--badge-dsa-text, #4338ca)' },
   dbms: { bg: 'var(--badge-dbms-bg, #ccfbf1)', text: 'var(--badge-dbms-text, #0f766e)' },
   os: { bg: 'var(--badge-os-bg, #fef3c7)', text: 'var(--badge-os-text, #b45309)' },
-  programming: { bg: 'var(--badge-prog-bg, #f3e8ff)', text: 'var(--badge-prog-text, #7e22ce)' }
+  programming: { bg: 'var(--badge-prog-bg, #f3e8ff)', text: 'var(--badge-prog-text, #7e22ce)' },
+  aptitude: { bg: 'var(--badge-apt-bg, #ffedd5)', text: 'var(--badge-apt-text, #c2410c)' }
 };
 const TARGET_LABELS = { lesson: 'Lesson', subtopic: 'Subtopic', problem: 'Problem' };
 const PACE_COLORS = { ahead: 'var(--success)', 'on-track': 'var(--accent)', behind: 'var(--error)', 'just-started': TXT3 };
@@ -99,7 +100,7 @@ export default function StudentDashboard() {
       .finally(() => setUserBdLoading(false));
   }, [progressSummary?.planProgress?.planId, user?.batch?._id, user?._id]);
 
-  const subjects = ['dsa', 'dbms', 'os', 'programming'];
+  const subjects = ['dsa', 'dbms', 'os', 'programming', 'aptitude'];
   const progress = progressSummary || {};
 
   /* ── Compute overall stats ── */

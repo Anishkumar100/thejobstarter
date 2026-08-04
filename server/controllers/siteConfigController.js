@@ -88,15 +88,15 @@ export async function getPublicConfig(req, res) {
           ]
         },
         homepageWhyTheJobStarter: {
-          subtitle: 'DSA, DBMS, and OS in one platform. Consistent structure across every subject. Built for how Indian campuses actually hire.',
+          subtitle: 'DSA, DBMS, OS, Programming, and Aptitude in one platform. Consistent structure across every subject. Built for how Indian campuses actually hire.',
           pillars: [
             {
               title: 'Structured Navigation,\nNot One Long Scroll',
               body: "GFG packs an entire topic \u2014 theory, examples, edge cases, related problems \u2014 into one long article, which is why developers commonly describe it as hard to navigate. We split every subject into Lessons \u2192 Subtopics \u2192 Problems as separate pages, so you focus on one concept at a time instead of endless scrolling."
             },
             {
-              title: 'One Architecture,\nThree Subjects',
-              body: 'DSA, DBMS, and OS were designed together from day one, sharing the same structure. GeeksforGeeks, LeetCode, and HackerRank each grew around one subject and never rebuilt around a shared model \u2014 their DBMS/OS content, where it exists, doesn\u2019t even navigate like their DSA content does.'
+              title: 'One Architecture,\nFive Subjects',
+              body: 'DSA, DBMS, OS, Programming, and Aptitude were designed together, sharing the same structure. GeeksforGeeks, LeetCode, and HackerRank each grew around one subject and never rebuilt around a shared model \u2014 their DBMS/OS content, where it exists, doesn\u2019t even navigate like their DSA content does.'
             },
             {
               title: 'Four Ways Into\nEvery Topic',
@@ -119,8 +119,8 @@ export async function getPublicConfig(req, res) {
               body: "LeetCode and HackerRank profiles are stat trackers. Ours links LeetCode, GitHub, LinkedIn, HackerRank, CodeChef, and CodeForces into a single profile \u2014 built to be the link a recruiter actually clicks, not an internal leaderboard only you see."
             },
             {
-              title: 'Aptitude &\nReasoning, Coming Soon',
-              body: "DSA, DBMS, and OS are just the start. Aptitude and reasoning \u2014 the fourth pillar of campus placement prep \u2014 is already on the roadmap, built to slot into the exact same Lessons \u2192 Subtopics \u2192 Problems structure as everything else here."
+              title: 'Aptitude &\nReasoning, Live Now',
+              body: "DSA, DBMS, OS, and Programming were just the start. Aptitude and reasoning \u2014 the fifth pillar of campus placement prep \u2014 is live now, built on the exact same Lessons \u2192 Subtopics \u2192 Problems structure as everything else here."
             }
           ],
           comparison: [

@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
  */
 const quizSchema = new mongoose.Schema({
   problemId: { type: mongoose.Schema.Types.ObjectId, required: true, refPath: 'problemModel' },
-  problemModel: { type: String, required: true, enum: ['Problem', 'DbmsProblem', 'OsProblem', 'ProgrammingProblem'] },
+  problemModel: { type: String, required: true, enum: ['Problem', 'DbmsProblem', 'OsProblem', 'ProgrammingProblem', 'AptitudeProblem'] },
   questions: [{
     text: { type: String, required: true },
     options: { type: [String], required: true, validate: v => v.length >= 2 && v.length <= 6 },

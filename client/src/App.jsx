@@ -36,6 +36,11 @@ import ProgrammingLesson from './pages/ProgrammingLesson.jsx';
 import ProgrammingSubtopic from './pages/ProgrammingSubtopic.jsx';
 import ProgrammingSubtopicProblems from './pages/ProgrammingSubtopicProblems.jsx';
 import ProgrammingDetail from './pages/ProgrammingDetail.jsx';
+import AptitudeList from './pages/AptitudeList.jsx';
+import AptitudeLesson from './pages/AptitudeLesson.jsx';
+import AptitudeSubtopic from './pages/AptitudeSubtopic.jsx';
+import AptitudeSubtopicProblems from './pages/AptitudeSubtopicProblems.jsx';
+import AptitudeDetail from './pages/AptitudeDetail.jsx';
 import BlogList from './pages/BlogList.jsx';
 import BlogDetail from './pages/BlogDetail.jsx';
 import Cheatsheets from './pages/Cheatsheets.jsx';
@@ -96,6 +101,14 @@ import AdminProgrammingSubtopicEdit from './pages/AdminProgrammingSubtopicEdit.j
 import AdminProgrammingProblemList from './pages/AdminProgrammingProblemList.jsx';
 import AdminProgrammingProblemEdit from './pages/AdminProgrammingProblemEdit.jsx';
 import AdminProgrammingMeta from './pages/AdminProgrammingMeta.jsx';
+import AdminAptitudeList from './pages/AdminAptitudeList.jsx';
+import AdminAptitudeLessonEdit from './pages/AdminAptitudeLessonEdit.jsx';
+import AdminAptitudeAllSubtopics from './pages/AdminAptitudeAllSubtopics.jsx';
+import AdminAptitudeSubtopicList from './pages/AdminAptitudeSubtopicList.jsx';
+import AdminAptitudeSubtopicEdit from './pages/AdminAptitudeSubtopicEdit.jsx';
+import AdminAptitudeProblemList from './pages/AdminAptitudeProblemList.jsx';
+import AdminAptitudeProblemEdit from './pages/AdminAptitudeProblemEdit.jsx';
+import AdminAptitudeMeta from './pages/AdminAptitudeMeta.jsx';
 import AdminBlogList from './pages/AdminBlogList.jsx';
 import AdminBlogEdit from './pages/AdminBlogEdit.jsx';
 import AdminMedia from './pages/AdminMedia.jsx';
@@ -289,6 +302,11 @@ function AppRoutes() {
       <Route path="/programming/:lessonSlug/:subtopicSlug/:problemSlug" element={<ProtectedRoute><AppLayout><ProgrammingDetail /></AppLayout></ProtectedRoute>} />
       <Route path="/programming/:lessonSlug/:subtopicSlug" element={<ProtectedRoute><AppLayout><ProgrammingSubtopic /></AppLayout></ProtectedRoute>} />
       <Route path="/programming/:lessonSlug" element={<ProtectedRoute><AppLayout><ProgrammingLesson /></AppLayout></ProtectedRoute>} />
+      <Route path="/aptitude" element={<ProtectedRoute><AppLayout><AptitudeList /></AppLayout></ProtectedRoute>} />
+      <Route path="/aptitude/:lessonSlug/:subtopicSlug/problems" element={<ProtectedRoute><AppLayout><AptitudeSubtopicProblems /></AppLayout></ProtectedRoute>} />
+      <Route path="/aptitude/:lessonSlug/:subtopicSlug/:problemSlug" element={<ProtectedRoute><AppLayout><AptitudeDetail /></AppLayout></ProtectedRoute>} />
+      <Route path="/aptitude/:lessonSlug/:subtopicSlug" element={<ProtectedRoute><AppLayout><AptitudeSubtopic /></AppLayout></ProtectedRoute>} />
+      <Route path="/aptitude/:lessonSlug" element={<ProtectedRoute><AppLayout><AptitudeLesson /></AppLayout></ProtectedRoute>} />
       <Route path="/blog" element={<ProtectedRoute><AppLayout><BlogList /></AppLayout></ProtectedRoute>} />
       <Route path="/blog/:slug" element={<ProtectedRoute><AppLayout><BlogDetail /></AppLayout></ProtectedRoute>} />
       <Route path="/cheatsheets" element={<AppLayout><Cheatsheets /></AppLayout>} />
@@ -379,6 +397,18 @@ function AppRoutes() {
       <Route path="/admin/programming/problems/new" element={<AdminRoute><AdminLayout><AdminProgrammingProblemEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/programming/problems/:id/edit" element={<AdminRoute><AdminLayout><AdminProgrammingProblemEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/programming/meta" element={<AdminRoute><AdminLayout><AdminProgrammingMeta /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude" element={<AdminRoute><AdminLayout><AdminAptitudeList /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/lessons" element={<AdminRoute><AdminLayout><AdminAptitudeList /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/lessons/new" element={<AdminRoute><AdminLayout><AdminAptitudeLessonEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/lessons/:id/edit" element={<AdminRoute><AdminLayout><AdminAptitudeLessonEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/subtopics" element={<AdminRoute><AdminLayout><AdminAptitudeAllSubtopics /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/lessons/:lessonId/subtopics" element={<AdminRoute><AdminLayout><AdminAptitudeSubtopicList /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/lessons/:lessonId/subtopics/new" element={<AdminRoute><AdminLayout><AdminAptitudeSubtopicEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/lessons/:lessonId/subtopics/:id/edit" element={<AdminRoute><AdminLayout><AdminAptitudeSubtopicEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/problems" element={<AdminRoute><AdminLayout><AdminAptitudeProblemList /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/problems/new" element={<AdminRoute><AdminLayout><AdminAptitudeProblemEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/problems/:id/edit" element={<AdminRoute><AdminLayout><AdminAptitudeProblemEdit /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/aptitude/meta" element={<AdminRoute><AdminLayout><AdminAptitudeMeta /></AdminLayout></AdminRoute>} />
       <Route path="/admin/blog" element={<AdminRoute><AdminLayout><AdminBlogList /></AdminLayout></AdminRoute>} />
       <Route path="/admin/blog/new" element={<AdminRoute><AdminLayout><AdminBlogEdit /></AdminLayout></AdminRoute>} />
       <Route path="/admin/blog/:id/edit" element={<AdminRoute><AdminLayout><AdminBlogEdit /></AdminLayout></AdminRoute>} />

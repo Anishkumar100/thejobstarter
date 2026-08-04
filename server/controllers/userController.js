@@ -374,6 +374,8 @@ export async function getUserByUsername(req, res) {
           if (clerkUser.fullName) existing.displayName = clerkUser.fullName;
           if (clerkUser.imageUrl) existing.avatar = clerkUser.imageUrl;
           if (!existing.email) existing.email = clerkUser.primaryEmailAddress?.emailAddress || '';
+          /* Keep role in sync with Clerk publicMetadata (admin/coordinator must not degrade to 'user') */
+          if (clerkUser.publicMetadata?.role) existing.role = clerkUser.publicMetadata.role;
           await existing.save();
           user = existing;
         } else {
@@ -382,7 +384,8 @@ export async function getUserByUsername(req, res) {
             username: clerkUsername,
             displayName: clerkUser.fullName || clerkUsername,
             avatar: clerkUser.imageUrl || '',
-            email: clerkUser.primaryEmailAddress?.emailAddress || ''
+            email: clerkUser.primaryEmailAddress?.emailAddress || '',
+            role: clerkUser.publicMetadata?.role || 'user'
           });
         }
       }
@@ -609,6 +612,9 @@ import OsProblem from '../models/OsProblem.js';
 import ProgrammingProblem from '../models/ProgrammingProblem.js';
 import ProgrammingLesson from '../models/ProgrammingLesson.js';
 import ProgrammingSubtopic from '../models/ProgrammingSubtopic.js';
+import AptitudeLesson from '../models/AptitudeLesson.js';
+import AptitudeSubtopic from '../models/AptitudeSubtopic.js';
+import AptitudeProblem from '../models/AptitudeProblem.js';
 import { getProgressSummary } from '../services/progressService.js';
 
 /*
@@ -651,7 +657,7 @@ export async function exportUserCsv(req, res) {
       'Problems Completed', 'Problems Total', 'Overall Completed', 'Overall Total', 'Overall %',
       'Quizzes Taken', 'Avg Quiz Score']);
 
-    for (const subject of ['dsa', 'dbms', 'os', 'programming']) {
+    for (const subject of ['dsa', 'dbms', 'os', 'programming', 'aptitude']) {
       const d = summary[subject];
       if (d) {
         const pct = d.overall.total > 0 ? Math.round((d.overall.completed / d.overall.total) * 100) : 0;
@@ -669,24 +675,27 @@ export async function exportUserCsv(req, res) {
     rows.push(['']);
 
     /* ── Build name lookup maps ── */
-    const LESSON_MODELS = { dsa: DsaLesson, dbms: DbmsLesson, os: OsLesson, programming: ProgrammingLesson };
-    const SUBTOPIC_MODELS = { dsa: Subtopic, dbms: DbmsSubtopic, os: OsSubtopic, programming: ProgrammingSubtopic };
-    const PROBLEM_MODELS = { dsa: Problem, dbms: DbmsProblem, os: OsProblem, programming: ProgrammingProblem };
+    const LESSON_MODELS = { dsa: DsaLesson, dbms: DbmsLesson, os: OsLesson, programming: ProgrammingLesson, aptitude: AptitudeLesson };
+    const SUBTOPIC_MODELS = { dsa: Subtopic, dbms: DbmsSubtopic, os: OsSubtopic, programming: ProgrammingSubtopic, aptitude: AptitudeSubtopic };
+    const PROBLEM_MODELS = { dsa: Problem, dbms: DbmsProblem, os: OsProblem, programming: ProgrammingProblem, aptitude: AptitudeProblem };
 
     /* Fetch all lesson/subtopic/problem names in batch */
-    const [dsaLessons, dsaSubtopics, dbmsLessons, dbmsSubtopics, osLessons, osSubtopics, dsaProblems, dbmsProblems, osProblems] = await Promise.all([
+    const [dsaLessons, dsaSubtopics, dbmsLessons, dbmsSubtopics, osLessons, osSubtopics, dsaProblems, dbmsProblems, osProblems, programmingLessons, programmingSubtopics, programmingProblems, aptitudeLessons, aptitudeSubtopics, aptitudeProblems] = await Promise.all([
       DsaLesson.find({}).select('slug title').lean(),
       Subtopic.find({}).select('slug title lessonSlug').lean(),
       DbmsLesson.find({}).select('slug title').lean(),
       DbmsSubtopic.find({}).select('slug title lessonSlug').lean(),
       OsLesson.find({}).select('slug title').lean(),
       OsSubtopic.find({}).select('slug title lessonSlug').lean(),
-      ProgrammingLesson.find({}).select('slug title').lean(),
-      ProgrammingSubtopic.find({}).select('slug title lessonSlug').lean(),
       Problem.find({}).select('slug title lessonSlug subtopicSlug').lean(),
       DbmsProblem.find({}).select('slug title lessonSlug subtopicSlug').lean(),
       OsProblem.find({}).select('slug title lessonSlug subtopicSlug').lean(),
-      ProgrammingProblem.find({}).select('slug title lessonSlug subtopicSlug').lean()
+      ProgrammingLesson.find({}).select('slug title').lean(),
+      ProgrammingSubtopic.find({}).select('slug title lessonSlug').lean(),
+      ProgrammingProblem.find({}).select('slug title lessonSlug subtopicSlug').lean(),
+      AptitudeLesson.find({}).select('slug title').lean(),
+      AptitudeSubtopic.find({}).select('slug title lessonSlug').lean(),
+      AptitudeProblem.find({}).select('slug title lessonSlug subtopicSlug').lean()
     ]);
 
     /* Build quick lookup maps */
@@ -697,12 +706,12 @@ export async function exportUserCsv(req, res) {
     const problemSubtopicMap = {}; /* problemSlug → subtopicSlug */
     const problemLessonMap = {}; /* problemSlug → lessonSlug */
 
-    for (const l of [...dsaLessons, ...dbmsLessons, ...osLessons]) lessonNames[l.slug] = l.title;
-    for (const s of [...dsaSubtopics, ...dbmsSubtopics, ...osSubtopics]) {
+    for (const l of [...dsaLessons, ...dbmsLessons, ...osLessons, ...programmingLessons, ...aptitudeLessons]) lessonNames[l.slug] = l.title;
+    for (const s of [...dsaSubtopics, ...dbmsSubtopics, ...osSubtopics, ...programmingSubtopics, ...aptitudeSubtopics]) {
       subtopicNames[s.slug] = s.title;
       subtopicLessonMap[s.slug] = s.lessonSlug;
     }
-    for (const p of [...dsaProblems, ...dbmsProblems, ...osProblems]) {
+    for (const p of [...dsaProblems, ...dbmsProblems, ...osProblems, ...programmingProblems, ...aptitudeProblems]) {
       problemNames[p.slug] = p.title;
       problemSubtopicMap[p.slug] = p.subtopicSlug;
       problemLessonMap[p.slug] = p.lessonSlug;
@@ -742,8 +751,8 @@ export async function exportUserCsv(req, res) {
     rows.push(['Subject', 'Score', 'Questions', 'Correct', 'Attempted At', 'Problem Name', 'Problem Slug']);
     for (const att of attempts) {
       const correct = att.quiz.questions.filter((q, i) => att.answers[i] === q.correctIndex).length;
-      const subject = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming' }[att.quiz.problemModel] || '';
-      const probModel = { Problem, DbmsProblem, OsProblem, ProgrammingProblem }[att.quiz.problemModel];
+      const subject = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming', AptitudeProblem: 'aptitude' }[att.quiz.problemModel] || '';
+      const probModel = { Problem, DbmsProblem, OsProblem, ProgrammingProblem, AptitudeProblem }[att.quiz.problemModel];
       let probName = '';
       if (probModel) {
         const prob = await probModel.findById(att.quiz.problemId).select('title slug').lean();

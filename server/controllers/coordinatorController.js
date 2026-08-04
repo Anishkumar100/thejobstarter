@@ -59,7 +59,7 @@ export async function getStats(req, res) {
       const p = student.progress;
       if (!p) continue;
 
-      for (const subject of ['dsa', 'dbms', 'os', 'programming']) {
+      for (const subject of ['dsa', 'dbms', 'os', 'programming', 'aptitude']) {
         const s = p[subject];
         if (!s) continue;
 
@@ -717,13 +717,14 @@ export async function exportCoordinatorCsv(req, res) {
       'DBMS Lessons', 'DBMS Subtopics', 'DBMS Problems', 'DBMS Overall %', 'DBMS Quiz Avg',
       'OS Lessons', 'OS Subtopics', 'OS Problems', 'OS Overall %', 'OS Quiz Avg',
       'PROG Lessons', 'PROG Subtopics', 'PROG Problems', 'PROG Overall %', 'PROG Quiz Avg',
+      'APT Lessons', 'APT Subtopics', 'APT Problems', 'APT Overall %', 'APT Quiz Avg',
       'Overall Completed', 'Overall Total', 'Overall %',
       'Status', 'Needs Attention', 'Attention Reasons'
     ]);
 
     for (const s of students) {
       const p = s.progress || {};
-      const subjects = ['dsa', 'dbms', 'os', 'programming'];
+      const subjects = ['dsa', 'dbms', 'os', 'programming', 'aptitude'];
       let totalCompleted = 0, totalItems = 0;
       let quizTaken = 0, quizScoreSum = 0;
       const row = [

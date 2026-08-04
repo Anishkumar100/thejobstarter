@@ -3,7 +3,7 @@ import { useAuthStore } from '../../stores/useAuthStore.js';
 import { useThemeStore } from '../../stores/useThemeStore.js';
 import { useNotificationStore } from '../../stores/useNotificationStore.js';
 import { useState, useEffect, useRef } from 'react';
-import { Menu, X, Moon, Sun, MessageCircle, User, Settings, LogOut, Bell, LayoutDashboard, Sparkles, Zap, ChevronDown, Users, HelpCircle, GraduationCap, Building2 } from 'lucide-react';
+import { Menu, X, Moon, Sun, MessageCircle, User, Settings, LogOut, Bell, LayoutDashboard, Sparkles, Zap, ChevronDown, Users, HelpCircle, GraduationCap, Building2, Newspaper } from 'lucide-react';
 import BrandLogo from './BrandLogo.jsx';
 
 /*
@@ -15,12 +15,13 @@ const CORE_LINKS = [
   { to: '/dbms', label: 'DBMS' },
   { to: '/os', label: 'OS' },
   { to: '/programming', label: 'Programming' },
-  { to: '/blog', label: 'Blog' },
+  { to: '/aptitude', label: 'Aptitude' },
   { to: '/about', label: 'About' }
 ];
 
 /* Community dropdown sub-links */
 const COMMUNITY_LINKS = [
+  { to: '/blog', label: 'Blog', icon: Newspaper },
   { to: '/qa', label: 'Q&A', icon: HelpCircle },
   { to: '/users', label: 'Community', icon: Users }
 ];

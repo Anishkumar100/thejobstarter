@@ -9,8 +9,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip, ResponsiveContainer, LabelList, Cell
 } from 'recharts';
 
-const SUBJECT_COLORS = { dsa: '#6366f1', dbms: '#14b8a6', os: '#f59e0b', programming: '#a855f7' };
-const SUBJECT_NAMES_FULL = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming' };
+const SUBJECT_COLORS = { dsa: '#6366f1', dbms: '#14b8a6', os: '#f59e0b', programming: '#a855f7', aptitude: '#f97316' };
+const SUBJECT_NAMES_FULL = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming', aptitude: 'Aptitude' };
 const CARD = { border: '3px solid #000', padding: 'var(--space-md)', background: 'var(--bg-surface)', boxShadow: '4px 4px 0 #000' };
 const TOOLTIP = { background: 'var(--bg-surface)', border: '3px solid #000', padding: '8px 12px', fontSize: '0.78rem', boxShadow: '4px 4px 0 #000' };
 
@@ -18,7 +18,8 @@ const SUBJECT_BADGE_COLORS = {
   dsa: { bg: '#eef2ff', text: '#4338ca' },
   dbms: { bg: '#ccfbf1', text: '#0f766e' },
   os: { bg: '#fef3c7', text: '#b45309' },
-  programming: { bg: '#f3e8ff', text: '#7e22ce' }
+  programming: { bg: '#f3e8ff', text: '#7e22ce' },
+  aptitude: { bg: '#ffedd5', text: '#c2410c' }
 };
 
 const TARGET_LABELS = {
@@ -114,8 +115,8 @@ export default function CoordinatorStudentDetail() {
 
   const generateProgressStatements = () => {
     const statements = [];
-    const subjList = ['dsa', 'dbms', 'os', 'programming'];
-    const subjectNames = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Prog' };
+    const subjList = ['dsa', 'dbms', 'os', 'programming', 'aptitude'];
+    const subjectNames = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Prog', aptitude: 'Apt' };
     const p = student.progress || {};
 
     let totalLessons = 0, doneLessons = 0;
@@ -220,8 +221,8 @@ export default function CoordinatorStudentDetail() {
   if (!student) return <div style={{ padding: 'var(--space-xl)', textAlign: 'center' }}><h2>Student not found</h2></div>;
 
   const progress = student.progress || {};
-  const subjects = ['dsa', 'dbms', 'os', 'programming'];
-  const subjectNames = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Prog' };
+  const subjects = ['dsa', 'dbms', 'os', 'programming', 'aptitude'];
+  const subjectNames = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Prog', aptitude: 'Apt' };
 
   const totalItems = subjects.reduce((sum, sub) => sum + (progress[sub]?.overall?.total || 0), 0);
   const completedItems = subjects.reduce((sum, sub) => sum + (progress[sub]?.overall?.completed || 0), 0);

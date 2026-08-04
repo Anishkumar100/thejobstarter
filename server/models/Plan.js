@@ -3,12 +3,12 @@ import mongoose from 'mongoose';
 /*
  * Plan Schema — A reusable study template created by admins/coordinators.
  * Contains a day-offset sequence of content items (lessons, subtopics, problems)
- * across any of the 4 subjects (dsa, dbms, os, programming).
+ * across any of the 5 subjects (dsa, dbms, os, programming, aptitude).
  * Plans are assigned to batches via BatchPlan with a startDate.
  */
 const planItemSchema = new mongoose.Schema({
   dayOffset: { type: Number, required: true },          /* Day in the plan (1-based) */
-  subject: { type: String, enum: ['dsa', 'dbms', 'os', 'programming'], required: true },
+  subject: { type: String, enum: ['dsa', 'dbms', 'os', 'programming', 'aptitude'], required: true },
   targetType: { type: String, enum: ['lesson', 'subtopic', 'problem'], required: true },
   targetSlug: { type: String, required: true },          /* Slug of the content item */
   targetTitle: { type: String, required: true },          /* Denormalized for display */

@@ -286,6 +286,7 @@ export default function AdminPlanList() {
           <option value="dbms">DBMS</option>
           <option value="os">OS</option>
           <option value="programming">Programming</option>
+          <option value="aptitude">Aptitude</option>
         </select>
 
         {/* Date range filter */}

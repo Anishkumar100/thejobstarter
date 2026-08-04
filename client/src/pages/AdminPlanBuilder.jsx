@@ -13,7 +13,8 @@ const SUBJECTS = [
   { value: 'dsa', label: 'DSA', color: '#6366f1' },
   { value: 'dbms', label: 'DBMS', color: '#14b8a6' },
   { value: 'os', label: 'OS', color: '#f59e0b' },
-  { value: 'programming', label: 'Programming', color: '#a855f7' }
+  { value: 'programming', label: 'Programming', color: '#a855f7' },
+  { value: 'aptitude', label: 'Aptitude', color: '#f97316' }
 ];
 
 const TYPE_ICONS = {
@@ -462,7 +463,7 @@ export default function AdminPlanBuilder() {
                   fontFamily: 'inherit', transition: 'all 0.12s',
                   whiteSpace: 'nowrap'
                 }}>
-                {sub.value === 'programming' ? 'PROG' : sub.label}
+                {sub.value === 'programming' ? 'PROG' : sub.value === 'aptitude' ? 'APT' : sub.label}
               </button>
             ))}
           </div>
@@ -775,7 +776,7 @@ export default function AdminPlanBuilder() {
                                       fontSize: '0.55rem', fontWeight: 700,
                                       color: subjectColor(item.subject)
                                     }}>
-                                      {item.subject === 'programming' ? 'PROG' : item.subject.toUpperCase()}
+                                      {item.subject === 'programming' ? 'PROG' : item.subject === 'aptitude' ? 'APT' : item.subject.toUpperCase()}
                                     </span>
                                   </div>
                                   {/* Parent context path for problems and subtopics */}

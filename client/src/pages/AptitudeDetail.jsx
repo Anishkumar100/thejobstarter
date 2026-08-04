@@ -1,0 +1,199 @@
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import { motion } from 'motion/react';
+import { useAptitudeStore } from '../stores/useAptitudeStore.js';
+import ProblemView from '../components/dsa/ProblemView.jsx';
+import Loader from '../components/ui/Loader.jsx';
+import MarkdownRenderer from '../components/ui/MarkdownRenderer.jsx';
+import { ArrowLeft01Icon, DocumentAttachmentIcon, AiChat01Icon, UserGroupIcon } from 'hugeicons-react';
+import QuizEmbed from '../components/quiz/QuizEmbed.jsx';
+
+export default function AptitudeDetail() {
+  const { lessonSlug, subtopicSlug, problemSlug } = useParams();
+  const slug = problemSlug || lessonSlug;
+  const { currentProblem, currentLesson, loading, fetchProblemBySlug } = useAptitudeStore();
+
+  useEffect(() => {
+    fetchProblemBySlug(slug);
+  }, [slug]);
+
+  const backLink = lessonSlug && subtopicSlug
+    ? `/aptitude/${lessonSlug}/${subtopicSlug}/problems`
+    : lessonSlug
+      ? `/aptitude/${lessonSlug}`
+      : '/aptitude';
+
+  const backText = lessonSlug && subtopicSlug
+    ? 'Back to Problems'
+    : lessonSlug
+      ? 'Back to Lesson'
+      : 'Back to Aptitude';
+
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [quizStatus, setQuizStatus] = useState('');
+
+  if (loading) {
+    return (
+      <div className="container" style={{ paddingTop: 'var(--space-xl)' }}>
+        <Loader text="LOADING PROBLEM..." />
+      </div>
+    );
+  }
+
+  if (!currentProblem) return null;
+
+  const p = currentProblem;
+
+  /* ═════ PAYWALL BANNER — shown when problem is locked ═════ */
+  if (p.locked) {
+    return (
+      <div className="container" style={{ paddingTop: 'var(--space-xl)', paddingBottom: 'var(--space-2xl)' }}>
+        <Link to={backLink} className="detail-back" style={{ marginBottom: 'var(--space-md)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ArrowLeft01Icon size={16} /> {backText}
+        </Link>
+        <div className="paywall-banner">
+          <div className="paywall-banner__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h2 className="paywall-banner__title">Premium Content</h2>
+          <p className="paywall-banner__desc">
+            This {subtopicSlug ? 'problem' : 'lesson'} requires an active subscription.
+            Subscribe to unlock all lessons, problems, video solutions, and more.
+          </p>
+          <Link to="/pricing" className="paywall-banner__cta">
+            Subscribe
+          </Link>
+          <Link to={lessonSlug ? `/aptitude/${lessonSlug}` : '/aptitude'} className="paywall-banner__back">
+            ← Back to {lessonSlug ? 'Lesson' : 'Aptitude'}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pdetail-page">
+      <Helmet>
+        <title>{p.title} — Aptitude — TheJobStarter</title>
+        <meta name="description" content={p.problemStatement?.substring(0, 160)} />
+      </Helmet>
+
+      <div className="pdetail-hero">
+        <Link to={backLink} className="pdetail-back-link">
+          <ArrowLeft01Icon size={16} />
+          <span>{backText}</span>
+        </Link>
+
+        <div className="pdetail-hero__body">
+          <div className="pdetail-hero__info">
+            <span className={`pdetail-diff-badge pdetail-diff-badge--${p.difficulty}`}>
+              {p.difficulty}
+            </span>
+            <h1 className="pdetail-hero__title">{p.title}</h1>
+
+            {p.topics?.length > 0 && (
+              <div className="pdetail-hero__tags">
+                {p.topics.map(t => <span key={t} className="pdetail-tag">{t}</span>)}
+              </div>
+            )}
+
+            {p.companies?.length > 0 && (
+              <div className="pdetail-hero__companies">
+                {p.companies.map(c => <span key={c} className="pdetail-company">{c}</span>)}
+              </div>
+            )}
+          </div>
+
+          <div className="pdetail-hero__stats">
+            <div className="pdetail-stat">
+              <span className="pdetail-stat__num">{p.views?.toLocaleString()}</span>
+              <span className="pdetail-stat__label">Views</span>
+            </div>
+            <div className="pdetail-stat">
+              <span className="pdetail-stat__num">{p.bookmarks?.toLocaleString()}</span>
+              <span className="pdetail-stat__label">Bookmarks</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="pdetail-toolbar">
+        <Link to="/qa" className="pdetail-toolbar__btn pdetail-toolbar__btn--primary">
+          <AiChat01Icon size={14} />
+          Ask in Community
+        </Link>
+        <Link to="/users" className="pdetail-toolbar__btn">
+          <UserGroupIcon size={14} />
+          Explore Community
+        </Link>
+      </div>
+
+      <motion.div
+        className="pdetail-layout"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="pdetail-main">
+          <ProblemView problem={p} />
+
+          {/* ═════ SOLUTION — prose answer for reasoning problems ═════ */}
+          {p.solution && (
+            <div className="pview-section">
+              <h2 className="pview-section__title">Solution</h2>
+              <div className="pview-approach">
+                <MarkdownRenderer noAutoBullet content={p.solution} />
+              </div>
+            </div>
+          )}
+
+          <div className="pdetail-quiz-section">
+            <button
+              className={`pdetail-quiz-toggle ${quizOpen ? 'pdetail-quiz-toggle--active' : ''}`}
+              onClick={() => setQuizOpen(v => !v)}
+            >
+              {quizOpen ? '▼' : '▶'} {quizStatus || 'Quiz'}
+            </button>
+            {quizOpen && <QuizEmbed problemModel="AptitudeProblem" slug={slug} subjectName="Aptitude" subject="aptitude" onStatusChange={setQuizStatus} />}
+          </div>
+        </div>
+
+        <aside className="pdetail-codeside">
+          <div className="pdetail-codeside-downloads">
+            {p.pdfUrl && (
+              <a href={p.pdfUrl} target="_blank" rel="noopener noreferrer" className="pdetail-download">
+                <DocumentAttachmentIcon size={22} />
+                <div className="pdetail-download__text">
+                  <span className="pdetail-download__label">Download PDF</span>
+                  <span className="pdetail-download__hint">Problem notes &amp; solution</span>
+                </div>
+                <span className="pdetail-download__arrow">↓</span>
+              </a>
+            )}
+
+            {p.pptxUrl && (
+              <a href={p.pptxUrl} target="_blank" rel="noopener noreferrer" className="pdetail-download">
+                <DocumentAttachmentIcon size={22} />
+                <div className="pdetail-download__text">
+                  <span className="pdetail-download__label">Download PPTX</span>
+                  <span className="pdetail-download__hint">Presentation slides</span>
+                </div>
+                <span className="pdetail-download__arrow">↓</span>
+              </a>
+            )}
+
+            {lessonSlug && (
+              <Link to={`/aptitude/${lessonSlug}`} className="pdetail-sidebar-link">
+                <span className="pdetail-sidebar-link__text">More in {currentLesson?.title || lessonSlug}</span>
+                <span className="pdetail-sidebar-link__arrow">→</span>
+              </Link>
+            )}
+          </div>
+        </aside>
+      </motion.div>
+    </div>
+  );
+}

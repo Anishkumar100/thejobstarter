@@ -27,7 +27,8 @@ async function findOrCreateUser(clerkId) {
         displayName: clerkUser.firstName ? `${clerkUser.firstName} ${clerkUser.lastName || ''}`.trim() : clerkUser.emailAddresses?.[0]?.emailAddress || 'User',
         email: clerkUser.primaryEmailAddress?.emailAddress || '',
         avatar: clerkUser.imageUrl || '',
-        joinDate: new Date()
+        joinDate: new Date(),
+        role: clerkUser.publicMetadata?.role || 'user'
       });
       console.log('[NOTIFICATION] Created User doc:', user._id);
     } catch (clerkErr) {

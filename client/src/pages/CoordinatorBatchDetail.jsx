@@ -333,7 +333,7 @@ export default function CoordinatorBatchDetail() {
     return enrolledStudents.map(s => {
       const prog = s.progress;
       let total = 0, completed = 0;
-      for (const sub of ['dsa', 'dbms', 'os', 'programming']) {
+      for (const sub of ['dsa', 'dbms', 'os', 'programming', 'aptitude']) {
         const so = prog?.[sub]?.overall;
         if (so) { total += so.total; completed += so.completed; }
       }
@@ -1236,8 +1236,8 @@ export default function CoordinatorBatchDetail() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     {selectedDay.items.map((item, i) => {
-                      const subColors = { dsa: '#e11d48', dbms: '#3b82f6', os: '#22c55e', programming: '#a855f7' };
-                      const subLabels = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'PROG' };
+                      const subColors = { dsa: '#e11d48', dbms: '#3b82f6', os: '#22c55e', programming: '#a855f7', aptitude: '#f97316' };
+                      const subLabels = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'PROG', aptitude: 'APT' };
                       return (
                         <div key={i} style={{
                           display: 'flex', alignItems: 'center', gap: 6,
@@ -1264,7 +1264,7 @@ export default function CoordinatorBatchDetail() {
                               <div style={{ fontWeight: 600 }}>{item.targetTitle || item.targetSlug}</div>
                               {/* Full hierarchy path: Subject > Lesson > Subtopic > Problem */}
                               {(() => {
-                                const subName = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming' }[item.subject] || item.subject?.toUpperCase();
+                                const subName = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming', aptitude: 'Aptitude' }[item.subject] || item.subject?.toUpperCase();
                                 const labels = [];
                                 if (item.targetType === 'lesson') {
                                   labels.push(`Subject: ${subName}  |  Lesson: ${item.targetTitle}`);

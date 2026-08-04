@@ -6,14 +6,15 @@ import Problem from '../models/Problem.js';
 import DbmsProblem from '../models/DbmsProblem.js';
 import OsProblem from '../models/OsProblem.js';
 import ProgrammingProblem from '../models/ProgrammingProblem.js';
+import AptitudeProblem from '../models/AptitudeProblem.js';
 import { cascadeProgressCompletion } from '../services/progressService.js';
 
 /* Map problemModel → subject for quiz stats */
-const MODEL_TO_SUBJECT = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming' };
+const MODEL_TO_SUBJECT = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming', AptitudeProblem: 'aptitude' };
 
 /* Find a problem by slug + model to get its _id */
 async function findProblemId(problemModel, slug) {
-  const Model = { Problem, DbmsProblem, OsProblem, ProgrammingProblem }[problemModel];
+  const Model = { Problem, DbmsProblem, OsProblem, ProgrammingProblem, AptitudeProblem }[problemModel];
   if (!Model) return null;
   const doc = await Model.findOne({ slug });
   return doc?._id;
@@ -173,7 +174,7 @@ export async function getMyAttempts(req, res) {
 
     /* Attach the problem slug to each attempt for navigation */
     const results = await Promise.all(attempts.map(async (att) => {
-      const Model = { Problem, DbmsProblem, OsProblem, ProgrammingProblem }[att.quiz.problemModel];
+      const Model = { Problem, DbmsProblem, OsProblem, ProgrammingProblem, AptitudeProblem }[att.quiz.problemModel];
       let problemSlug = null;
       if (Model) {
         const problem = await Model.findById(att.quiz.problemId).select('slug').lean();
@@ -249,8 +250,8 @@ export async function submitAttempt(req, res) {
 
     /* Auto-mark the problem as complete — only on first attempt, skip on retry */
     let progressSaved = false;
-    const Model = { Problem, DbmsProblem, OsProblem, ProgrammingProblem }[quiz.problemModel];
-    const subject = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming' }[quiz.problemModel];
+    const Model = { Problem, DbmsProblem, OsProblem, ProgrammingProblem, AptitudeProblem }[quiz.problemModel];
+    const subject = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming', AptitudeProblem: 'aptitude' }[quiz.problemModel];
     let problemSlug = null, lessonSlug = null, subtopicSlug = null;
     if (Model && subject) {
       const problem = await Model.findById(quiz.problemId).select('slug lessonSlug subtopicSlug');

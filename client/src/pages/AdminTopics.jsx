@@ -7,7 +7,8 @@ const DEFAULT_TOPICS = [
   { title: 'DATA STRUCTURES\n& ALGORITHMS', subtitle: '', category: 'DSA', description: '180+ curated problems from easy to hard. Arrays, Trees, Graphs, DP — every topic covered.', cta: 'EXPLORE', link: '/dsa', accentColor: '#e11d48', order: 1, image: '' },
   { title: 'DATABASE\nMANAGEMENT SYSTEMS', subtitle: '', category: 'DBMS', description: 'In-depth articles on SQL, NoSQL, indexing, normalization, transactions & more.', cta: 'EXPLORE', link: '/dbms', accentColor: '#3b82f6', order: 2, image: '' },
   { title: 'OPERATING\nSYSTEMS', subtitle: '', category: 'OS', description: 'Process scheduling, memory management, file systems, and synchronization.', cta: 'EXPLORE', link: '/os', accentColor: '#22c55e', order: 3, image: '' },
-  { title: 'PROGRAMMING\nCONCEPTS', subtitle: '', category: 'PROG', description: 'Variables, control flow, OOP, concurrency, design patterns — the building blocks of software.', cta: 'EXPLORE', link: '/programming', accentColor: '#a855f7', order: 4, image: '' }
+  { title: 'PROGRAMMING\nCONCEPTS', subtitle: '', category: 'PROG', description: 'Variables, control flow, OOP, concurrency, design patterns — the building blocks of software.', cta: 'EXPLORE', link: '/programming', accentColor: '#a855f7', order: 4, image: '' },
+  { title: 'APTITUDE\n& REASONING', subtitle: '', category: 'APT', description: 'Quantitative aptitude, logical reasoning, verbal ability and data interpretation — crack the aptitude rounds.', cta: 'EXPLORE', link: '/aptitude', accentColor: '#f97316', order: 5, image: '' }
 ];
 
 export default function AdminTopics() {

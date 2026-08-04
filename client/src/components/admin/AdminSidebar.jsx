@@ -4,7 +4,7 @@ import {
   FileText, Users, HelpCircle, Globe, Mail, Image as ImageIcon,
   Home, Settings, BookText, Tag, Cpu, ThumbsUp, MessageSquareText,
   X, ChevronDown, Building2, Airplay, Terminal, Sun, Moon,
-  IndianRupee, CreditCard, DollarSign
+  IndianRupee, CreditCard, DollarSign, Calculator
 } from 'lucide-react';
 import { useState } from 'react';
 import { useThemeStore } from '../../stores/useThemeStore.js';
@@ -57,6 +57,15 @@ const SECTIONS = [
       { to: '/admin/programming/subtopics', label: 'Subtopics', icon: Layers },
       { to: '/admin/programming/problems', label: 'Problems', icon: Code2 },
       { to: '/admin/programming/meta', label: 'Categories', icon: Tags },
+    ]
+  },
+  {
+    heading: 'Aptitude',
+    links: [
+      { to: '/admin/aptitude', label: 'Lessons', icon: Calculator },
+      { to: '/admin/aptitude/subtopics', label: 'Subtopics', icon: Layers },
+      { to: '/admin/aptitude/problems', label: 'Problems', icon: BookText },
+      { to: '/admin/aptitude/meta', label: 'Categories', icon: Tags },
     ]
   },
   {

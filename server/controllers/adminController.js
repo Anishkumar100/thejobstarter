@@ -6,6 +6,9 @@ import DbmsProblem from '../models/DbmsProblem.js';
 import ProgrammingLesson from '../models/ProgrammingLesson.js';
 import ProgrammingSubtopic from '../models/ProgrammingSubtopic.js';
 import ProgrammingProblem from '../models/ProgrammingProblem.js';
+import AptitudeLesson from '../models/AptitudeLesson.js';
+import AptitudeSubtopic from '../models/AptitudeSubtopic.js';
+import AptitudeProblem from '../models/AptitudeProblem.js';
 import Article from '../models/Article.js';
 import BlogPost from '../models/BlogPost.js';
 import User from '../models/User.js';
@@ -36,7 +39,7 @@ export async function getStats(req, res) {
   try {
     console.log('[ADMIN] Fetching dashboard stats...');
     const [
-      problems, lessons, dbmsLessons, dbmsSubtopics, dbmsProblems, dbmsMeta, os, blog, users, questions, languages, cheatsheets, newsletter, topics, subtopics, programmingLessons, programmingSubtopics, programmingProblems
+      problems, lessons, dbmsLessons, dbmsSubtopics, dbmsProblems, dbmsMeta, os, blog, users, questions, languages, cheatsheets, newsletter, topics, subtopics, programmingLessons, programmingSubtopics, programmingProblems, aptitudeLessons, aptitudeSubtopics, aptitudeProblems
     ] = await Promise.all([
       Problem.countDocuments(),
       DsaLesson.countDocuments(),
@@ -55,12 +58,15 @@ export async function getStats(req, res) {
       Subtopic.countDocuments(),
       ProgrammingLesson.countDocuments(),
       ProgrammingSubtopic.countDocuments(),
-      ProgrammingProblem.countDocuments()
+      ProgrammingProblem.countDocuments(),
+      AptitudeLesson.countDocuments(),
+      AptitudeSubtopic.countDocuments(),
+      AptitudeProblem.countDocuments()
     ]);
 
     console.log('[ADMIN] Stats fetched');
     res.json({
-      data: { problems, lessons, dbmsLessons, dbmsSubtopics, dbmsProblems, dbmsMeta, os, blog, users, questions, languages, cheatsheets, newsletter, topics, subtopics, programmingLessons, programmingSubtopics, programmingProblems }
+      data: { problems, lessons, dbmsLessons, dbmsSubtopics, dbmsProblems, dbmsMeta, os, blog, users, questions, languages, cheatsheets, newsletter, topics, subtopics, programmingLessons, programmingSubtopics, programmingProblems, aptitudeLessons, aptitudeSubtopics, aptitudeProblems }
     });
   } catch (error) {
     console.error('[ADMIN] Error fetching stats:', error.message);
@@ -153,6 +159,7 @@ export async function exportUsersCsv(req, res) {
       'DBMS Lessons', 'DBMS Subtopics', 'DBMS Problems', 'DBMS Overall %', 'DBMS Quiz Avg',
       'OS Lessons', 'OS Subtopics', 'OS Problems', 'OS Overall %', 'OS Quiz Avg',
       'PROG Lessons', 'PROG Subtopics', 'PROG Problems', 'PROG Overall %', 'PROG Quiz Avg',
+      'APT Lessons', 'APT Subtopics', 'APT Problems', 'APT Overall %', 'APT Quiz Avg',
       'Overall Completed', 'Overall Total', 'Overall %',
       'Status'
     ]);
@@ -160,7 +167,7 @@ export async function exportUsersCsv(req, res) {
     for (const u of users) {
       const progress = await getProgressSummary(u._id).catch(() => null);
       const p = progress || {};
-      const subjects = ['dsa', 'dbms', 'os', 'programming'];
+      const subjects = ['dsa', 'dbms', 'os', 'programming', 'aptitude'];
       let totalCompleted = 0, totalItems = 0;
       let quizTaken = 0, quizScoreSum = 0;
 

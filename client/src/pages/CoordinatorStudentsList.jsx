@@ -60,7 +60,7 @@ export default function CoordinatorStudentsList() {
       const prog = s.progress;
       /* Overall % across all subjects */
       let total = 0, completed = 0;
-      for (const sub of ['dsa', 'dbms', 'os', 'programming']) {
+      for (const sub of ['dsa', 'dbms', 'os', 'programming', 'aptitude']) {
         const so = prog?.[sub]?.overall;
         if (so) { total += so.total; completed += so.completed; }
       }
@@ -68,7 +68,7 @@ export default function CoordinatorStudentsList() {
 
       /* Per-subject counts */
       const subjectCounts = {};
-      for (const sub of ['dsa', 'dbms', 'os', 'programming']) {
+      for (const sub of ['dsa', 'dbms', 'os', 'programming', 'aptitude']) {
         const so = prog?.[sub]?.overall;
         subjectCounts[sub] = { completed: so?.completed || 0, total: so?.total || 0 };
       }
@@ -196,15 +196,16 @@ export default function CoordinatorStudentsList() {
    */
   const exportCSV = () => {
     const esc = v => { const s = String(v ?? ''); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
-    const rows = [['Name','Username','Email','College','Joined Date','Batch','Course Offerinng','Plan Name','Plan Day','Plan Duration','Plan Progress %','Plan Completed','Plan Expected','Pending Items','DSA %','DSA Completed','DSA Total','DBMS %','DBMS Completed','DBMS Total','OS %','OS Completed','OS Total','Programming %','Programming Completed','Programming Total','Overall %']];
+    const rows = [['Name','Username','Email','College','Joined Date','Batch','Course Offerinng','Plan Name','Plan Day','Plan Duration','Plan Progress %','Plan Completed','Plan Expected','Pending Items','DSA %','DSA Completed','DSA Total','DBMS %','DBMS Completed','DBMS Total','OS %','OS Completed','OS Total','Programming %','Programming Completed','Programming Total','Aptitude %','Aptitude Completed','Aptitude Total','Overall %']];
     for (const s of filteredStudents) {
       const pp = s.progress?.planProgress;
       const subC = s._sc;
-      const ds = subC.dsa, db = subC.dbms, os = subC.os, pr = subC.programming;
+      const ds = subC.dsa, db = subC.dbms, os = subC.os, pr = subC.programming, apt = subC.aptitude;
       const dsaP = ds.total > 0 ? Math.round((ds.completed / ds.total) * 100) : 0;
       const dbmsP = db.total > 0 ? Math.round((db.completed / db.total) * 100) : 0;
       const osP = os.total > 0 ? Math.round((os.completed / os.total) * 100) : 0;
       const progP = pr.total > 0 ? Math.round((pr.completed / pr.total) * 100) : 0;
+      const aptP = apt.total > 0 ? Math.round((apt.completed / apt.total) * 100) : 0;
       rows.push([
         s.displayName || s.username || '', s.username || '', s.email || '',
         s.college || '', s.coachingCenterJoinedAt ? new Date(s.coachingCenterJoinedAt).toLocaleDateString() : '',
@@ -215,6 +216,7 @@ export default function CoordinatorStudentsList() {
         dbmsP, db.completed, db.total,
         osP, os.completed, os.total,
         progP, pr.completed, pr.total,
+        aptP, apt.completed, apt.total,
         s._ov
       ]);
     }
@@ -509,6 +511,7 @@ export default function CoordinatorStudentsList() {
                             { label: 'DBMS', key: 'dbms', color: '#14b8a6' },
                             { label: 'OS', key: 'os', color: '#f59e0b' },
                             { label: 'PROG', key: 'programming', color: '#a855f7' },
+                            { label: 'APT', key: 'aptitude', color: '#f97316' },
                           ].map(sub => {
                             const sc = subC[sub.key] || { completed: 0, total: 0 };
                             const p = sc.total > 0 ? Math.round((sc.completed / sc.total) * 100) : 0;

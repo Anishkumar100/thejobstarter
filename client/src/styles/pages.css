@@ -239,10 +239,16 @@
   line-height: 1.1;
 }
 
-/* Sticky stacking container — height per card (100vh each) plus breathing room */
+/*
+ * Sticky stacking container — 5 cards × 100dvh of pin room each, plus
+ * 100dvh of "release" so the 5th card fully pins over the 4th and the
+ * section ends without the last card bleeding into the content below.
+ * (Was 400vh + 60px — sized for 4 cards; the 5th card overflowed the
+ * section by ~100vh and never overlapped the card above on scroll.)
+ */
 .home-topics__scroll {
   position: relative;
-  height: calc(400vh + 60px);
+  height: 600dvh;
   margin-top: -1px;
 }
 

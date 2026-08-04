@@ -25,13 +25,17 @@ import OsProblem from '../models/OsProblem.js';
 import ProgrammingLesson from '../models/ProgrammingLesson.js';
 import ProgrammingSubtopic from '../models/ProgrammingSubtopic.js';
 import ProgrammingProblem from '../models/ProgrammingProblem.js';
+import AptitudeLesson from '../models/AptitudeLesson.js';
+import AptitudeSubtopic from '../models/AptitudeSubtopic.js';
+import AptitudeProblem from '../models/AptitudeProblem.js';
 
 /* Map of subject → { Lesson, Subtopic, Problem } models for live totals */
 const SUBJECT_MODELS = {
   dsa: { lesson: DsaLesson, subtopic: Subtopic, problem: Problem },
   dbms: { lesson: DbmsLesson, subtopic: DbmsSubtopic, problem: DbmsProblem },
   os: { lesson: OsLesson, subtopic: OsSubtopic, problem: OsProblem },
-  programming: { lesson: ProgrammingLesson, subtopic: ProgrammingSubtopic, problem: ProgrammingProblem }
+  programming: { lesson: ProgrammingLesson, subtopic: ProgrammingSubtopic, problem: ProgrammingProblem },
+  aptitude: { lesson: AptitudeLesson, subtopic: AptitudeSubtopic, problem: AptitudeProblem }
 };
 
 /*
@@ -80,7 +84,7 @@ async function getCompletedCounts(userId, subject) {
 /*
  * Map problemModel → subject
  */
-const MODEL_TO_SUBJECT = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming' };
+const MODEL_TO_SUBJECT = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os', ProgrammingProblem: 'programming', AptitudeProblem: 'aptitude' };
 
 /*
  * getQuizStats(userId)
@@ -90,7 +94,7 @@ const MODEL_TO_SUBJECT = { Problem: 'dsa', DbmsProblem: 'dbms', OsProblem: 'os',
 async function getQuizStats(userId) {
   console.log('[PROGRESS] Fetching quiz stats for user:', userId);
 
-  const stats = { dsa: { quizzesTaken: 0, avgScore: 0 }, dbms: { quizzesTaken: 0, avgScore: 0 }, os: { quizzesTaken: 0, avgScore: 0 }, programming: { quizzesTaken: 0, avgScore: 0 } };
+  const stats = { dsa: { quizzesTaken: 0, avgScore: 0 }, dbms: { quizzesTaken: 0, avgScore: 0 }, os: { quizzesTaken: 0, avgScore: 0 }, programming: { quizzesTaken: 0, avgScore: 0 }, aptitude: { quizzesTaken: 0, avgScore: 0 } };
 
   /* Aggregate attempts joined with quiz to get problemModel/subject */
   const results = await QuizAttempt.aggregate([
@@ -207,7 +211,7 @@ export async function getProgressSummary(userId) {
   console.log('[PROGRESS] Computing summary for user:', userId, 'type:', typeof userId);
   const summary = {};
 
-  const subjects = ['dsa', 'dbms', 'os', 'programming'];
+  const subjects = ['dsa', 'dbms', 'os', 'programming', 'aptitude'];
 
   /* Look up user's batch for plan progress */
   const userLookup = await User.findById(userId).select('batch').lean();

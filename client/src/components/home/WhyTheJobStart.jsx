@@ -13,8 +13,8 @@ const PILLARS = [
     body: "GFG packs an entire topic — theory, examples, edge cases, related problems — into one long article, which is why developers commonly describe it as hard to navigate. We split every subject into Lessons → Subtopics → Problems as separate pages, so you focus on one concept at a time instead of endless scrolling."
   },
   {
-    title: 'One Architecture,\nThree Subjects',
-    body: 'DSA, DBMS, and OS were designed together from day one, sharing the same structure. GeeksforGeeks, LeetCode, and HackerRank each grew around one subject and never rebuilt around a shared model — their DBMS/OS content, where it exists, doesn\'t even navigate like their DSA content does.'
+    title: 'One Architecture,\nFive Subjects',
+    body: 'DSA, DBMS, OS, Programming, and Aptitude were designed together, sharing the same structure. GeeksforGeeks, LeetCode, and HackerRank each grew around one subject and never rebuilt around a shared model — their DBMS/OS content, where it exists, doesn\'t even navigate like their DSA content does.'
   },
   {
     title: 'Four Ways Into\nEvery Topic',
@@ -37,8 +37,8 @@ const PILLARS = [
     body: "LeetCode and HackerRank profiles are stat trackers. Ours links LeetCode, GitHub, LinkedIn, HackerRank, CodeChef, and CodeForces into a single profile — built to be the link a recruiter actually clicks, not an internal leaderboard only you see."
   },
   {
-    title: 'Aptitude &\nReasoning, Coming Soon',
-    body: "DSA, DBMS, and OS are just the start. Aptitude and reasoning — the fourth pillar of campus placement prep — is already on the roadmap, built to slot into the exact same Lessons → Subtopics → Problems structure as everything else here."
+    title: 'Aptitude &\nReasoning, Live Now',
+    body: "DSA, DBMS, OS, and Programming were just the start. Aptitude and reasoning — the fifth pillar of campus placement prep — is live now, built on the exact same Lessons → Subtopics → Problems structure as everything else here."
   }
 ];
 

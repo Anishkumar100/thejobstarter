@@ -5,7 +5,7 @@ import {
   BookOpen, Code2, Tags, Database, Monitor, FileText,
   Users, HelpCircle, Globe, Mail, Image as ImageIcon,
   Home, Settings, Plus, Terminal, Layers, TrendingUp, AlertCircle, Clock,
-  Building2, GraduationCap, BarChart3, ArrowRight, IndianRupee
+  Building2, GraduationCap, BarChart3, ArrowRight, IndianRupee, Calculator
 } from 'lucide-react';
 import { useAdminStore } from '../stores/useAdminStore.js';
 import { apiRequest } from '../api/client.js';
@@ -26,6 +26,8 @@ const SECTIONS = [
       { title: 'OS Articles', count: 'os', link: '/admin/os', icon: Monitor, color: '#22c55e' },
       { title: 'Programming Lessons', count: 'programmingLessons', link: '/admin/programming', icon: Terminal, color: '#a855f7' },
       { title: 'Programming Problems', count: 'programmingProblems', link: '/admin/programming/problems', icon: Code2, color: '#a855f7' },
+      { title: 'Aptitude Lessons', count: 'aptitudeLessons', link: '/admin/aptitude', icon: Calculator, color: '#f97316' },
+      { title: 'Aptitude Problems', count: 'aptitudeProblems', link: '/admin/aptitude/problems', icon: Code2, color: '#f97316' },
       { title: 'Blog Posts', count: 'blog', link: '/admin/blog', icon: FileText, color: '#f59e0b' },
       { title: 'Why Section Editor', count: null, link: '/admin/why-section', icon: FileText, color: '#ff4f00' },
     ]
@@ -233,6 +235,8 @@ export default function AdminDashboard() {
             <Link to="/admin/os/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> OS Article</Link>
             <Link to="/admin/programming/lessons/new" className="btn btn--primary"><Plus size={14} style={{ marginRight: 4 }} /> New Prog Lesson</Link>
             <Link to="/admin/programming/problems/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> New Prog Problem</Link>
+            <Link to="/admin/aptitude/lessons/new" className="btn btn--primary"><Plus size={14} style={{ marginRight: 4 }} /> New Apt Lesson</Link>
+            <Link to="/admin/aptitude/problems/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> New Apt Problem</Link>
             <Link to="/admin/blog/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> Blog Post</Link>
             <Link to="/admin/languages/new" className="btn"><Plus size={14} style={{ marginRight: 4 }} /> Language</Link>
           </div>

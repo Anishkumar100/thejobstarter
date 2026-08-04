@@ -15,7 +15,8 @@ const DEFAULT_TOPICS = [
   { title: 'DATA STRUCTURES\n& ALGORITHMS', category: 'DSA', description: '180+ curated problems from easy to hard. Arrays, Trees, Graphs, DP — every topic covered.', link: '/dsa', accentColor: '#e11d48', order: 1, image: '' },
   { title: 'DATABASE\nMANAGEMENT SYSTEMS', category: 'DBMS', description: 'In-depth articles on SQL, NoSQL, indexing, normalization, transactions & more.', link: '/dbms', accentColor: '#3b82f6', order: 2, image: '' },
   { title: 'OPERATING\nSYSTEMS', category: 'OS', description: 'Process scheduling, memory management, file systems, and synchronization.', link: '/os', accentColor: '#22c55e', order: 3, image: '' },
-  { title: 'PROGRAMMING\nCONCEPTS', category: 'PROG', description: 'Variables, control flow, OOP, concurrency, design patterns — the building blocks of software.', link: '/programming', accentColor: '#a855f7', order: 4, image: '' }
+  { title: 'PROGRAMMING\nCONCEPTS', category: 'PROG', description: 'Variables, control flow, OOP, concurrency, design patterns — the building blocks of software.', link: '/programming', accentColor: '#a855f7', order: 4, image: '' },
+  { title: 'APTITUDE\n& REASONING', category: 'APT', description: 'Quantitative aptitude, logical reasoning, verbal ability and data interpretation — crack the aptitude rounds.', link: '/aptitude', accentColor: '#f97316', order: 5, image: '' }
 ];
 
 export default function Home() {
@@ -51,7 +52,7 @@ export default function Home() {
       }).catch(err => console.error('[HOME] Config fetch failed:', err.message)),
       apiRequest('/topics').then(res => {
         if (res.data && res.data.length > 0) {
-          /* Merge saved topics over defaults — ensures all 4 cards show */
+          /* Merge saved topics over defaults — ensures all 5 cards show */
           const merged = DEFAULT_TOPICS.map(def => {
             const saved = res.data.find(t => t.category === def.category);
             return saved ? { ...def, ...saved } : def;
@@ -152,7 +153,7 @@ export default function Home() {
         <div className="home-topics__header">
           <div className="container">
             <p className="home-topics__supertitle">MASTER EVERY DOMAIN</p>
-            <h2 className="home-topics__title">Four Pillars.<br />One Mission.</h2>
+            <h2 className="home-topics__title">Five Pillars.<br />One Mission.</h2>
           </div>
         </div>
         <div className="home-topics__scroll">

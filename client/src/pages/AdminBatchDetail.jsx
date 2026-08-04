@@ -339,12 +339,12 @@ export default function AdminBatchDetail() {
     const set = new Set();
     enrolledStudents.forEach(s => {
       if (s.progress) {
-        ['dsa', 'dbms', 'os', 'programming'].forEach(key => {
+        ['dsa', 'dbms', 'os', 'programming', 'aptitude'].forEach(key => {
           if (s.progress[key]?.overall?.total > 0) set.add(key);
         });
       }
     });
-    return set.size > 0 ? Array.from(set) : ['dsa', 'dbms', 'os', 'programming'];
+    return set.size > 0 ? Array.from(set) : ['dsa', 'dbms', 'os', 'programming', 'aptitude'];
   }, [enrolledStudents]);
 
   /* Enriched students with computed fields (scoped to centre's subjects) */
@@ -989,8 +989,8 @@ export default function AdminBatchDetail() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     {selectedDay.items.map((item, i) => {
-                      const subColors = { dsa: '#e11d48', dbms: '#3b82f6', os: '#22c55e', programming: '#a855f7' };
-                      const subLabels = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'PROG' };
+                      const subColors = { dsa: '#e11d48', dbms: '#3b82f6', os: '#22c55e', programming: '#a855f7', aptitude: '#f97316' };
+                      const subLabels = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'PROG', aptitude: 'APT' };
                       return (
                         <div key={i} style={{
                           display: 'flex', alignItems: 'center', gap: 6,
@@ -1016,7 +1016,7 @@ export default function AdminBatchDetail() {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600 }}>{item.targetTitle || item.targetSlug}</div>
                             {(() => {
-                              const subName = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming' }[item.subject] || item.subject?.toUpperCase();
+                              const subName = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming', aptitude: 'Aptitude' }[item.subject] || item.subject?.toUpperCase();
                               const labels = [];
                               if (item.targetType === 'lesson') {
                                 labels.push(`Subject: ${subName}  |  Lesson: ${item.targetTitle}`);

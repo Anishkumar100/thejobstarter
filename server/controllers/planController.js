@@ -13,6 +13,9 @@ import OsProblem from '../models/OsProblem.js';
 import ProgrammingLesson from '../models/ProgrammingLesson.js';
 import ProgrammingSubtopic from '../models/ProgrammingSubtopic.js';
 import ProgrammingProblem from '../models/ProgrammingProblem.js';
+import AptitudeLesson from '../models/AptitudeLesson.js';
+import AptitudeSubtopic from '../models/AptitudeSubtopic.js';
+import AptitudeProblem from '../models/AptitudeProblem.js';
 import User from '../models/User.js';
 import Progress from '../models/Progress.js';
 import clerk from '../config/clerk.js';
@@ -26,7 +29,8 @@ const SUBJECT_MODELS = {
   dsa: { lesson: DsaLesson, subtopic: Subtopic, problem: Problem },
   dbms: { lesson: DbmsLesson, subtopic: DbmsSubtopic, problem: DbmsProblem },
   os: { lesson: OsLesson, subtopic: OsSubtopic, problem: OsProblem },
-  programming: { lesson: ProgrammingLesson, subtopic: ProgrammingSubtopic, problem: ProgrammingProblem }
+  programming: { lesson: ProgrammingLesson, subtopic: ProgrammingSubtopic, problem: ProgrammingProblem },
+  aptitude: { lesson: AptitudeLesson, subtopic: AptitudeSubtopic, problem: AptitudeProblem }
 };
 
 /* ─────────────────────────────────────────────── */
@@ -344,7 +348,7 @@ export async function getContentHierarchy(req, res) {
   try {
     const { subject } = req.query;
     if (!subject || !SUBJECT_MODELS[subject]) {
-      return res.status(400).json({ error: 'Invalid or missing subject. Must be: dsa, dbms, os, programming' });
+      return res.status(400).json({ error: 'Invalid or missing subject. Must be: dsa, dbms, os, programming, aptitude' });
     }
 
     console.log('[PLAN] Fetching hierarchy for subject:', subject);

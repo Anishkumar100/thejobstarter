@@ -8,8 +8,8 @@ import { BulbIcon, AlertCircleIcon, ArrowRight01Icon } from 'hugeicons-react';
 export default function FeedbackSection({ progress }) {
   const feedback = useMemo(() => {
     if (!progress) return [];
-    const subjects = ['dsa', 'dbms', 'os', 'programming'];
-    const labels = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming' };
+    const subjects = ['dsa', 'dbms', 'os', 'programming', 'aptitude'];
+    const labels = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Programming', aptitude: 'Aptitude' };
     const result = [];
 
     /* Collect per-subject stats */

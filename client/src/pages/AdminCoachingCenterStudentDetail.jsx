@@ -346,7 +346,7 @@ export default function AdminCoachingCenterStudentDetail() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-md)' }}>
             {Object.entries(progress).filter(([, data]) => data && typeof data === 'object').map(([subject, data]) => {
-              const subjectName = { dsa: 'DSA', dbms: 'DBMS', os: 'OS' }[subject] || subject;
+              const subjectName = { dsa: 'DSA', dbms: 'DBMS', os: 'OS', programming: 'Prog', aptitude: 'Apt' }[subject] || subject;
               const { lessons = {}, subtopics = {}, problems = {}, overall = { completed: 0, total: 0 } } = data;
               const pct = overall.total > 0 ? Math.round((overall.completed / overall.total) * 100) : 0;
               return (

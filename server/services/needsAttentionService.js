@@ -34,7 +34,7 @@ export function computeNeedsAttention(students, lastActivityMap) {
   const completionData = students.map(s => {
     const p = s.progress || {};
     let total = 0, completed = 0;
-    for (const sub of ['dsa', 'dbms', 'os', 'programming']) {
+    for (const sub of ['dsa', 'dbms', 'os', 'programming', 'aptitude']) {
       const subData = p[sub];
       if (subData && subData.overall) {
         total += subData.overall.total;
@@ -79,7 +79,7 @@ export function computeNeedsAttention(students, lastActivityMap) {
 
     /* Check 3: Quiz average below 50% */
     let totalQuizScore = 0, totalQuizTaken = 0;
-    for (const sub of ['dsa', 'dbms', 'os', 'programming']) {
+    for (const sub of ['dsa', 'dbms', 'os', 'programming', 'aptitude']) {
       const q = p[sub]?.quizzes;
       if (q && q.quizzesTaken > 0) {
         totalQuizScore += (q.avgScore || 0) * q.quizzesTaken;

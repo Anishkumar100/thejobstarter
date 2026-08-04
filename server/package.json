@@ -8,6 +8,7 @@
     "dev": "node --import dotenv/config --watch app.js",
     "start": "node --no-node-snapshot --import dotenv/config app.js",
     "seed": "node --import dotenv/config seeds/seed.js",
+    "seed:aptitude": "node --import dotenv/config seeds/seedAptitudeContent.js",
     "seed:dbms-meta": "node --import dotenv/config seeds/seedDbmsMeta.js",
     "migrate:subscription": "node --import dotenv/config scripts/fixMissingSubscription.js"
   },

@@ -25,7 +25,7 @@ Basics-to-advanced coverage of core programming concepts (language-agnostic wher
 | 0 | Programming Foundations | Variables, Data Types & Operators | Type Conversion | Convert Between Data Types |
 | 0 | Programming Foundations | Variables, Data Types & Operators | Operators & Expressions | *Theory / worked examples only* |
 
-(8/1/2026 completed till Variables, Data Types & Operators)
+(Completed till Sets — 8/5/2026: lessons 1–9 (full Data Handling & Collections category done) — ALL seeded via the single common file server/seeds/seedProgrammingContent.js)
 
 | 0 | Programming Foundations | Control Flow | Conditional Statements | *Theory / worked examples only* |
 | 0 | Programming Foundations | Control Flow | Loops | Sum of Digits |

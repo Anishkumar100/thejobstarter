@@ -2,7 +2,7 @@ import AptitudeLesson from '../models/AptitudeLesson.js';
 import AptitudeSubtopic from '../models/AptitudeSubtopic.js';
 import AptitudeProblem from '../models/AptitudeProblem.js';
 import { clearCache } from '../middleware/cache.js';
-import { resolveUser, canAccessSubject, getLockedLessons, isLessonFree } from '../utils/accessControl.js';
+import { resolveUser, canAccessSubject, hasAdminAccess, getLockedLessons, isLessonFree } from '../utils/accessControl.js';
 
 /* ===================== LESSONS ===================== */
 
@@ -95,7 +95,7 @@ export async function getSubtopics(req, res) {
 
     /* No lesson filter — admin/paid "all subtopics" view (gated by access) */
     if (!lesson) {
-      if (!canAccessSubject(user)) {
+      if (!(await hasAdminAccess(req, user))) {
         console.log('[APTITUDE] Subtopics blocked — lesson query param required for free users');
         return res.status(400).json({ error: 'lesson query param required' });
       }

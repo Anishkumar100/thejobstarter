@@ -60,7 +60,7 @@ export async function handleClerkWebhook(req, res) {
       const { id, username, first_name, last_name, email_addresses, image_url, public_metadata } = event.data;
       const displayName = [first_name, last_name].filter(Boolean).join(' ') || username;
       const email = email_addresses?.[0]?.email_address;
-      const role = public_metadata?.role === 'admin' ? 'admin' : 'user';
+      const role = ['admin', 'coordinator'].includes(public_metadata?.role) ? public_metadata.role : 'user';
 
       const user = await User.findOneAndUpdate(
         { clerkId: id },

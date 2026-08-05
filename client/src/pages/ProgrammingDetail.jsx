@@ -7,6 +7,7 @@ import ProblemView from '../components/dsa/ProblemView.jsx';
 import CodeBlock from '../components/ui/CodeBlock.jsx';
 import Loader from '../components/ui/Loader.jsx';
 import { ArrowLeft01Icon, DocumentAttachmentIcon, AiChat01Icon, UserGroupIcon, CodeIcon, EyeIcon } from 'hugeicons-react';
+import { Code2 } from 'lucide-react';
 import QuizEmbed from '../components/quiz/QuizEmbed.jsx';
 
 export default function ProgrammingDetail() {
@@ -144,6 +145,15 @@ export default function ProgrammingDetail() {
           <UserGroupIcon size={14} />
           Explore Community
         </Link>
+        <a
+          href="https://onecompiler.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pdetail-toolbar__btn pdetail-toolbar__btn--try"
+        >
+          <Code2 size={15} />
+          Try Yourself
+        </a>
       </div>
 
       <motion.div

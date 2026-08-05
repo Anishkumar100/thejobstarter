@@ -977,6 +977,33 @@
   background: var(--accent-hover);
 }
 
+/* ── "Try Yourself" — opens an external code editor (OneCompiler) ──
+   Styled as a terminal-esque button using the theme code tokens so it
+   adapts to light/dark. Pushed to the right edge of the toolbar. */
+.pdetail-toolbar__btn--try {
+  margin-left: auto;
+  background: var(--code-bg);
+  color: var(--code-text) !important;
+  border-color: var(--border-color);
+  font-family: var(--font-mono);
+  box-shadow: 4px 4px 0 var(--shadow-color);
+}
+
+.pdetail-toolbar__btn--try svg {
+  color: var(--success);
+}
+
+.pdetail-toolbar__btn--try:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--shadow-color);
+  border-color: var(--success);
+  color: var(--success) !important;
+}
+
+.pdetail-toolbar__btn--try:hover svg {
+  color: var(--success);
+}
+
 /* ── Main layout grid — 45/55 ── */
 .pdetail-layout {
   display: grid;

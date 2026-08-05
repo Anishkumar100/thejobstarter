@@ -17,6 +17,7 @@
  *   const enriched = getLockedLessons(lessons, user);
  */
 import User from '../models/User.js';
+import clerk from '../config/clerk.js';
 
 /*
  * resolveUser(req)
@@ -101,6 +102,70 @@ export function canAccessSubject(user) {
   /* Just a regular user — no centre, no active sub → free tier only */
   console.log('[ACCESS] canAccessSubject: regular user -> false');
   return false;
+}
+
+/*
+ * hasAdminAccess(req, user)
+ *
+ * Async fallback for admin-only views (e.g. "all subtopics" without a lesson filter).
+ * First tries the Mongo User doc via canAccessSubject(). If that fails, checks the
+ * Clerk publicMetadata.role directly — this covers the case where the Mongo role is
+ * stale (webhook synced before the role was set in Clerk) or the User doc is missing.
+ *
+ * Self-healing: when Clerk confirms admin/coordinator, the Mongo role is corrected
+ * (or a minimal User doc is created) so the next request passes via the fast path.
+ *
+ * @param {Object} req - Express request (needs req.userId from requireAuth)
+ * @param {Object|null} user - Resolved Mongo User doc (or null)
+ * @returns {boolean}
+ */
+export async function hasAdminAccess(req, user) {
+  /* Fast path — Mongo doc already has full access */
+  if (canAccessSubject(user)) {
+    return true;
+  }
+
+  /* Fallback — verify via Clerk publicMetadata (only when we have a session) */
+  if (!req.userId) {
+    console.log('[ACCESS] hasAdminAccess: no req.userId — cannot verify via Clerk');
+    return false;
+  }
+
+  try {
+    const clerkUser = await clerk.users.getUser(req.userId);
+    const clerkRole = clerkUser.publicMetadata?.role;
+    const isStaff = clerkRole === 'admin' || clerkRole === 'coordinator';
+    console.log('[ACCESS] hasAdminAccess: Clerk role:', clerkRole, '->', isStaff ? 'granted' : 'denied');
+
+    if (!isStaff) {
+      return false;
+    }
+
+    /* Self-heal the Mongo doc so the next request uses the fast path */
+    if (user) {
+      if (user.role !== clerkRole) {
+        await User.findByIdAndUpdate(user._id, { role: clerkRole });
+        console.log('[ACCESS] hasAdminAccess: role self-healed for', user.username, '->', clerkRole);
+      }
+    } else {
+      /* No User doc at all — create a minimal one from Clerk data */
+      const clerkUsername = clerkUser.username || clerkUser.emailAddresses?.[0]?.emailAddress?.split('@')[0];
+      await User.create({
+        clerkId: req.userId,
+        username: clerkUsername || `user_${req.userId.substring(0, 8)}`,
+        displayName: clerkUser.fullName || clerkUsername || 'User',
+        email: clerkUser.primaryEmailAddress?.emailAddress || '',
+        avatar: clerkUser.imageUrl || '',
+        role: clerkRole
+      });
+      console.log('[ACCESS] hasAdminAccess: User doc created for clerkId:', req.userId, 'role:', clerkRole);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('[ACCESS] hasAdminAccess error:', error.message);
+    return false;
+  }
 }
 
 /*

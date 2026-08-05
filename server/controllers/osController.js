@@ -6,7 +6,7 @@ import OsLesson from '../models/OsLesson.js';
 import OsSubtopic from '../models/OsSubtopic.js';
 import OsProblem from '../models/OsProblem.js';
 import { clearCache } from '../middleware/cache.js';
-import { resolveUser, canAccessSubject, getLockedLessons, isLessonFree } from '../utils/accessControl.js';
+import { resolveUser, canAccessSubject, hasAdminAccess, getLockedLessons, isLessonFree } from '../utils/accessControl.js';
 
 /* ===================== LESSONS ===================== */
 
@@ -123,7 +123,7 @@ export async function getSubtopics(req, res) {
 
     /* No lesson filter — admin/paid "all subtopics" view (gated by access) */
     if (!lesson) {
-      if (!canAccessSubject(user)) {
+      if (!(await hasAdminAccess(req, user))) {
         console.log('[OS] Subtopics blocked — lesson query param required for free users');
         return res.status(400).json({ error: 'lesson query param required' });
       }

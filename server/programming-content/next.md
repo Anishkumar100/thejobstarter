@@ -1,6 +1,6 @@
-# Next Programming Content — Control Flow
+# Next Programming Content — Functions & Scope
 
-> Second lesson of the Programming curriculum. Category: `programming-foundations`, order 1.
+> Third lesson of the Programming curriculum. Category: `programming-foundations`, order 2.
 > 3 subtopics · 2 problems · 2 quizzes
 
 
@@ -19,13 +19,13 @@
 
 ```json
 {
-  "title": "Control Flow",
-  "slug": "control-flow",
+  "title": "Functions & Scope",
+  "slug": "functions-scope",
   "category": "programming-foundations",
-  "description": "Learn how programs make decisions and repeat actions — if/else conditions, for and while loops, and the break/continue statements that give you fine control over how your code flows.",
+  "description": "Learn how to package code into functions — named recipes you can call anytime — how parameters and return values pass data in and out, and how variable scope decides what each part of your program can see.",
   "image": "",
-  "icon": "GitBranch",
-  "order": 1,
+  "icon": "FunctionSquare",
+  "order": 2,
   "difficulty": "easy",
   "problemCount": 2
 }
@@ -36,16 +36,16 @@
 
 ## Subtopics (3)
 
-### Conditional Statements (theory only)
+### Defining Functions (theory only)
 
 ```json
 {
-  "title": "Conditional Statements",
-  "slug": "conditional-statements",
-  "lessonSlug": "control-flow",
+  "title": "Defining Functions",
+  "slug": "defining-functions",
+  "lessonSlug": "functions-scope",
   "order": 0,
-  "description": "Learn how if, else if, and else let your program make decisions and run different code depending on conditions.",
-  "explanation": "## What are Conditional Statements?\n\nPrograms don't just run top to bottom — they make **decisions**. A conditional statement lets your program ask \"is this true?\" and run different code depending on the answer. Think of it like a fork in the road: the path you take depends on a condition.\n\n## The Three Building Blocks\n\n### 1. if — \"If this is true, do something\"\n\n```\nIF score >= 50 THEN\n    PRINT \"Passed\"\nEND IF\n```\n\n### 2. else — \"Otherwise, do this instead\"\n\n```\nIF score >= 50 THEN\n    PRINT \"Passed\"\nELSE\n    PRINT \"Failed\"\nEND IF\n```\n\n### 3. else if — \"Check more possibilities\"\n\n```\nIF score >= 90 THEN\n    PRINT \"Grade A\"\nELSE IF score >= 75 THEN\n    PRINT \"Grade B\"\nELSE\n    PRINT \"Grade C\"\nEND IF\n```\n\n## What Makes Up a Condition?\n\nA **condition** is any expression that evaluates to true or false. It is usually built from:\n\n- **Comparison operators** — `==` equal, `!=` not equal, `>` greater than, `<` less than, `>=` greater or equal, `<=` less or equal\n- **Logical operators** — `and`, `or`, `not` — which combine smaller conditions\n\n```\nIF age >= 18 AND has_id == true THEN\n    PRINT \"Allowed to enter\"\nEND IF\n```\n\n## Real-World Analogy\n\nThink of a traffic light:\n\n```\nIF light is green THEN\n    go\nELSE IF light is yellow THEN\n    slow down\nELSE\n    stop\nEND IF\n```\n\nThat is a conditional statement in real life — your driving code checks a condition and runs one of three branches.\n\n## Why Order Matters in a Chain\n\nIn an `if / else if / else` chain, the conditions are checked **top to bottom**, and the **first true one wins**. So always put the most specific condition first.\n\n```\nIF age >= 18 THEN\n    PRINT \"Adult\"\nELSE IF age >= 13 THEN\n    PRINT \"Teen\"\nELSE\n    PRINT \"Child\"\nEND IF\n```\n\nA 20-year-old matches the first condition and prints \"Adult\" — the later checks are never reached.\n\n## Key Takeaway\n\nConditional statements let a program make decisions. Use `if` for a single check, `else` for the fallback, and `else if` chains for multiple possibilities. Every branch runs based on whether a condition evaluates to true or false — and the first true condition in a chain wins.",
+  "description": "Learn the recipe anatomy of a function — header, body, and return value — why functions exist, and the golden rule that each function does exactly one job well.",
+  "explanation": "## The Simple Idea — A Function Is a Recipe\n\nA **function** is a named block of code that you write once and run as many times as you like. Think of it as a cooking recipe: the recipe doesn't make the dish by itself — you have to *follow* it. Calling the function is \"following the recipe\".\n\n```\ndef make_chai(milk, sugar):     `← PART 1: the header (name + ingredients)`\n    boil(milk)                  `← PART 2: the body (the steps, indented)`\n    add(sugar)\n    return cup                  `← PART 3: the dish (what comes out)`\n```\n\n### The Recipe Anatomy (Memorise the Three Parts)\n\n| Part | Name | What it is | In the recipe |\n|---|---|---|---|\n| `def name(ingredients):` | **Header** | The recipe's name + what it needs | `def make_chai(milk, sugar):` |\n| indented lines | **Body** | The steps, run top-to-bottom | `boil(milk)` / `add(sugar)` |\n| `return value` | **Dish** | The result handed back to the caller | `return cup` |\n\n### Why Functions Exist — The 4 P's\n\n✅ **Package** — write the logic once, call it from a hundred places\n✅ **Protect** — fix a bug in one place and every caller benefits\n✅ **Puzzle-ize** — split a huge problem into small, testable pieces\n✅ **Prove** — test one recipe at a time instead of debugging a wall of code\n\n> **The Golden Rule: a function does ONE job well.** If the name needs the word \"and\" in it (`get_total_and_save`), split it in two.\n\n### Naming a Function\n\nFollow the same rules as variables, but make names **verb-first** — a function *does* something:\n\n- `get_total()` — reads like an action ✅\n- `total` — could be a value, not an action ❌\n- `is_valid()`, `calculate_area()`, `send_email()` — all actions\n\n### The Header Anatomy\n\n```\ndef   calculate_area (  length,  width  )   :\n │      └── name ──┘    └params┘     │\n the keyword          inputs in     the colon\n that starts          parentheses\n the function\n```\n\nThe body must be **indented** (convention: 4 spaces). Every line under the header belongs to the function; the first un-indented line ends it.\n\n### Calling a Function\n\nYou call a function by its name with parentheses — and pass the values (arguments) it needs:\n\n```python\ndef greet(name):\n    print(\"Hello, \" + name + \"!\")\n\ngreet(\"Aarav\")   # Hello, Aarav!\ngreet(\"Meera\")   # Hello, Meera!\n```\n\nEach call runs the whole body with that call's value. No need to copy-paste the greeting code anywhere.\n\n### The Three Silent Killers\n\n| Trap | What goes wrong | The fix |\n|---|---|---|\n| Missing colon after the header | Syntax error the moment the file loads | End the header with `:` |\n| Body not indented | Code silently outside the function | Indent every body line 4 spaces |\n| Calling before defining | `NameError` — the name is not yet defined | Define first, call after |\n\n### Quick Self-Test (answers at the bottom)\n\n1. The three parts of a function are — (a) name, args, return  (b) header, body, dish  (c) def, if, loop  (d) input, output, error\n2. Which is the best function name? (a) `x`  (b) `calculate_area`  (c) `calc`  (d) `area_only_please_123`\n3. What runs when `greet(\"Aarav\")` is called? (a) The body with name = \"Aarav\"  (b) Nothing  (c) The whole file  (d) Only the header\n4. The Golden Rule of functions is — (a) write as many lines as possible  (b) do ONE job well  (c) always use recursion  (d) never use parentheses\n5. An un-indented body means — (a) the code is inside the function  (b) the code is outside the function  (c) a faster program  (d) an error in the header\n\n**Answers:** 1→b, 2→b, 3→a, 4→b, 5→b.\n\n### Key Takeaway\n\nA function is a named recipe with three parts — header, body, dish. Write it once, call it anywhere, give it an action-name, and keep it to one job. The most common failures are boring but brutal: a missing colon, a forgotten indent, or a call before the definition.",
   "image": "",
   "youtubeUrl": "",
   "pdfUrl": "",
@@ -53,16 +53,16 @@
 }
 ```
 
-### Loops
+### Parameters & Return Values
 
 ```json
 {
-  "title": "Loops",
-  "slug": "loops",
-  "lessonSlug": "control-flow",
+  "title": "Parameters & Return Values",
+  "slug": "parameters-return-values",
+  "lessonSlug": "functions-scope",
   "order": 1,
-  "description": "Learn how for and while loops repeat code — and when to use each. Loops are how programs handle repetitive tasks like processing the digits of a number.",
-  "explanation": "## What is a Loop?\n\nA **loop** repeats a block of code. Instead of writing the same line 100 times, you write it once and tell the computer to repeat it. Think of a washing machine — the drum keeps spinning through the same cycle until the cycle ends.\n\n## The for Loop — When You Know the Count\n\nUse a `for` loop when you know **exactly how many times** to repeat.\n\n```\nFOR i FROM 1 TO 5:\n    PRINT i\nEND FOR\n\n# prints: 1 2 3 4 5\n```\n\nThe loop variable `i` takes each value in the range, one at a time, and the body runs once per value.\n\n## The while Loop — When the End Depends on a Condition\n\nUse a `while` loop when you **don't know the count in advance** — the loop keeps going as long as a condition stays true.\n\n```\nnumber = 123\nWHILE number > 0:\n    digit = number MOD 10     # last digit\n    PRINT digit\n    number = number DIV 10    # drop last digit\n\n# prints: 3 2 1\n```\n\n## for vs while — When to Use Which\n\n| Situation | Use |\n|---|---|\n| I know the exact count | `for` |\n| I don't know when it will stop | `while` |\n| I need an index from 0 to n | `for` |\n| The loop depends on a condition changing | `while` |\n\n## Real-World Analogies\n\n- **`for` loop** — a playlist you play start to finish. You know exactly how many songs there are.\n- **`while` loop** — waiting for a pot of water to boil. You don't know how long, you just keep checking until it bubbles.\n\n## Why Loops Matter\n\n✅ **Less code** — one block instead of ten copies\n✅ **Fewer bugs** — change one place, not ten\n✅ **Scales** — the same code handles 10 items or 10 million\n\n## Pseudocode\n\n```\nsum = 0\nFOR i FROM 1 TO n:\n    sum = sum + i\nEND FOR\nPRINT sum\n```\n\n## Key Takeaway\n\nLoops repeat code. Use `for` when you know how many times, and `while` when the end depends on a condition. Every loop needs a way to stop — an infinite loop is a loop that never ends, and it will freeze your program.",
+  "description": "Learn the handshake between parameters and arguments, the critical difference between print and return, and how default parameters behave — including the mutable-default trap.",
+  "explanation": "## The Simple Idea\n\n**Parameters** are the recipe's ingredients — placeholders written in the header. **Arguments** are the actual values you hand over when you call. **`return`** is the dish — the value your function sends back to the caller.\n\n```python\ndef area(length, width):    `← length, width = PARAMETERS (placeholders)`\n    return length * width\n\na = area(5, 3)              `← 5, 3 = ARGUMENTS (the real values)`\n```\n\n### The Call ↔ Parameter Handshake\n\nArguments bind to parameters **by position**: the 1st argument meets the 1st parameter, the 2nd meets the 2nd, and so on.\n\n```\narea(5, 3)   →  length = 5, width = 3   →  5 × 3 = 15\narea(4, 6)   →  length = 4, width = 6   →  4 × 6 = 24\n```\n\nSwap the order and you hand the values to the wrong ingredients.\n\n### The Two Doors: `print` vs `return`\n\nThe #1 beginner bug is *printing when you should return*. They are not the same:\n\n| You want to… | Use | What happens |\n|---|---|---|\n| Show text on screen | `print(value)` | Side-effect; the function returns `None` |\n| Hand a value back for storage/comparison | `return value` | Caller receives the actual value |\n\n```python\ndef a():\n    print(5)     # prints \"5\" but returns None\ndef b():\n    return 5     # prints nothing, returns the number 5\n\nx = a()          # x = None\ny = b()          # y = 5 — the value is really captured\n```\n\n### Default Parameters — The Fallback Values\n\nA **default parameter** gives a placeholder a value to use when the caller doesn't send one.\n\n```python\ndef area(length, width=None):     # width has a fallback\n    if width is None:\n        width = length            # square! width defaults to length\n    return length * width\n\narea(5, 3)   # 15 — both arguments supplied\narea(4)      # 16 — width falls back to 4 → square 4 × 4\n```\n\n### The Default-Position Rule\n\nDefaults must come **after** required parameters. `def f(a, b=2)` is valid; `def f(a=1, b)` is a syntax error — the language can't tell what the caller meant when a required parameter sits behind an optional one.\n\n### The Mutable-Default Trap\n\nNever use a mutable value (an empty list `[]` or dict `{}`) as a default. It is created **once** at definition time and **shared** by every call — changes to it in one call leak into the next.\n\n```python\ndef push(item, items=[]):    # BAD — the list is shared!\n    items.append(item)\n    return items\n\npush(1)   # [1]\npush(2)   # [1, 2]   `← the first call list came back!`\n\ndef push(item, items=None):  # GOOD — fresh list each call\n    if items is None:\n        items = []\n    items.append(item)\n    return items\n```\n\n### Worked Example — The Full Trace\n\n```\narea(4)          area(5, 3)\n│                │\n▼                ▼\nlength = 4       length = 5   width = 3\nwidth = None     width = 3\n└─ None? yes     └─ width given → keep 3\n   width = 4         return 5 × 3 = 15\n   return 4 × 4 = 16\n```\n\n### Common Traps\n\n| Trap | What goes wrong | The fix |\n|---|---|---|\n| Forgetting `return` | Function silently returns `None` | End with `return value` |\n| Reversed arguments | `area(3, 5)` swaps the meaning | Match positions: 1st→1st |\n| Mutable default | Shared list/dict across calls | Default `None`, create inside |\n| Too many / too few args | `TypeError` at the call | Count the parameters |\n\n### Quick Self-Test (answers at the bottom)\n\n1. `area(5, 3)` binds — (a) length=3, width=5  (b) length=5, width=3  (c) length=5, width=None  (d) length=None, width=None\n2. A function that only `print`s a value returns — (a) the printed value  (b) `None`  (c) the string of the value  (d) an error\n3. `area(4)` with `width=None` default returns — (a) 4  (b) 16  (c) 8  (d) 0\n4. `def foo(a=1, b)` is — (a) valid  (b) a syntax error (default before required)  (c) valid only in Java  (d) slower\n5. The mutable-default fix is — (a) default `None`, make the list inside  (b) never use lists  (c) use a global list  (d) default `[]`\n\n**Answers:** 1→b, 2→b, 3→b, 4→b, 5→a.\n\n### Key Takeaway\n\nParameters are the ingredients, arguments are the real values, and `return` is the dish the caller can actually keep. Print shows, return supplies; defaults give parameters a fallback — but they must come last and never be mutable.",
   "image": "",
   "youtubeUrl": "",
   "pdfUrl": "",
@@ -70,16 +70,16 @@
 }
 ```
 
-### Loop Control (break/continue)
+### Variable Scope
 
 ```json
 {
-  "title": "Loop Control",
-  "slug": "loop-control",
-  "lessonSlug": "control-flow",
+  "title": "Variable Scope",
+  "slug": "variable-scope",
+  "lessonSlug": "functions-scope",
   "order": 2,
-  "description": "Learn how break and continue give you fine control inside loops — stopping the loop early or skipping a single iteration.",
-  "explanation": "## What is Loop Control?\n\nLoops are powerful, but sometimes you want to take control mid-flight. Two statements let you do that: **break** and **continue**. They are the steering wheel of your loop.\n\n## break — Stop the Entire Loop\n\n`break` immediately ends the loop. The rest of the iterations are skipped and execution moves on to the code after the loop.\n\n```\nFOR i FROM 1 TO 10:\n    IF i == 5 THEN\n        BREAK\n    END IF\n    PRINT i\nEND FOR\n\n# prints: 1 2 3 4   (the loop stops at 5)\n```\n\n## continue — Skip Just One Iteration\n\n`continue` skips the **rest of the current iteration** and jumps straight to the next one. The loop keeps running — only the current round is skipped.\n\n```\nFOR i FROM 1 TO 5:\n    IF i == 3 THEN\n        CONTINUE\n    END IF\n    PRINT i\nEND FOR\n\n# prints: 1 2 4 5   (3 is skipped)\n```\n\n## break vs continue\n\n| Keyword | Effect |\n|---|---|\n| `break` | Ends the whole loop completely |\n| `continue` | Skips only the current iteration |\n\n## Real-World Analogies\n\n- **break** — searching a book for a word: the moment you find it, you stop reading the rest of the pages.\n- **continue** — checking a class list: you skip the absent students but keep going through the rest.\n\n## Pseudocode — Using Both Together\n\n```\nFOR each student IN class:\n    IF student is absent THEN\n        CONTINUE            # skip this student, no grade to record\n    END IF\n    IF student is the topper THEN\n        BREAK               # no need to check the rest\n    END IF\n    record_grade(student)\nEND FOR\n```\n\n## Key Takeaway\n\n`break` ends a loop completely; `continue` skips only the current iteration. Use them to avoid wasted work and keep your loop logic clean — they are small tools that make loops far more flexible.",
+  "description": "Learn who-can-see-what — local vs global variables, the shadow trap where assignment builds a copy, and the scope ladder that decides where every name is found.",
+  "explanation": "## The Simple Idea\n\n**Scope** is the visibility zone of a variable — the region of code where that name is in play. A variable defined inside a function is **local** (only that function can see it). A variable defined at the top level is **global** (everything can see it).\n\n### The Scope Map\n\n```\n+--------------------------------------------------+\n| GLOBAL ZONE  (module level)                      |\n|   price = 100        `← visible EVERYWHERE`        |\n|                                                  |\n|   def discount():                                |\n|       off = 20       `← LOCAL to discount only`    |\n|       return price - off                         |\n+--------------------------------------------------+\n```\n\nHere `price` is global — `discount()` can read it. `off` is local — nothing outside `discount()` can see it.\n\n### The Read/Write Rule (The Crux of Scope)\n\n- **READ a global inside a function** → perfectly allowed. The function can look out and see it.\n- **ASSIGN inside a function** → creates a brand-new **local** variable, even if a global with the same name exists. This is called **shadowing**.\n\n### The Shadow Trap\n\n```python\nx = 10\n\ndef change():\n    x = 5          # NOT the global x — a NEW local x!\n    print(x)       # 5 (inside)\n\nchange()\nprint(x)           # 10 (global untouched)\n```\n\nThe assignment inside `change()` does not touch the global — it builds a shadow copy. If you *want* to modify the global inside a function you need the `global` keyword, which is rare and usually a code smell. The clean pattern is to pass values as parameters and receive the result through `return`.\n\n### The Scope Ladder (Where a Name Is Found)\n\nWhen your code uses a name, the language searches this order — first match wins:\n\n```\n1. LOCAL     — inside the current function\n2. GLOBAL    — module level, outside any function\n3. BUILT-IN  — the language's own names (print, len, ...)\n```\n\n### Worked Example — Factorial's Variables\n\nIn the factorial problem, `n` (the parameter) and `result` are **local** to the function. Even if a global `n = 100` exists, calling `factorial(5)` uses its own local 5 — the parameter *shadows* the global for the duration of the call, and the global is untouched afterwards.\n\n```\nglobal:  n = 100\ncall:    factorial(5)\n         → inside: n = 5 (local copy of the parameter)\n         → loop builds result = 120\n         → return 120; global n stays 100\n```\n\n### Loops and Scope\n\nLoop variables are **not** block-scoped in Python — `i` from a `for` loop still exists after the loop ends, inside the same function. Java *does* scope them to the loop block. Knowing this explains small surprises like reusing `i` later.\n\n### Common Traps\n\n| Trap | What goes wrong | The fix |\n|---|---|---|\n| Shadowing | New local hides the global | Rename, or pass as a parameter |\n| Assuming the global changed | `change()` left `x` = 10 | Use the `return` value instead |\n| Reading before assigning | `NameError` inside a function | Initialise the variable first |\n| Loop variable afterlife | `i` still alive after the loop | Reuse it on purpose, not by accident |\n\n### Quick Self-Test (answers at the bottom)\n\n1. A variable defined inside a function is — (a) global  (b) local  (c) built-in  (d) invisible\n2. Reading a global inside a function is — (a) forbidden  (b) allowed  (c) only with `import`  (d) an error\n3. `x = 5` inside a function where a global `x` exists — (a) changes the global  (b) creates a new local  (c) errors  (d) deletes the global\n4. Search order for a name is — (a) global → local → built-in  (b) local → global → built-in  (c) built-in → local → global  (d) random\n5. In Python, a loop variable after the loop ends — (a) is deleted  (b) still exists  (c) errors  (d) becomes global\n\n**Answers:** 1→b, 2→b, 3→b, 4→b, 5→b.\n\n### Key Takeaway\n\nScope is who-can-see-what: locals live inside a function, globals live at the top, and the ladder looks local-first. Reading a global is free; assigning inside a function makes a shadow copy. Pass values in, return results out — and leave the `global` keyword alone.",
   "image": "",
   "youtubeUrl": "",
   "pdfUrl": "",
@@ -92,69 +92,69 @@
 
 ## Problems (2)
 
-### Sum of Digits
+### Function with Default Arguments
 
 ```json
 {
-  "title": "Sum of Digits",
-  "slug": "sum-of-digits",
-  "lessonSlug": "control-flow",
-  "subtopicSlug": "loops",
+  "title": "Function with Default Arguments",
+  "slug": "function-with-default-arguments",
+  "lessonSlug": "functions-scope",
+  "subtopicSlug": "parameters-return-values",
   "difficulty": "easy",
   "topics": [
-    "Loops",
-    "Math",
+    "Functions",
+    "Parameters",
     "Basics"
   ],
   "companies": [
-    "Amazon",
     "Google",
-    "Microsoft"
+    "Microsoft",
+    "Amazon"
   ],
-  "problemStatement": "Given a non-negative integer, return the sum of its digits.\n\nFor example, the digits of 123 are 1, 2, and 3, so the sum is 1 + 2 + 3 = 6.\n\nYou must NOT convert the number to a string — work with it as a number using a loop.",
+  "problemStatement": "Write a function calculate_area(length, width) that returns the area of a rectangle. The width argument is OPTIONAL — when it is not passed, the shape is treated as a square, so the function must use the length as the width.\n\n- calculate_area(5, 3) must return 15 (5 × 3)\n- calculate_area(4) must return 16 (4 × 4, a square)",
   "examples": [
     {
-      "input": "n = 123",
-      "output": "6",
-      "explanation": "1 + 2 + 3 = 6."
+      "input": "calculate_area(5, 3)",
+      "output": "15",
+      "explanation": "5 × 3 = 15 — both dimensions given."
     },
     {
-      "input": "n = 4567",
-      "output": "22",
-      "explanation": "4 + 5 + 6 + 7 = 22."
+      "input": "calculate_area(4)",
+      "output": "16",
+      "explanation": "width omitted → square: 4 × 4 = 16."
     },
     {
-      "input": "n = 9",
-      "output": "9",
-      "explanation": "A single digit — its sum is itself."
+      "input": "calculate_area(7, 2)",
+      "output": "14",
+      "explanation": "7 × 2 = 14 — both dimensions given."
     },
     {
-      "input": "n = 0",
-      "output": "0",
-      "explanation": "Zero has no digits to add."
+      "input": "calculate_area(10)",
+      "output": "100",
+      "explanation": "width omitted → square: 10 × 10 = 100."
     }
   ],
   "constraints": [
-    "n is a non-negative integer up to 10^9.",
-    "Do not convert the number to a string.",
-    "Use loops and arithmetic only."
+    "length and width are positive numbers (int or float, no negatives).",
+    "width may be omitted entirely — the square rule applies then.",
+    "No loops or data structures — a single formula."
   ],
-  "approach": "## Understanding the Problem\n\nWe need to extract each digit from the number and add them all up. There is a neat trick that makes this easy:\n\n- `number MOD 10` gives the **last digit** (the remainder when dividing by 10).\n- `number DIV 10` **removes the last digit** (integer division by 10).\n\nRepeat these two steps until the number becomes 0, and you have visited every digit.\n\n## The Loop Idea\n\n1. Start a total at 0.\n2. While the number is greater than 0:\n   - Extract the last digit: `digit = number MOD 10`\n   - Add it to the total: `total = total + digit`\n   - Remove the last digit: `number = number DIV 10`\n3. Return the total.\n\n## Step-by-Step Trace on n = 4567\n\n```\nnumber = 4567, total = 0\n-> digit = 7, total = 7,  number = 456\n-> digit = 6, total = 13, number = 45\n-> digit = 5, total = 18, number = 4\n-> digit = 4, total = 22, number = 0  -> stop\n\nAnswer: 22 ✅\n```\n\n## Pseudocode\n\n```\nFUNCTION sum_of_digits(number):\n    total = 0\n    WHILE number > 0:\n        digit = number MOD 10\n        total = total + digit\n        number = number DIV 10\n    RETURN total\n```\n\n## Complexity Analysis\n\n- **Time Complexity: O(d)** where d is the number of digits — each digit is visited exactly once.\n- **Space Complexity: O(1)** — only a couple of variables, no extra storage.",
+  "approach": "## Understanding the Problem\n\nThe twist is the *optional* dimension. When `width` is supplied, ordinary multiplication. When it's missing, the caller expects the square rule — area = length × length. The classic mistake is hard-coding a default like `width = 0`, which would turn `calculate_area(4)` into 4 × 0 = 0. The correct fallback must copy the length itself.\n\n## The None-Guard pattern\n\nSet the default to `None` (a value that means \"nothing was passed\"), then branch:\n\n```\n1. If width is None  →  width = length   (the square rule)\n2. Return length × width\n```\n\n```\ncalculate_area(5, 3):\n    width = 3 (given)  →  return 5 × 3 = 15 ✅\n\ncalculate_area(4):\n    width = None       →  width = 4 (square rule)\n                       →  return 4 × 4 = 16 ✅\n```\n\n## Why default None instead of 0?\n\n`0` is a real number — `calculate_area(4)` would silently answer 0 and you would never notice the caller forgot the width. `None` is a sentinel meaning \"absent\", so it can be told apart from any legal value.\n\n## The default-position rule\n\nIn any language, default parameters must come after required ones (`width` after `length`) — putting the fallback first is a syntax error.\n\n## Complexity Analysis\n\n- **Time: O(1)** — one comparison and one multiplication.\n- **Space: O(1)** — a couple of numbers, nothing stored.\n\n## Edge Cases\n\n- `calculate_area(0, 5)` → 0 (valid: a zero area)\n- `calculate_area(2.5)` → 6.25 (floats work too)\n- Never use a mutable default like `[]` here — for a value function it's unnecessary and dangerous.",
   "codeBlocks": [
     {
       "language": "python",
-      "code": "def sum_of_digits(n):\n    total = 0\n    while n > 0:\n        digit = n % 10          # last digit\n        total += digit\n        n //= 10                # drop last digit\n    return total\n\nprint(sum_of_digits(123))   # 6\nprint(sum_of_digits(4567))  # 22"
+      "code": "def calculate_area(length, width=None):\n    if width is None:        # the square rule: no width given\n        width = length\n    return length * width\n\nprint(calculate_area(5, 3))   # 15\nprint(calculate_area(4))      # 16"
     },
     {
       "language": "javascript",
-      "code": "function sumOfDigits(n) {\n    let total = 0;\n    while (n > 0) {\n        total += n % 10;            // add last digit\n        n = Math.floor(n / 10);     // drop last digit\n    }\n    return total;\n}\n\nconsole.log(sumOfDigits(123));   // 6\nconsole.log(sumOfDigits(4567));  // 22"
+      "code": "function calculateArea(length, width) {\n    if (width === undefined) width = length;  // square rule\n    return length * width;\n}\n\nconsole.log(calculateArea(5, 3));   // 15\nconsole.log(calculateArea(4));      // 16"
     },
     {
       "language": "java",
-      "code": "public static int sumOfDigits(int n) {\n    int total = 0;\n    while (n > 0) {\n        total += n % 10;        // add last digit\n        n = n / 10;             // drop last digit\n    }\n    return total;\n}\n// sumOfDigits(123)  == 6\n// sumOfDigits(4567) == 22"
+      "code": "public static double calculateArea(double length, Double width) {\n    if (width == null) width = length;   // square rule\n    return length * width;\n}\n// calculateArea(5, 3) == 15.0\n// calculateArea(4, null) == 16.0"
     }
   ],
-  "timeComplexity": "O(d)",
+  "timeComplexity": "O(1)",
   "spaceComplexity": "O(1)",
   "youtubeUrl": "",
   "pdfUrl": "",
@@ -169,52 +169,52 @@
 {
   "questions": [
     {
-      "text": "Which operator extracts the last digit of a number?",
+      "text": "In calculate_area(4), what value does width end up with after the square rule?",
       "options": [
-        "% (modulo)",
-        "/ (division)",
-        "* (multiplication)",
-        "- (subtraction)"
+        "It throws an error",
+        "0",
+        "4 (same as length)",
+        "1"
+      ],
+      "correctIndex": 2
+    },
+    {
+      "text": "Why must default parameters come AFTER required parameters?",
+      "options": [
+        "To avoid ambiguous argument binding",
+        "It runs faster",
+        "It saves memory",
+        "It is only a style choice"
       ],
       "correctIndex": 0
     },
     {
-      "text": "What does integer division by 10 do to a number?",
+      "text": "calculate_area(5, 3) returns —",
       "options": [
-        "Adds a 0 at the end",
-        "Removes the last digit",
-        "Doubles the number",
-        "Nothing"
+        "8",
+        "15",
+        "16",
+        "53"
       ],
       "correctIndex": 1
     },
     {
-      "text": "What is the sum of the digits of 4567?",
+      "text": "Which of these is a risky default value for mutable data?",
       "options": [
-        "20",
-        "21",
-        "22",
-        "23"
+        "An empty list []",
+        "0",
+        "None",
+        "A string"
       ],
-      "correctIndex": 2
+      "correctIndex": 0
     },
     {
-      "text": "When should the loop stop in sum of digits?",
-      "options": [
-        "After 3 iterations",
-        "When the total reaches 10",
-        "When the number becomes 0",
-        "Never"
-      ],
-      "correctIndex": 2
-    },
-    {
-      "text": "What is the time complexity of sum of digits?",
+      "text": "What is the time complexity of calculate_area?",
       "options": [
         "O(n)",
-        "O(log n)",
+        "O(1)",
         "O(n^2)",
-        "O(1)"
+        "O(log n)"
       ],
       "correctIndex": 1
     }
@@ -225,70 +225,70 @@
 
 ---
 
-### FizzBuzz
+### Factorial (Iterative)
 
 ```json
 {
-  "title": "FizzBuzz",
-  "slug": "fizzbuzz",
-  "lessonSlug": "control-flow",
-  "subtopicSlug": "loop-control",
+  "title": "Factorial (Iterative)",
+  "slug": "factorial-iterative",
+  "lessonSlug": "functions-scope",
+  "subtopicSlug": "variable-scope",
   "difficulty": "easy",
   "topics": [
+    "Functions",
     "Loops",
-    "Conditionals",
-    "Basics"
+    "Math"
   ],
   "companies": [
+    "Amazon",
     "Google",
-    "Microsoft",
-    "Meta",
-    "Amazon"
+    "Microsoft"
   ],
-  "problemStatement": "Write a program that prints the numbers from 1 to n, with these rules:\n\n- For multiples of 3, print \"Fizz\" instead of the number.\n- For multiples of 5, print \"Buzz\" instead of the number.\n- For multiples of BOTH 3 and 5, print \"FizzBuzz\" instead of the number.\n\nFor example, from 1 to 15 the output is:\n1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, Buzz, 11, Fizz, 13, 14, FizzBuzz.",
+  "problemStatement": "Write a function factorial(n) that returns n! — the product of all integers from 1 to n. Use a LOOP (NOT recursion). By convention, 0! = 1.\n\n- factorial(5) = 1 × 2 × 3 × 4 × 5 = 120\n- factorial(0) = 1 (by definition)",
   "examples": [
     {
       "input": "n = 5",
-      "output": "[\"1\", \"2\", \"Fizz\", \"4\", \"Buzz\"]",
-      "explanation": "3 is a multiple of 3; 5 is a multiple of 5."
+      "output": "120",
+      "explanation": "1 × 2 × 3 × 4 × 5 = 120."
     },
     {
-      "input": "n = 15",
-      "output": "[\"1\",\"2\",\"Fizz\",\"4\",\"Buzz\",\"Fizz\",\"7\",\"8\",\"Fizz\",\"Buzz\",\"11\",\"Fizz\",\"13\",\"14\",\"FizzBuzz\"]",
-      "explanation": "15 is a multiple of both 3 and 5, so it becomes FizzBuzz."
-    },
-    {
-      "input": "n = 3",
-      "output": "[\"1\", \"2\", \"Fizz\"]",
-      "explanation": "3 is the first multiple of 3."
+      "input": "n = 0",
+      "output": "1",
+      "explanation": "0! is defined as 1 by convention."
     },
     {
       "input": "n = 1",
-      "output": "[\"1\"]",
-      "explanation": "1 is not a multiple of 3 or 5."
+      "output": "1",
+      "explanation": "1! = 1."
+    },
+    {
+      "input": "n = 4",
+      "output": "24",
+      "explanation": "1 × 2 × 3 × 4 = 24."
     }
   ],
   "constraints": [
-    "n is a positive integer up to 100.",
-    "Return the result as a list of strings (or print line by line)."
+    "n is a non-negative integer up to 20.",
+    "Must use iteration (a loop), not recursion.",
+    "No extra data structures needed."
   ],
-  "approach": "## Understanding the Problem\n\nFor each number from 1 to n, we need to decide what to print based on divisibility:\n\n- Divisible by 3 **and** 5 → \"FizzBuzz\"\n- Divisible by 3 only → \"Fizz\"\n- Divisible by 5 only → \"Buzz\"\n- Otherwise → the number itself\n\n## The Order of Checks Matters!\n\nThe \"both\" case must be checked **first**. Why? Because 15 is divisible by 3 — if you check \"divisible by 3\" first, then 15 matches that rule and prints \"Fizz\", which is wrong. The most specific case always comes first.\n\n## The Loop Idea\n\n1. Loop i from 1 to n.\n2. If `i MOD 15 == 0` → \"FizzBuzz\"  (15 = 3 × 5, so divisible by both)\n3. Else if `i MOD 3 == 0` → \"Fizz\"\n4. Else if `i MOD 5 == 0` → \"Buzz\"\n5. Else → the number itself as a string.\n\n## Why Check `i MOD 15 == 0`?\n\nA number is divisible by both 3 and 5 exactly when it is divisible by their product, 15. Checking `MOD 15` is the cleanest way to catch the \"both\" case in one step.\n\n## Pseudocode\n\n```\nFUNCTION fizz_buzz(n):\n    result = empty list\n    FOR i FROM 1 TO n:\n        IF i MOD 15 == 0 THEN\n            result.add(\"FizzBuzz\")\n        ELSE IF i MOD 3 == 0 THEN\n            result.add(\"Fizz\")\n        ELSE IF i MOD 5 == 0 THEN\n            result.add(\"Buzz\")\n        ELSE\n            result.add(STRING(i))\n        END IF\n    END FOR\n    RETURN result\n```\n\n## Complexity Analysis\n\n- **Time Complexity: O(n)** — a single pass over the numbers 1 to n.\n- **Space Complexity: O(n)** — the result list holds n strings (O(1) if printing on the fly).",
+  "approach": "## Understanding the Problem\n\nFactorial multiplies a *running total*: start at 1, then multiply by 2, then 3, and so on up to n. Each multiplication is result = result × i.\n\n## The Loop Idea\n\n```\n1. result = 1\n2. For i = 2 to n:   result = result × i\n3. Return result\n```\n\nWhy start at 2? Multiplying by 1 changes nothing — starting at 2 avoids one wasted step. For n < 2, the loop body never runs and the initial 1 is returned: that single rule handles both `factorial(0) = 1` and `factorial(1) = 1` for free.\n\n## Step-by-Step Trace on n = 5\n\n```\nresult = 1\ni = 2 → result = 1 × 2 = 2\ni = 3 → result = 2 × 3 = 6\ni = 4 → result = 6 × 4 = 24\ni = 5 → result = 24 × 5 = 120  → stop\n\nAnswer: 120 ✅\n```\n\n## Scope in Action\n\n`n` (the parameter) and `result` are **local** to the function — a global `n` elsewhere is untouched. That is exactly the scope lesson: the parameter shadows any outer name for the duration of the call.\n\n## Why Not Recursion for This One?\n\nRecursion is elegant but uses the call stack — for n = 20 the iterative loop is simpler, faster, and cannot overflow the stack.\n\n## Complexity Analysis\n\n- **Time: O(n)** — the loop runs n − 1 times.\n- **Space: O(1)** — only result and the loop counter.\n\n## Overflow Note\n\nFactorials explode: 20! = 2,432,902,008,176,640,000 already exceeds a 32-bit int. That is why the constraint caps n at 20 — beyond it you need a bigger numeric type.",
   "codeBlocks": [
     {
       "language": "python",
-      "code": "def fizz_buzz(n):\n    result = []\n    for i in range(1, n + 1):\n        if i % 15 == 0:            # divisible by 3 AND 5\n            result.append(\"FizzBuzz\")\n        elif i % 3 == 0:\n            result.append(\"Fizz\")\n        elif i % 5 == 0:\n            result.append(\"Buzz\")\n        else:\n            result.append(str(i))\n    return result\n\nprint(fizz_buzz(15))"
+      "code": "def factorial(n):\n    result = 1\n    for i in range(2, n + 1):\n        result *= i\n    return result\n\nprint(factorial(5))   # 120\nprint(factorial(0))   # 1"
     },
     {
       "language": "javascript",
-      "code": "function fizzBuzz(n) {\n    const result = [];\n    for (let i = 1; i <= n; i++) {\n        if (i % 15 === 0) result.push(\"FizzBuzz\");\n        else if (i % 3 === 0) result.push(\"Fizz\");\n        else if (i % 5 === 0) result.push(\"Buzz\");\n        else result.push(String(i));\n    }\n    return result;\n}\n\nconsole.log(fizzBuzz(15));"
+      "code": "function factorial(n) {\n    let result = 1;\n    for (let i = 2; i <= n; i++) {\n        result *= i;\n    }\n    return result;\n}\n\nconsole.log(factorial(5));   // 120\nconsole.log(factorial(0));   // 1"
     },
     {
       "language": "java",
-      "code": "public static List<String> fizzBuzz(int n) {\n    List<String> result = new ArrayList<>();\n    for (int i = 1; i <= n; i++) {\n        if (i % 15 == 0) result.add(\"FizzBuzz\");\n        else if (i % 3 == 0) result.add(\"Fizz\");\n        else if (i % 5 == 0) result.add(\"Buzz\");\n        else result.add(String.valueOf(i));\n    }\n    return result;\n}"
+      "code": "public static long factorial(int n) {\n    long result = 1;\n    for (int i = 2; i <= n; i++) {\n        result *= i;      // long avoids overflow up to ~20!\n    }\n    return result;\n}\n// factorial(5) == 120\n// factorial(0) == 1"
     }
   ],
   "timeComplexity": "O(n)",
-  "spaceComplexity": "O(n)",
+  "spaceComplexity": "O(1)",
   "youtubeUrl": "",
   "pdfUrl": "",
   "pptxUrl": "",
@@ -302,47 +302,37 @@
 {
   "questions": [
     {
-      "text": "What should print for the number 15?",
+      "text": "factorial(0) returns —",
       "options": [
-        "Fizz",
-        "Buzz",
-        "FizzBuzz",
-        "15"
-      ],
-      "correctIndex": 2
-    },
-    {
-      "text": "Why must the \"both\" case be checked first?",
-      "options": [
-        "Because it is the rarest case",
-        "Because 15 is divisible by 3, so it would wrongly print Fizz",
-        "Because the loop is faster that way",
-        "It does not matter"
+        "0",
+        "1",
+        "undefined",
+        "-1"
       ],
       "correctIndex": 1
     },
     {
-      "text": "What does i % 15 == 0 check?",
+      "text": "The loop multiplies the running total by —",
       "options": [
-        "Divisible by 3 only",
-        "Divisible by 5 only",
-        "Divisible by both 3 and 5",
-        "Divisible by 15 only when i is even"
-      ],
-      "correctIndex": 2
-    },
-    {
-      "text": "For n = 5, what is the correct output?",
-      "options": [
-        "1, 2, Fizz, 4, Buzz",
-        "1, 2, 3, 4, 5",
-        "Fizz, Buzz, Fizz, Buzz, FizzBuzz",
-        "1, 2, Fizz, Buzz, Fizz"
+        "2, 3, ..., up to n",
+        "0, 1, ..., n",
+        "Only by n",
+        "Nothing — it adds"
       ],
       "correctIndex": 0
     },
     {
-      "text": "What is the time complexity of FizzBuzz?",
+      "text": "factorial(4) equals —",
+      "options": [
+        "16",
+        "12",
+        "36",
+        "24"
+      ],
+      "correctIndex": 3
+    },
+    {
+      "text": "What is the time complexity of iterative factorial?",
       "options": [
         "O(1)",
         "O(n)",
@@ -350,6 +340,16 @@
         "O(log n)"
       ],
       "correctIndex": 1
+    },
+    {
+      "text": "Why does factorial(0) need no special code?",
+      "options": [
+        "The loop never runs and result stays 1",
+        "0 is negative",
+        "An if-statement still handles it",
+        "It returns -1"
+      ],
+      "correctIndex": 0
     }
   ]
 }
@@ -364,7 +364,7 @@
 | Entity | Count |
 |---|---|
 | Categories | 0 of 7 (same category: Programming Foundations) |
-| Lessons | 2 of 18 (order 1 in category) |
+| Lessons | 3 of 18 (order 2 in category) |
 | Subtopics | 3 of 48 |
 | Problems | 2 of 29 |
 | Quizzes | 2 of 29 |

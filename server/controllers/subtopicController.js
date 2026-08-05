@@ -2,7 +2,7 @@ import DsaLesson from '../models/DsaLesson.js';
 import Subtopic from '../models/Subtopic.js';
 import Problem from '../models/Problem.js';
 import { clearCache } from '../middleware/cache.js';
-import { resolveUser, canAccessSubject, isLessonFree } from '../utils/accessControl.js';
+import { resolveUser, canAccessSubject, hasAdminAccess, isLessonFree } from '../utils/accessControl.js';
 
 /*
  * GET /api/dsa/subtopics
@@ -17,7 +17,7 @@ export async function getSubtopics(req, res) {
 
     /* No lesson filter — admin/paid "all subtopics" view (gated by access) */
     if (!lesson) {
-      if (!canAccessSubject(user)) {
+      if (!(await hasAdminAccess(req, user))) {
         console.log('[DSA] Subtopics blocked — lesson query param required for free users');
         return res.status(400).json({ error: 'lesson query param required' });
       }

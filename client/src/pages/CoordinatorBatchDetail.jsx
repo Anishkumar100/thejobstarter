@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import { getLocalDateString } from '../utils/date.js';
 import Loader from '../components/ui/Loader.jsx';
-import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus, BarChart3, TrendingUp, ChevronRight, ExternalLink } from 'lucide-react';
+import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus, BarChart3, TrendingUp, ChevronRight, ExternalLink, Download } from 'lucide-react';
 
 const CARD = {
   border: '4px solid var(--border-color)',
@@ -467,6 +467,86 @@ export default function CoordinatorBatchDetail() {
     setConfirmAction(null);
   };
 
+  /*
+   * Export CSV — batch metadata + every enrolled student with full progress detail.
+   * Uses the same field-surface as the Students list export so Excel/WPS open it cleanly.
+   */
+  const exportCSV = () => {
+    /* CSV cell escape: wrap in quotes when value has comma, quote, or newline */
+    const esc = v => { const s = String(v ?? ''); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
+    const rows = [];
+
+    /* ── Batch metadata block ── */
+    rows.push(['BATCH DETAIL EXPORT — TheWebytes']);
+    rows.push(['Batch Name', batch.name || '']);
+    rows.push(['Batch Code', batch.code || '']);
+    rows.push(['Status', batch.status || '']);
+    rows.push(['Course', batch.courseOffering?.name || '']);
+    rows.push(['Created', batch.createdAt ? new Date(batch.createdAt).toLocaleDateString() : '']);
+    rows.push(['Enrolled Students', enrolledStudents.length]);
+    rows.push(['Active Plan', activePlan?.plan?.name || 'No plan']);
+    if (activePlan) {
+      rows.push(['Plan Start', activePlan.startDate ? new Date(activePlan.startDate).toLocaleDateString() : '']);
+      rows.push(['Plan Day', `${activePlan.currentDay ?? 0}/${activePlan.totalDays ?? 0}`]);
+    }
+    rows.push([]);
+
+    /* ── Student table header ── */
+    rows.push([
+      'Name', 'Username', 'Email', 'College', 'Joined Date', 'Course',
+      'Plan Pace', 'Plan Progress %', 'Plan Completed', 'Plan Total', 'Overdue Items',
+      'DSA %', 'DSA Done', 'DSA Total',
+      'DBMS %', 'DBMS Done', 'DBMS Total',
+      'OS %', 'OS Done', 'OS Total',
+      'PROG %', 'PROG Done', 'PROG Total',
+      'APT %', 'APT Done', 'APT Total',
+      'Overall %', 'Needs Attention', 'Attention Reasons'
+    ]);
+
+    /* ── One row per enriched student (already has _ov/_pp/_bi computed) ── */
+    for (const s of enrichedStudents) {
+      const prog = s.progress;
+      /* Per-subject completed/total counts */
+      const subjectCounts = {};
+      for (const sub of ['dsa', 'dbms', 'os', 'programming', 'aptitude']) {
+        const so = prog?.[sub]?.overall;
+        subjectCounts[sub] = { completed: so?.completed || 0, total: so?.total || 0 };
+      }
+      /* Subject completion % helper */
+      const subPct = sub => subjectCounts[sub].total > 0 ? Math.round((subjectCounts[sub].completed / subjectCounts[sub].total) * 100) : 0;
+      const pp = s.progress?.planProgress;
+
+      rows.push([
+        s.displayName || s.username || '', s.username || '', s.email || '',
+        s.college || '', s.coachingCenterJoinedAt ? new Date(s.coachingCenterJoinedAt).toLocaleDateString() : '',
+        s.courseOffering?.name || '',
+        pp?.status === 'completed' ? 'completed' : pp?.paceStatus || 'no-plan',
+        s._pp, pp?.completedCount || 0, pp?.expectedCount || 0, s._bi,
+        subPct('dsa'), subjectCounts.dsa.completed, subjectCounts.dsa.total,
+        subPct('dbms'), subjectCounts.dbms.completed, subjectCounts.dbms.total,
+        subPct('os'), subjectCounts.os.completed, subjectCounts.os.total,
+        subPct('programming'), subjectCounts.programming.completed, subjectCounts.programming.total,
+        subPct('aptitude'), subjectCounts.aptitude.completed, subjectCounts.aptitude.total,
+        s._ov, s.needsAttention ? 'Yes' : 'No', (s.attentionReasons || []).join('; ')
+      ]);
+    }
+
+    rows.push([]);
+    rows.push(['Exported', new Date().toLocaleString()]);
+
+    /* ── Trigger browser download ── */
+    const csv = rows.map(r => r.map(esc).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = (batch.name || 'batch').replace(/[^a-z0-9]+/gi, '_') || 'batch';
+    a.href = url;
+    a.download = `${safeName}_batch_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log('[BATCH DETAIL] CSV exported:', enrolledStudents.length, 'students');
+  };
+
   if (loading) return <Loader text="LOADING BATCH..." />;
   if (error) return <div className="error-text">{error}</div>;
   if (!batch) return <div className="error-text">Batch not found</div>;
@@ -536,9 +616,15 @@ export default function CoordinatorBatchDetail() {
             </span>
           </div>
         </div>
-        <button className="btn btn--sm btn--danger" onClick={handleDelete}>
-          <Trash2 size={14} /> Delete Batch
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn--sm" onClick={exportCSV}
+            title="Export batch metadata + all enrolled students with full progress as CSV">
+            <Download size={14} /> Export CSV
+          </button>
+          <button className="btn btn--sm btn--danger" onClick={handleDelete}>
+            <Trash2 size={14} /> Delete Batch
+          </button>
+        </div>
       </div>
 
       {/* ── Code / Info Card ── */}

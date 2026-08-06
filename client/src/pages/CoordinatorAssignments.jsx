@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAssignmentStore } from '../stores/useAssignmentStore.js';
 import { apiRequest } from '../api/client.js';
+import { getIstNextDayStart } from '../utils/date.js';
 import Loader from '../components/ui/Loader.jsx';
 import {
   FileText, Plus, Pencil, Trash2, ArrowLeft, ExternalLink,
@@ -334,8 +335,8 @@ export default function CoordinatorAssignments() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {assignments.map(a => {
             const isActive = a.status === 'active';
-            const ed = new Date(a.endDate);
-            const endOfEndDate = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate() + 1);
+            /* IST-safe: deadline = end-of-day IST of endDate */
+            const endOfEndDate = getIstNextDayStart(a.endDate);
             const isOverdue = endOfEndDate <= now;
             const stats = a._submissionStats || {};
             const subRate = stats.totalStudents > 0 ? Math.round((stats.total / stats.totalStudents) * 100) : 0;

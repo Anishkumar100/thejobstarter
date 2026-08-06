@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAssignmentStore } from '../stores/useAssignmentStore.js';
 import { useToastStore } from '../stores/useToastStore.js';
+import { getIstDayStart, getIstNextDayStart } from '../utils/date.js';
 import Loader from '../components/ui/Loader.jsx';
 import {
   FileText, Calendar, Clock, ExternalLink, Send,
@@ -39,11 +40,9 @@ export default function StudentAssignmentDetail() {
   if (!a) return <div style={{ padding: 'var(--space-xl)' }}><p style={{ color: TXT3 }}>Assignment not found.</p></div>;
 
   const now = new Date();
-  const startDate = new Date(a.startDate);
-  const endDate = new Date(a.endDate);
-  /* Fix timezone: construct local midnight of day after endDate so deadline is end-of-day LOCAL time */
-  const endOfEndDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1);
-  const startOfStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  /* IST-safe window: opens at IST midnight of startDate, deadline = end-of-day IST of endDate */
+  const endOfEndDate = getIstNextDayStart(a.endDate);
+  const startOfStartDate = getIstDayStart(a.startDate);
   const isActiveRange = now >= startOfStartDate && now < endOfEndDate;
   const isOverdue = now >= endOfEndDate;
   const hasSubmitted = !!a._submission;

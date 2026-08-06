@@ -37,3 +37,24 @@ export function getPlanDayOffset(startDate, now = new Date()) {
   const diffDays = Math.floor((nowMs - startMs) / (1000 * 60 * 60 * 24));
   return Math.max(0, diffDays + 1);
 }
+
+/*
+ * getIstDayStart(date)
+ * Start of the IST calendar day containing `date` (IST 00:00) as an absolute
+ * UTC timestamp. Assignments become active at this moment.
+ * NOTE: we subtract IST_OFFSET_MS because Date.UTC(y,m,d) yields 05:30 IST,
+ * which is fine for whole-day DIFFERENCES (offset cancels) but wrong for an
+ * absolute deadline.
+ */
+export function getIstDayStart(date) {
+  return toIstMidnightMs(new Date(date)) - IST_OFFSET_MS;
+}
+
+/*
+ * getIstNextDayStart(date)
+ * Start of the IST day AFTER `date` (i.e. end-of-day IST deadline for `date`).
+ * Assignment deadlines are end-of-day IST, so compare `now` against this.
+ */
+export function getIstNextDayStart(date) {
+  return getIstDayStart(date) + 24 * 60 * 60 * 1000;
+}

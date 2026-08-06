@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
+import { getIstNextDayStart } from '../utils/date.js';
 import Loader from '../components/ui/Loader.jsx';
 import {
   FileText, ArrowLeft, ExternalLink, Calendar, Clock, Send,
@@ -254,8 +255,8 @@ export default function CoordinatorAssignmentDetail() {
   if (error) return <div style={{ padding: 'var(--space-xl)' }}><p style={{ color: '#dc2626', fontWeight: 700 }}>{error}</p></div>;
   if (!assignment) return <div style={{ padding: 'var(--space-xl)' }}><p style={{ color: TXT3 }}>Assignment not found.</p></div>;
 
-  const ed = new Date(assignment.endDate);
-  const endOfEndDate = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate() + 1);
+  /* IST-safe: deadline = end-of-day IST of endDate */
+  const endOfEndDate = getIstNextDayStart(assignment.endDate);
   const isOverdue = endOfEndDate <= new Date();
   const submittedCount = assignment.submissions?.length || 0;
   const totalStudents = assignment.notSubmitted?.length + submittedCount || 0;

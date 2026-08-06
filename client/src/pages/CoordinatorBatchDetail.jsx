@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
-import { getLocalDateString } from '../utils/date.js';
+import { getLocalDateString, getIstNextDayStart } from '../utils/date.js';
 import Loader from '../components/ui/Loader.jsx';
 import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus, BarChart3, TrendingUp, ChevronRight, ExternalLink, Download } from 'lucide-react';
 
@@ -912,9 +912,8 @@ export default function CoordinatorBatchDetail() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {assignments.map(a => {
               const now = new Date();
-              const end = new Date(a.endDate);
-              /* Fix timezone: construct local midnight of day after endDate so deadline is end-of-day LOCAL time */
-              const eod = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
+              /* IST-safe: deadline = end-of-day IST of endDate */
+              const eod = getIstNextDayStart(a.endDate);
               const isOverdue = a.status === 'active' && eod <= now;
 
               const stats = a._submissionStats || {};

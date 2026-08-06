@@ -9,6 +9,7 @@ import Batch from '../models/Batch.js';
 import User from '../models/User.js';
 import CoachingCenter from '../models/CoachingCenter.js';
 import Notification from '../models/Notification.js';
+import { getIstDayStart, getIstNextDayStart } from '../utils/planDay.js';
 
 /* ────────────────────────────────────────────── */
 /*  COORDINATOR ENDPOINTS                        */
@@ -634,12 +635,9 @@ export async function getStudentAssignments(req, res) {
       const submission = await AssignmentSubmission.findOne({ assignment: a._id, student: user._id }).lean();
       /* Allow resubmission if the submission was rejected */
       const isRejected = submission?.status === 'rejected';
-      /* Fix timezone: construct local midnight of day after endDate so deadline is end-of-day LOCAL time */
-      const ed = new Date(a.endDate);
-      const endOfEndDate = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate() + 1);
-      /* Fix timezone: construct local midnight of startDate so it becomes available at local midnight */
-      const sd = new Date(a.startDate);
-      const startOfStartDate = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate());
+      /* Deadline = end-of-day IST of endDate; window opens at IST start-of-day */
+      const endOfEndDate = getIstNextDayStart(a.endDate);
+      const startOfStartDate = getIstDayStart(a.startDate);
       return {
         ...a,
         _submission: submission || null,
@@ -718,14 +716,12 @@ export async function submitAssignment(req, res) {
     }
 
     const now = new Date();
-    const startSd = new Date(assignment.startDate);
-    const startOfStartDate = new Date(startSd.getFullYear(), startSd.getMonth(), startSd.getDate());
+    const startOfStartDate = getIstDayStart(assignment.startDate);
     if (now < startOfStartDate) {
       return res.status(400).json({ error: 'This assignment has not started yet' });
     }
-    /* Fix timezone: construct local midnight of day after endDate so deadline is end-of-day LOCAL time */
-    const ed = new Date(assignment.endDate);
-    const endOfEndDate = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate() + 1);
+    /* Deadline = end-of-day IST of endDate */
+    const endOfEndDate = getIstNextDayStart(assignment.endDate);
     if (now >= endOfEndDate) {
       return res.status(400).json({ error: 'This assignment deadline has passed' });
     }
@@ -794,9 +790,8 @@ export async function updateSubmission(req, res) {
     }
 
     const now = new Date();
-    /* Fix timezone: construct local midnight of day after endDate so deadline is end-of-day LOCAL time */
-    const ed = new Date(assignment.endDate);
-    const endOfEndDate = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate() + 1);
+    /* Deadline = end-of-day IST of endDate */
+    const endOfEndDate = getIstNextDayStart(assignment.endDate);
     if (now >= endOfEndDate) {
       return res.status(400).json({ error: 'Assignment deadline has passed. Cannot update.' });
     }

@@ -21,6 +21,7 @@
 import BatchPlan from '../models/BatchPlan.js';
 import Plan from '../models/Plan.js';
 import Progress from '../models/Progress.js';
+import { getPlanDayOffset } from '../utils/planDay.js';
 
 /*
  * getPlanProgress(userId, batchId)
@@ -54,13 +55,9 @@ export async function getPlanProgress(userId, batchId) {
       return null;
     }
 
-    /* Compute current day offset from startDate */
-    const startDate = new Date(batchPlan.startDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    startDate.setHours(0, 0, 0, 0);
-    const diffTime = today.getTime() - startDate.getTime();
-    const currentDayOffset = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
+    /* Compute current day offset from startDate — IST-normalised so a UTC server
+       doesn't report the previous day between 00:00–05:30 IST */
+    const currentDayOffset = getPlanDayOffset(batchPlan.startDate);
 
     /*
      * Check if the plan's end date has passed.

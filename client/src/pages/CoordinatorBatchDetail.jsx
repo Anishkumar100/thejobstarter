@@ -489,6 +489,7 @@ export default function CoordinatorBatchDetail() {
       rows.push(['Plan Start', activePlan.startDate ? new Date(activePlan.startDate).toLocaleDateString() : '']);
       rows.push(['Plan Day', `${activePlan.currentDay ?? 0}/${activePlan.totalDays ?? 0}`]);
     }
+    rows.push(['Exported On (Today)', new Date().toLocaleDateString()]);
     rows.push([]);
 
     /* ── Student table header ── */
@@ -739,6 +740,24 @@ export default function CoordinatorBatchDetail() {
                 color: activePlan.status === 'completed' ? '#065f46' : 'var(--success-text)'
               }}>
                 {activePlan.status === 'completed' ? 'Completed' : 'Active'}
+              </span>
+            </div>
+            {/* Plan start date + today's date (IST calendar) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 6, fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Calendar size={13} />
+                Plan start: <strong style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                  {activePlan.startDate ? new Date(activePlan.startDate).toLocaleDateString() : '—'}
+                </strong>
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Clock size={13} />
+                Today: <strong style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                  {new Date().toLocaleDateString()}
+                </strong>
+              </span>
+              <span style={{ opacity: 0.55 }}>
+                ({(activePlan.status === 'completed' ? 'ended' : `${activePlan.totalDays || 0} days • Day ${activePlan.currentDay ?? 0}`)})
               </span>
             </div>
             {activePlan.plan?.description && (

@@ -20,6 +20,7 @@ import User from '../models/User.js';
 import Progress from '../models/Progress.js';
 import clerk from '../config/clerk.js';
 import { getPlanProgress } from '../services/planProgressService.js';
+import { getPlanDayOffset } from '../utils/planDay.js';
 
 /*
  * Map of subject → { Lesson, Subtopic, Problem } models
@@ -609,15 +610,11 @@ export async function getActivePlanForBatch(req, res) {
       return res.json({ data: null });
     }
 
-    /* Compute current day based on start date */
+    /* Compute current day based on start date — IST-normalised so a UTC server
+       doesn't report the previous day between 00:00–05:30 IST */
     const startDate = new Date(batchPlan.startDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    startDate.setHours(0, 0, 0, 0);
 
-    const diffMs = today - startDate;
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const rawDay = diffDays + 1;
+    const rawDay = getPlanDayOffset(startDate);
 
     /*
      * Check if the plan has ended: raw day exceeds duration.
@@ -678,15 +675,10 @@ export async function getBatchesWithPlans(req, res) {
 
     /* Build a map of batchId → plan info */
     const planMap = {};
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
 
     for (const bp of activePlans) {
-      const startDate = new Date(bp.startDate);
-      startDate.setHours(0, 0, 0, 0);
-      const diffMs = now - startDate;
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      const currentDay = Math.max(0, Math.min(diffDays + 1, bp.plan?.durationDays || 0));
+      /* IST-normalised day so a UTC server doesn't report the previous day */
+      const currentDay = Math.max(0, Math.min(getPlanDayOffset(bp.startDate), bp.plan?.durationDays || 0));
       const totalDays = bp.plan?.durationDays || 0;
 
       /* Determine if behind schedule: plan has been running >= 3 days but less than 40% of duration elapsed */
@@ -912,11 +904,8 @@ export async function getDayProgressBreakdown(req, res) {
     if (!batchPlan) batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId }).sort({ startDate: -1, createdAt: -1 }).lean();
     if (!batchPlan) return res.json({ data: null });
 
-    const startDate = new Date(batchPlan.startDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    startDate.setHours(0, 0, 0, 0);
-    const currentDayOffset = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    /* IST-normalised current day so a UTC server doesn't report the previous day */
+    const currentDayOffset = getPlanDayOffset(batchPlan.startDate);
 
     /* Group items by day */
     const dayGroups = {};
@@ -1084,11 +1073,8 @@ export async function getBatchDayProgress(req, res) {
     if (!batchPlan) batchPlan = await BatchPlan.findOne({ batch: batchId, plan: planId }).sort({ startDate: -1, createdAt: -1 }).lean();
     if (!batchPlan) return res.json({ data: null });
 
-    const startDate = new Date(batchPlan.startDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    startDate.setHours(0, 0, 0, 0);
-    const currentDayOffset = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    /* IST-normalised current day so a UTC server doesn't report the previous day */
+    const currentDayOffset = getPlanDayOffset(batchPlan.startDate);
 
     /* Group items by day */
     const dayGroups = {};

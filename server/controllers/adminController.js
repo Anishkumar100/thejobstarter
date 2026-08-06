@@ -27,6 +27,7 @@ import Progress from '../models/Progress.js';
 import CoachingCenter from '../models/CoachingCenter.js';
 import PaymentTransaction from '../models/PaymentTransaction.js';
 import PromoCode from '../models/PromoCode.js';
+import { getPlanDayOffset } from '../utils/planDay.js';
 import { getProgressSummary, deriveStatus } from '../services/progressService.js';
 import { getSubscriptionSettings } from './siteConfigController.js';
 
@@ -337,8 +338,6 @@ export async function getBatchPlanStats(req, res) {
     const centerStudents = await User.countDocuments({ batch: { $ne: null } });
 
     /* Compute behind status for each batch — count batches with at least one behind student */
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
     let behindCount = 0;
     const behindBatchIds = new Set();
     const batchPlans = await BatchPlan.find({ status: 'active' }).populate('plan', 'name durationDays items').lean();
@@ -346,9 +345,8 @@ export async function getBatchPlanStats(req, res) {
     for (const bp of batchPlans) {
       if (!bp.plan || !bp.plan.items) continue;
       const batchId = bp.batch.toString();
-      const startDate = new Date(bp.startDate);
-      startDate.setHours(0, 0, 0, 0);
-      const currentDay = Math.max(0, Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      /* IST-normalised day so a UTC server doesn't report the previous day */
+      const currentDay = getPlanDayOffset(bp.startDate);
       const pct = bp.plan.durationDays > 0 ? Math.round((currentDay / bp.plan.durationDays) * 100) : 0;
       planMap[batchId] = {
         planName: bp.plan.name,

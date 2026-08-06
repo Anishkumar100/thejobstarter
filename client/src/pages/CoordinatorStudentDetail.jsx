@@ -48,6 +48,8 @@ export default function CoordinatorStudentDetail() {
   const [breakdownLoading, setBreakdownLoading] = useState(false);
   const [selectedDayData, setSelectedDayData] = useState(null);
   const [remarks, setRemarks] = useState('');
+  /* Full plan history (ALL plans the student's batch has been assigned) */
+  const [planHistory, setPlanHistory] = useState([]);
 
   useEffect(() => {
     if (!userId) return;
@@ -80,6 +82,14 @@ export default function CoordinatorStudentDetail() {
       .catch(err => console.error('[COORD] Day breakdown error:', err.message))
       .finally(() => setBreakdownLoading(false));
   }, [student?._id, student?.progress?.planProgress?.planId]);
+
+  /* Fetch FULL plan history (all plans the student's batch has been assigned) */
+  useEffect(() => {
+    if (!student?.batch?._id) return;
+    apiRequest(`/plans/batches/${student.batch._id}/plan-history`)
+      .then(res => setPlanHistory(res.data || []))
+      .catch(err => console.error('[COORD] Plan history error:', err.message));
+  }, [student?._id, student?.batch?._id]);
 
   const handleChange = (e) => { setForm(p => ({ ...p, [e.target.name]: e.target.value })); setSaveSuccess(false); };
 
@@ -192,9 +202,24 @@ export default function CoordinatorStudentDetail() {
     const rows = [];
     const push = (cells) => rows.push(cells.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','));
     push(['THEWEYTES — STUDENT PLAN PROGRESS EXPORT']);
-    push([`Student: ${student?.displayName || student?.username || 'N/A'}`, `Plan: ${planBreakdown.planName}`, `Exported: ${new Date().toLocaleString()}`]);
+    push([`Student: ${student?.displayName || student?.username || 'N/A'}`, `Batch: ${student?.batch?.name || ''}`, `Exported: ${new Date().toLocaleString()}`]);
     push([]);
-    push(['DAY-BY-DAY BREAKDOWN']);
+    push(['PLAN HISTORY (ALL PLANS ASSIGNED TO BATCH)']);
+    push(['Plan Name', 'Status', 'Start Date', 'Day', 'Total Days']);
+    if (planHistory.length === 0) {
+      push(['No plan history available']);
+    } else {
+      for (const ph of planHistory) {
+        push([
+          ph.planName, ph.status,
+          ph.startDate ? new Date(ph.startDate).toLocaleDateString() : '',
+          ph.currentDay ?? 0, ph.durationDays || 0
+        ]);
+      }
+    }
+    push([]);
+    push(['CURRENT PLAN DAY-BY-DAY BREAKDOWN']);
+    push([`Plan: ${planBreakdown.planName}`]);
     push(['Day', 'Items Count', 'Completed', 'Completion %', 'Status', 'Item Subject', 'Item Type', 'Item Title', 'Instruction', 'Completed?']);
     for (const day of planBreakdown.days) {
       if (day.items.length === 0) {
@@ -211,7 +236,7 @@ export default function CoordinatorStudentDetail() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${student?.username || 'student'}_${planBreakdown.planName.replace(/\s+/g, '_')}_progress.csv`;
+    a.download = `${student?.username || 'student'}_plan_history_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -594,6 +619,47 @@ export default function CoordinatorStudentDetail() {
               </div>
             </div>
           ) : null}
+        </div>
+      )}
+
+      {/* ═══ PLAN HISTORY — ALL PLANS ASSIGNED TO THIS BATCH ═══ */}
+      {planHistory.length > 0 && (
+        <div style={{ ...CARD, marginBottom: 'var(--space-lg)', borderLeft: '6px solid #000' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
+            <h2 style={{ fontSize: '0.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Layers size={16} /> Plan History ({planHistory.length} plan{planHistory.length !== 1 ? 's' : ''})
+            </h2>
+            {planBreakdown?.days && (
+              <button onClick={exportPlanCSV} style={{ fontSize: '0.65rem', fontWeight: 700, padding: '6px 12px', border: '3px solid #000', boxShadow: '3px 3px 0 #000', cursor: 'pointer', background: 'var(--bg-surface)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Download size={14} /> Export CSV (incl. history)
+              </button>
+            )}
+          </div>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginBottom: 'var(--space-md)' }}>
+            Every plan this student's batch has been assigned — the CSV export above includes this full history plus the current plan's day-by-day breakdown.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {planHistory.map(ph => (
+              <div key={ph.batchPlanId || ph.planId} style={{
+                display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                padding: '10px 14px', border: '2px solid #000',
+                background: ph.status === 'active' ? '#f0fdf4' : 'var(--bg-tertiary)'
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>{ph.planName}</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>
+                    Started {ph.startDate ? new Date(ph.startDate).toLocaleDateString() : '—'}
+                  </div>
+                </div>
+                <span style={{ fontSize: '0.55rem', fontWeight: 700, textTransform: 'uppercase', padding: '2px 8px', border: '2px solid #000', background: ph.status === 'active' ? '#dcfce7' : ph.status === 'completed' ? '#f3f4f6' : '#fef3c7', color: ph.status === 'active' ? '#166534' : ph.status === 'completed' ? '#374151' : '#92400e' }}>
+                  {ph.status}
+                </span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', border: '1px solid #000', background: '#fff' }}>
+                  Day {ph.currentDay ?? 0}/{ph.durationDays || 0}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

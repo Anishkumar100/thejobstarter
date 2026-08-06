@@ -654,6 +654,65 @@ export async function getActivePlanForBatch(req, res) {
 }
 
 /*
+ * GET /api/plans/batches/:id/plan-history
+ * Full plan history for a batch — ALL BatchPlans (active, completed, paused),
+ * newest first, each with its populated plan, start date, status and
+ * IST-normalised current day. Used for the student-record CSV export so the
+ * export contains every plan the batch was assigned, not just the current one.
+ */
+export async function getBatchPlanHistory(req, res) {
+  try {
+    const { id } = req.params;
+    console.log('[PLAN] Fetching plan history for batch:', id);
+
+    /* Authorization: only admin or coordinator can access */
+    const authUser = await clerk.users.getUser(req.userId);
+    const authRole = authUser.publicMetadata?.role;
+    if (authRole !== 'admin' && authRole !== 'coordinator') {
+      console.log('[PLAN] Access denied — not admin or coordinator');
+      return res.status(403).json({ error: 'Access denied. Admin or coordinator role required.' });
+    }
+
+    /* Admin bypasses center scoping entirely. Coordinator must own this batch's center. */
+    if (authRole === 'coordinator') {
+      const coordinatorUser = await User.findOne({ clerkId: req.userId }).select('coordinatorFor').lean();
+      const batch = await Batch.findById(id).select('coachingCenter').lean();
+      if (!batch || !coordinatorUser?.coordinatorFor ||
+          batch.coachingCenter.toString() !== coordinatorUser.coordinatorFor.toString()) {
+        return res.status(403).json({ error: 'Access denied. Not your center.' });
+      }
+    }
+
+    /* All BatchPlans for this batch, newest first */
+    const batchPlans = await BatchPlan.find({ batch: id })
+      .populate('plan', 'name durationDays status')
+      .sort({ startDate: -1, createdAt: -1 })
+      .lean();
+
+    /* Enrich each with the IST-safe current day (0 if the plan hasn't started yet) */
+    const history = batchPlans.map(bp => {
+      const rawDay = bp.status === 'active' ? getPlanDayOffset(bp.startDate) : 0;
+      const currentDay = Math.max(0, rawDay);
+      return {
+        batchPlanId: bp._id,
+        planName: bp.plan?.name || 'Unknown Plan',
+        planId: bp.plan?._id || null,
+        durationDays: bp.plan?.durationDays || 0,
+        startDate: bp.startDate,
+        status: bp.status,
+        currentDay: Math.min(currentDay, bp.plan?.durationDays || currentDay)
+      };
+    });
+
+    console.log('[PLAN] Plan history fetched:', history.length, 'plans for batch:', id);
+    res.json({ data: history });
+  } catch (error) {
+    console.error('[PLAN] Error fetching plan history:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
  * GET /api/coordinator/batches/progress
  * Returns all batches with their active plan info for the coordinator dashboard
  * Used by the redesigned coordinator home page to show batch progress cards

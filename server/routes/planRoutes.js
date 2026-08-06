@@ -13,6 +13,7 @@ import {
   getPlans, getPlanById, createPlan, updatePlan, deletePlan,
   getContentHierarchy, searchContent,
   assignPlanToBatch, unassignPlanFromBatch, getActivePlanForBatch,
+  getBatchPlanHistory,
   getPlanAssignments, getDayProgressBreakdown, getBatchDayProgress
 } from '../controllers/planController.js';
 
@@ -40,5 +41,6 @@ router.get('/:planId/day-progress/:batchId', requireAuth, getBatchDayProgress);
 router.post('/batches/:id/assign-plan', requireAuth, requireAdmin, assignPlanToBatch);
 router.delete('/batches/:id/unassign-plan', requireAuth, requireAdmin, unassignPlanFromBatch);
 router.get('/batches/:id/active-plan', requireAuth, getActivePlanForBatch);
+router.get('/batches/:id/plan-history', requireAuth, getBatchPlanHistory);
 
 export default router;

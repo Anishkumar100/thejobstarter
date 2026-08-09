@@ -35,6 +35,24 @@ export default function SubscriptionSettings() {
   const isCanceled = status === 'canceled' || cancelled;
   const isExpired = status === 'expired';
   const isFree = status === 'free';
+  /* Manual (one-time order) plans have no auto-pay — nothing to cancel on Cashfree */
+  const hasAutoPay = !!subscription?.hasAutoPay;
+  /* Lifetime plans never have a period end */
+  const isLifetime = isActive && !subscription?.currentPeriodEnd;
+
+  /* Plan label — prefer the plan name saved at purchase time (plan-aware) */
+  const planLabel = isFree
+    ? 'Free Tier'
+    : subscription?.planName
+      ? subscription.planName
+      : isActive
+        ? 'Premium Monthly'
+        : isCanceled
+          ? 'Premium Monthly (Canceled)'
+          : 'Premium Monthly (Expired)';
+
+  /* Renewal link — same plan (or the default premium plan), return here after payment */
+  const renewalLink = `/subscribe?plan=${encodeURIComponent(subscription?.planId || 'premium')}&redirect=/settings/subscription`;
 
   /* Format dates nicely */
   const formatDate = (dateStr) => {
@@ -143,7 +161,7 @@ export default function SubscriptionSettings() {
               >
                 <span className="text-xs font-black uppercase tracking-widest text-text-muted block mb-1">Plan</span>
                 <span className="text-lg sm:text-xl font-black">
-                  {isFree ? 'Free Tier' : isActive ? 'Premium Monthly' : isCanceled ? 'Premium Monthly (Canceled)' : 'Premium Monthly (Expired)'}
+                  {planLabel}
                 </span>
               </div>
 
@@ -172,6 +190,17 @@ export default function SubscriptionSettings() {
               </div>
 
               {/* Access info */}
+              {isActive && isLifetime && (
+                <div
+                  className="border-4 border-border-main bg-success-bg text-success-text px-5 py-4 flex items-start gap-3 text-sm font-bold leading-relaxed"
+                  style={{ boxShadow: '4px 4px 0 var(--shadow-color)' }}
+                >
+                  <Check size={18} className="shrink-0 mt-0.5" />
+                  <span>
+                    You have <span className="font-black underline decoration-2 underline-offset-2">lifetime access</span> to all subjects — no renewals needed.
+                  </span>
+                </div>
+              )}
               {isActive && subscription?.currentPeriodEnd && (
                 <div
                   className="border-4 border-border-main bg-success-bg text-success-text px-5 py-4 flex items-start gap-3 text-sm font-bold leading-relaxed"
@@ -180,7 +209,7 @@ export default function SubscriptionSettings() {
                   <Check size={18} className="shrink-0 mt-0.5" />
                   <span>
                     You have full access to all subjects until <span className="font-black underline decoration-2 underline-offset-2">{formatDate(subscription.currentPeriodEnd)}</span>.
-                    Your subscription will auto-renew unless cancelled.
+                    No auto-charges — renew manually before it ends to keep access.
                   </span>
                 </div>
               )}
@@ -194,6 +223,17 @@ export default function SubscriptionSettings() {
                     Your subscription has been cancelled. You will retain access until{' '}
                     <span className="font-black underline decoration-2 underline-offset-2">{formatDate(subscription.currentPeriodEnd)}</span>.
                     After that, you'll be downgraded to the free tier.
+                  </span>
+                </div>
+              )}
+              {isExpired && (
+                <div
+                  className="border-4 border-border-main bg-error-bg text-error-text px-5 py-4 flex items-start gap-3 text-sm font-bold leading-relaxed"
+                  style={{ boxShadow: '4px 4px 0 var(--shadow-color)' }}
+                >
+                  <X size={18} className="shrink-0 mt-0.5" />
+                  <span>
+                    Your paid access has ended and you're back on the free tier. Renew below to unlock everything again.
                   </span>
                 </div>
               )}
@@ -215,8 +255,30 @@ export default function SubscriptionSettings() {
 
         {/* ─── Actions ─── */}
         <div className="space-y-4">
-          {/* Cancel button — only for active subscribers */}
-          {isActive && !confirming && (
+          {/* Renew / extend CTA — manual plans have no auto-charge, renew before period end */}
+          {isActive && !hasAutoPay && !isLifetime && (
+            <Link
+              to={renewalLink}
+              className="flex items-center justify-center gap-2 w-full border-5 border-accent-highlight bg-accent-highlight text-black px-6 py-4 font-black text-sm uppercase tracking-wider no-underline transition-all duration-100 ease-out hover:bg-transparent hover:text-accent-highlight active:translate-y-1.5 active:!shadow-none"
+              style={{ boxShadow: '8px 8px 0 var(--shadow-color)' }}
+            >
+              <Sparkles size={18} /> Renew / Extend Access <ArrowRight size={18} />
+            </Link>
+          )}
+
+          {/* Renew CTA for expired subscribers */}
+          {isExpired && (
+            <Link
+              to={renewalLink}
+              className="flex items-center justify-center gap-2 w-full border-5 border-accent-highlight bg-accent-highlight text-black px-6 py-4 font-black text-sm uppercase tracking-wider no-underline transition-all duration-100 ease-out hover:bg-transparent hover:text-accent-highlight active:translate-y-1.5 active:!shadow-none"
+              style={{ boxShadow: '8px 8px 0 var(--shadow-color)' }}
+            >
+              <Sparkles size={18} /> Renew Now — Get Back In <ArrowRight size={18} />
+            </Link>
+          )}
+
+          {/* Cancel button — only for auto-pay (Cashfree Subscriptions) plans */}
+          {isActive && hasAutoPay && !confirming && (
             <button
               onClick={() => setConfirming(true)}
               className="w-full flex items-center justify-center gap-2 border-4 border-error bg-error text-white px-6 py-4 font-black text-sm uppercase tracking-wider cursor-pointer no-underline transition-all duration-100 ease-out hover:bg-transparent hover:text-error active:translate-y-1.5 active:!shadow-none"
@@ -227,7 +289,7 @@ export default function SubscriptionSettings() {
           )}
 
           {/* Confirmation dialog */}
-          {isActive && confirming && (
+          {isActive && hasAutoPay && confirming && (
             <div
               className="border-5 border-border-main bg-bg-secondary"
               style={{ boxShadow: '8px 8px 0 var(--shadow-color)' }}
@@ -289,11 +351,11 @@ export default function SubscriptionSettings() {
                   We're sorry to see you go!
                 </p>
                 <Link
-                  to="/pricing"
+                  to={renewalLink}
                   className="inline-flex items-center gap-2 px-8 py-3 border-4 border-border-main bg-inverse-bg text-inverse-text font-black text-sm uppercase tracking-wider no-underline transition-all duration-100 ease-out hover:bg-accent-brand hover:border-accent-brand active:translate-y-1.5 active:!shadow-none"
                   style={{ boxShadow: '5px 5px 0 var(--shadow-color)' }}
                 >
-                  Resubscribe <ArrowRight size={18} />
+                  Renew Now <ArrowRight size={18} />
                 </Link>
               </div>
             </div>

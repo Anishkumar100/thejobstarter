@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../api/client.js';
+import { usePaymentStore } from '../stores/usePaymentStore.js';
 import { ArrowLeft, ArrowRight, Check, Tag, Loader, Sparkles, Zap, Phone } from 'lucide-react';
 
 export default function Subscribe() {
@@ -9,6 +10,8 @@ export default function Subscribe() {
   const navigate = useNavigate();
   const planId = searchParams.get('plan') || 'premium';
   const redirect = searchParams.get('redirect') || '/settings/profile';
+
+  const orderPayment = usePaymentStore(state => state.orderPayment);
 
   const [plans, setPlans] = useState([]);
   const [subConfig, setSubConfig] = useState(null);
@@ -55,6 +58,11 @@ export default function Subscribe() {
     setPromoLoading(false);
   };
 
+  /*
+   * Pay now — creates a one-time PG order on the server, then opens the
+   * Cashfree hosted checkout page via the JS SDK (see usePaymentStore).
+   * No auto-charge: the customer pays manually every billing cycle.
+   */
   const handleSubscribe = async () => {
     if (!phone.trim()) {
       setError('Please enter your phone number');
@@ -63,32 +71,14 @@ export default function Subscribe() {
     setSubscribing(true);
     setError(null);
     try {
-      const res = await apiRequest('/payments/create-subscription', {
-        method: 'POST',
-        body: JSON.stringify({
-          plan: planId,
-          phone: phone.trim(),
-          promoCode: promoResult?.valid ? promoResult.code : null,
-          redirectUrl: redirect
-        })
+      await orderPayment({
+        plan: planId,
+        phone: phone.trim(),
+        promoCode: promoResult?.valid ? promoResult.code : null,
+        redirectUrl: redirect
       });
-      if (res.data?.payLink && res.data?.subscriptionSessionId) {
-        /* Cashfree v6 requires a POST form with subs_session_id to open the checkout */
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = res.data.payLink;
-        form.target = '_self';
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'subs_session_id';
-        input.value = res.data.subscriptionSessionId;
-        form.appendChild(input);
-        document.body.appendChild(form);
-        form.submit();
-      } else {
-        setError('No payment link received. Please try again.');
-        setSubscribing(false);
-      }
+      /* Cashfree checkout opens in this tab — nothing further to do here */
+      setSubscribing(false);
     } catch (err) {
       setError(err.message);
       setSubscribing(false);
@@ -303,6 +293,7 @@ export default function Subscribe() {
             </button>
             <p className="text-center text-xs opacity-40 mt-4 leading-relaxed font-medium">
               Secure payment powered by Cashfree. You'll be redirected to the payment page.
+              No auto-charge — you renew manually each billing cycle.
               {redirect !== '/dashboard' && ` After payment, you'll return to where you left off.`}
             </p>
           </div>

@@ -1,18 +1,59 @@
 import { create } from 'zustand';
 import {
   createSubscription,
+  createOrder,
   applyPromoCode,
   getSubscriptionStatus,
   cancelMySubscription,
-  verifySubscription as verifySubscriptionApi
+  verifySubscription as verifySubscriptionApi,
+  verifyOrder as verifyOrderApi
 } from '../api/paymentApi.js';
+
+/*
+ * Cashfree JS SDK — loaded lazily (on first order) from Cashfree's CDN.
+ * Required to open the pre-built hosted checkout page for one-time orders.
+ */
+const CASHFREE_SDK_URL = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+
+/*
+ * loadCashfreeSdk()
+ *
+ * Injects the Cashfree JS SDK script tag once and waits for it to load.
+ * Returns a promise that resolves with the global window.Cashfree function.
+ * Subsequent calls reuse the already-loaded SDK.
+ *
+ * @returns {Promise<Function>} - window.Cashfree constructor
+ */
+function loadCashfreeSdk() {
+  return new Promise((resolve, reject) => {
+    /* Already loaded (script tag present + global available) */
+    if (window.Cashfree) {
+      return resolve(window.Cashfree);
+    }
+    const script = document.createElement('script');
+    script.src = CASHFREE_SDK_URL;
+    script.async = true;
+    script.onload = () => {
+      if (window.Cashfree) {
+        console.log('[PAYMENT] Cashfree JS SDK loaded');
+        resolve(window.Cashfree);
+      } else {
+        reject(new Error('Cashfree SDK loaded but Cashfree is not defined'));
+      }
+    };
+    script.onerror = () => reject(new Error('Could not load the Cashfree payment SDK. Please check your connection and try again.'));
+    document.head.appendChild(script);
+  });
+}
 
 /*
  * Payment Store — Zustand store for subscription state
  *
  * Provides subscription status, loading state, and actions for:
  *   - Fetching subscription status
- *   - Subscribing (creating a Cashfree subscription)
+ *   - Subscribing (one-time PG order — current flow, manual payments)
+ *   - Subscribing (auto-pay Cashfree subscription — legacy flow, kept for when
+ *     the Subscriptions product is activated)
  *   - Applying promo codes
  *   - Cancelling subscription
  *   - Verifying after payment return
@@ -23,7 +64,7 @@ import {
 
 export const usePaymentStore = create((set, get) => ({
   /* ─── State ─── */
-  subscription: null,      // { status, currentPeriodStart, currentPeriodEnd, appliedPromo }
+  subscription: null,      // { status, planId, planName, planInterval, currentPeriodStart, currentPeriodEnd, appliedPromo }
   loading: false,
   error: null,
   lastFetched: null,
@@ -54,7 +95,43 @@ export const usePaymentStore = create((set, get) => ({
   },
 
   /*
-   * Create a new subscription — redirects to Cashfree checkout.
+   * Create a one-time PG order (manual monthly/annual payments) and open the
+   * Cashfree hosted checkout page via the JS SDK.
+   *
+   * The browser is redirected to Cashfree's checkout; when the customer
+   * returns, PaymentSuccess verifies the order (webhook fallback).
+   *
+   * @param {Object} params - { plan, phone, promoCode?, redirectUrl? }
+   * @returns {Object} - { orderId, firstCharge, ... }
+   */
+  orderPayment: async (params) => {
+    console.log('[PAYMENT] Creating one-time payment order...');
+    set({ loading: true, error: null });
+    try {
+      const res = await createOrder(params);
+      const { orderId, paymentSessionId, firstCharge, paymentMode } = res.data;
+      console.log('[PAYMENT] Order created:', orderId, '| amount:', firstCharge, '| mode:', paymentMode);
+
+      /* Open Cashfree's hosted checkout with the session id */
+      const CashfreeSdk = await loadCashfreeSdk();
+      const cashfree = new CashfreeSdk({
+        mode: paymentMode === 'production' ? 'production' : 'sandbox'
+      });
+      cashfree.checkout({
+        paymentSessionId,
+        redirectTarget: '_self' /* return to our SPA (backend return_url 302s) */
+      });
+
+      return res.data;
+    } catch (error) {
+      console.error('[PAYMENT] Error creating order:', error.message);
+      set({ error: error.message, loading: false });
+      throw error;
+    }
+  },
+
+  /*
+   * Create a new auto-pay subscription — redirects to Cashfree checkout.
    * @param {Object} params - { plan, phone, promoCode?, redirectUrl? }
    * Returns the Cashfree payment link and session ID for redirect.
    */
@@ -138,6 +215,25 @@ export const usePaymentStore = create((set, get) => ({
       return res.data;
     } catch (error) {
       console.error('[PAYMENT] Verification error:', error.message);
+      set({ error: error.message, loading: false });
+      return null;
+    }
+  },
+
+  /*
+   * Verify a one-time order after the Cashfree checkout returns.
+   * @param {string} orderId - Cashfree PG order ID
+   */
+  verifyAfterOrder: async (orderId) => {
+    console.log('[PAYMENT] Verifying order after payment:', orderId);
+    set({ loading: true, error: null });
+    try {
+      const res = await verifyOrderApi(orderId);
+      console.log('[PAYMENT] Order verification result:', res.data?.status);
+      set({ subscription: res.data, loading: false });
+      return res.data;
+    } catch (error) {
+      console.error('[PAYMENT] Order verification error:', error.message);
       set({ error: error.message, loading: false });
       return null;
     }

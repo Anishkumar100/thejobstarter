@@ -40,6 +40,25 @@ export async function resolveUser(req) {
 
   try {
     const user = await User.findOne({ clerkId: req.userId }).lean();
+
+    /*
+     * Lazy expiry check — if the user's paid period ended but their status is
+     * still 'active' (e.g. the last request came before the period ended), flip
+     * them to 'expired' right here. This is a one-time self-healing write; the
+     * hourly sweep in utils/subscriptionExpiry.js keeps the DB clean in bulk.
+     */
+    if (user?.subscription?.status === 'active'
+      && user.subscription.currentPeriodEnd
+      && new Date(user.subscription.currentPeriodEnd) < new Date()) {
+      console.log('[ACCESS] resolveUser: expiring', user.username, '| period ended:', user.subscription.currentPeriodEnd);
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { 'subscription.status': 'expired', 'subscription.currentPeriodEnd': null } }
+      );
+      user.subscription.status = 'expired';
+      user.subscription.currentPeriodEnd = null;
+    }
+
     if (user) {
       console.log('[ACCESS] resolveUser: found', user.username, '| role:', user.role, '| coachingCenter:', !!user.coachingCenter, '| coordinatorFor:', !!user.coordinatorFor, '| sub status:', user.subscription?.status || 'not set (default: free)');
     } else {

@@ -8,6 +8,8 @@ export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const subscriptionId = searchParams.get('subscription_id');
+  /* One-time order flow — /api/payments/return redirects here with order_id */
+  const orderId = searchParams.get('order_id');
   /* Default redirect — send user to DSA to access their new content */
   const defaultRedirect = '/dsa';
   const [redirect, setRedirect] = useState(defaultRedirect);
@@ -16,15 +18,20 @@ export default function PaymentSuccess() {
   const [verifyError, setVerifyError] = useState(null);
 
   useEffect(() => {
-    if (!subscriptionId) {
+    if (!subscriptionId && !orderId) {
       setVerifying(false);
       return;
     }
     (async () => {
       try {
+        /*
+         * Verify the payment with the backend:
+         *  - order_id  → one-time PG order (PGFetchOrder + activate)
+         *  - subscription_id → auto-pay subscription (SubsFetchSubscription)
+         */
         const res = await apiRequest('/payments/verify-subscription', {
           method: 'POST',
-          body: JSON.stringify({ subscriptionId })
+          body: JSON.stringify(orderId ? { orderId } : { subscriptionId })
         });
         console.log('[PAYMENT] Verification result:', res.data);
         if (res.data?.status === 'active') {
@@ -41,7 +48,7 @@ export default function PaymentSuccess() {
       }
       setVerifying(false);
     })();
-  }, [subscriptionId]);
+  }, [subscriptionId, orderId]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -153,8 +160,8 @@ export default function PaymentSuccess() {
             <PartyPopper size={16} style={{ display: 'inline', verticalAlign: 'middle' }} />
           </p>
 
-          {/* ═══ Subscription ID (brutalist code box) ═══ */}
-          {subscriptionId && (
+          {/* ═══ Reference ID (brutalist code box) ═══ */}
+          {(subscriptionId || orderId) && (
             <div
               style={{
                 padding: '0.75rem 1rem',
@@ -178,7 +185,7 @@ export default function PaymentSuccess() {
                     marginBottom: 4,
                   }}
                 >
-                  Subscription ID
+                  {orderId ? 'Order ID' : 'Subscription ID'}
                 </div>
                 <div
                   style={{
@@ -190,7 +197,7 @@ export default function PaymentSuccess() {
                     lineHeight: 1.4,
                   }}
                 >
-                  {subscriptionId}
+                  {orderId || subscriptionId}
                 </div>
               </div>
             </div>

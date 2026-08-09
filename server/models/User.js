@@ -36,8 +36,12 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['user', 'admin', 'coordinator'], default: 'user' },
 
   /*
-   * Subscription fields for Cashfree recurring payments
+   * Subscription fields for Cashfree payments (recurring OR one-time orders).
    * Default ensures every user has subscription.status set to 'free' on creation.
+   *
+   * planId / planName / planInterval remember which pricing plan the user
+   * paid for so the UI and expiry logic can be plan-aware (e.g. lifetime
+   * 'once' plans never expire because currentPeriodEnd stays null).
    */
   subscription: {
     type: {
@@ -48,6 +52,9 @@ const userSchema = new mongoose.Schema({
       },
       cashfreeCustomerId:     { type: String, default: '' },
       cashfreeSubscriptionId: { type: String, default: '' },
+      planId:                 { type: String, default: '' },
+      planName:               { type: String, default: '' },
+      planInterval:           { type: String, default: '' },
       currentPeriodStart:     { type: Date, default: null },
       currentPeriodEnd:       { type: Date, default: null },
       appliedPromo:           { type: mongoose.Schema.Types.ObjectId, ref: 'PromoCode', default: null },

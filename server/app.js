@@ -9,6 +9,7 @@ config();
 
 import { connectDB } from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { startExpirySweep } from './utils/subscriptionExpiry.js';
 
 /* Import all route modules */
 import dsaRoutes from './routes/dsaRoutes.js';
@@ -54,10 +55,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 /*
- * Connect to MongoDB
+ * Connect to MongoDB, then start the hourly subscription-expiry sweep.
+ * (The sweep only runs after the connection is established.)
  */
 console.log('[APP] Starting server...');
-connectDB();
+connectDB().then(() => startExpirySweep());
 
 /*
  * Middleware

@@ -1,11 +1,13 @@
 /*
  * Payment Controller
  *
- * Handles all Cashfree subscription operations:
- *   - createSubscription  (POST /api/payments/create-subscription)
+ * Handles all Cashfree payment operations:
+ *   - createOrder         (POST /api/payments/create-order)      — one-time PG order (manual monthly)
+ *   - createSubscription  (POST /api/payments/create-subscription) — auto-pay Subscriptions API
  *   - handleWebhook       (POST /api/payments/webhook)
  *   - applyPromo          (POST /api/payments/apply-promo)
  *   - getStatus           (GET  /api/payments/status)
+ *   - verifySubscription  (POST /api/payments/verify-subscription) — verifies order OR subscription
  *   - cancelSubscription  (POST /api/payments/cancel)
  *
  * The Cashfree SDK (cashfree-pg) is used for API calls and webhook verification.
@@ -61,6 +63,121 @@ function getCashfreeClient() {
  */
 function generateSubscriptionId(userId) {
   return `sub_${userId}_${Date.now()}`;
+}
+
+/*
+ * Helper: generate a unique one-time order ID for Cashfree Payment Gateway.
+ * Format: ord_{userMongoId}_{timestamp} — stays under Cashfree's 40 char limit.
+ */
+function generateOrderId(userId) {
+  return `ord_${userId}_${Date.now()}`;
+}
+
+/*
+ * Helper: compute the subscription period end for a given plan interval.
+ *  - monthly: now + durationDays (from site config, default 30)
+ *  - yearly:  now + 365 days
+ *  - once / forever (lifetime): null → NEVER expires
+ * Callers must pass a fallback durationDays when the plan metadata is missing.
+ */
+function computePeriodEnd(interval, durationDays = 30) {
+  if (interval === 'once' || interval === 'forever') {
+    console.log('[PAYMENT] Lifetime plan — currentPeriodEnd stays null (never expires)');
+    return null;
+  }
+  const days = interval === 'yearly' ? 365 : durationDays;
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+}
+
+/*
+ * Helper: validate a promo code against a pricing plan and return
+ * { promoDoc, firstCharge }. Shared by createSubscription and createOrder.
+ * Throws a friendly Error for every rejection so callers can map it to a 400.
+ */
+async function validatePromoCode(promoCode, price) {
+  let firstCharge = price;
+  if (!promoCode) return { promoDoc: null, firstCharge };
+
+  const promoDoc = await PromoCode.findOne({
+    code: promoCode.toUpperCase(),
+    active: true
+  });
+  if (!promoDoc) {
+    throw new Error('Invalid or expired promo code');
+  }
+  if (promoDoc.expiresAt && new Date(promoDoc.expiresAt) < new Date()) {
+    throw new Error('This promo code has expired');
+  }
+  if (promoDoc.maxUses !== null && promoDoc.usedCount >= promoDoc.maxUses) {
+    throw new Error('This promo code has reached its usage limit');
+  }
+
+  /* Calculate first-charge amount based on promo type */
+  if (promoDoc.type === 'free_month') {
+    firstCharge = 0;
+  } else if (promoDoc.type === 'discount_percent') {
+    firstCharge = Math.round(price * (1 - promoDoc.value / 100));
+  } else if (promoDoc.type === 'discount_fixed') {
+    firstCharge = Math.max(0, price - promoDoc.value);
+  }
+
+  console.log('[PAYMENT] Promo applied:', promoCode, '| type:', promoDoc.type, '| firstCharge:', firstCharge);
+  return { promoDoc, firstCharge };
+}
+
+/*
+ * Helper: finalize a paid one-time order (webhook OR verify fallback).
+ *
+ * Idempotent — guarded by cashfreePaymentId:
+ *   - If a success transaction already exists for this payment id, the event
+ *     is a duplicate (Cashfree retry) and we do nothing.
+ *   - Otherwise activate the user, record plan info, increment the promo's
+ *     usedCount (only once, thanks to the guard above) and create the audit tx.
+ *
+ * @param {Object} user - Mongoose User doc
+ * @param {Object} tx   - The pending PaymentTransaction (carries plan metadata)
+ * @param {Object} data - { cashfreePaymentId, amount, eventType, source }
+ */
+async function finalizeOrderPayment(user, tx, { cashfreePaymentId, amount, eventType, source }) {
+  /* Dedupe — Cashfree may retry a webhook; never double-activate or double-count promos */
+  const duplicate = await PaymentTransaction.findOne({ cashfreePaymentId, status: 'success' });
+  if (duplicate) {
+    console.log('[PAYMENT] Duplicate payment event ignored (already recorded):', cashfreePaymentId);
+    return duplicate;
+  }
+
+  const planId = tx.metadata?.planId || '';
+  const planName = tx.metadata?.planName || 'Premium';
+  const planInterval = tx.metadata?.planInterval || 'monthly';
+  const durationDays = tx.metadata?.durationDays || 30;
+
+  /* Plan-aware period end — lifetime plans get null (never expires) */
+  user.subscription.status = 'active';
+  user.subscription.planId = planId;
+  user.subscription.planName = planName;
+  user.subscription.planInterval = planInterval;
+  user.subscription.currentPeriodStart = new Date();
+  user.subscription.currentPeriodEnd = computePeriodEnd(planInterval, durationDays);
+  user.subscription.pendingRedirect = ''; /* Consumed on the return page */
+  if (tx.promoCode) {
+    user.subscription.appliedPromo = tx.promoCode;
+  }
+  await user.save();
+  console.log('[PAYMENT] Order payment finalized for user:', user._id, '| plan:', planName, '| periodEnd:', user.subscription.currentPeriodEnd);
+
+  /* Increment promo usage — happens exactly once because of the dedupe check above */
+  if (tx.promoCode) {
+    await PromoCode.findByIdAndUpdate(tx.promoCode, { $inc: { usedCount: 1 } });
+    console.log('[PAYMENT] Promo usedCount incremented:', tx.promoCode);
+  }
+
+  /* Mark the pending transaction as success (audit trail) */
+  tx.status = 'success';
+  tx.amount = amount || tx.amount;
+  tx.cashfreePaymentId = cashfreePaymentId;
+  tx.metadata = { ...(tx.metadata || {}), webhookEvent: eventType, source };
+  await tx.save();
+  return tx;
 }
 
 /*
@@ -378,6 +495,182 @@ export async function createSubscription(req, res) {
 }
 
 /*
+ * POST /api/payments/create-order
+ *
+ * Creates a ONE-TIME Cashfree Payment Gateway order (manual monthly/annual
+ * payments — NO auto-charge). Used until the Cashfree Subscriptions product
+ * is activated on the merchant account; once it is, createSubscription becomes
+ * the auto-pay path again.
+ *
+ * Steps:
+ *   1. Validate promo code if provided (shared helper)
+ *   2. Create a PG order via the SDK (Customers + Orders API)
+ *   3. Persist a pending PaymentTransaction carrying plan metadata
+ *   4. Return payment_session_id so the client opens the Cashfree checkout via
+ *      the Cashfree JS SDK (Cashfree.checkout)
+ *
+ * Activation happens ONLY in the webhook (PAYMENT_SUCCESS_WEBHOOK) or via the
+ * verify fallback (PGFetchOrder) — never optimistically here.
+ */
+export async function createOrder(req, res) {
+  try {
+    console.log('[PAYMENT] createOrder called by user:', req.userId);
+    const { plan: planId, phone, promoCode, redirectUrl } = req.body;
+
+    if (!phone) {
+      console.log('[PAYMENT] Phone number is required');
+      return res.status(400).json({ error: 'Phone number is required for payment' });
+    }
+    if (!planId) {
+      console.log('[PAYMENT] Plan ID is required');
+      return res.status(400).json({ error: 'Plan ID is required' });
+    }
+
+    /* Fetch the pricing plan from SiteConfig */
+    const siteConfig = await SiteConfig.findOne({});
+    const pricingPlan = siteConfig?.pricingPlans?.find(p => p.id === planId);
+    if (!pricingPlan || pricingPlan.price === undefined || pricingPlan.price <= 0) {
+      console.log('[PAYMENT] Pricing plan not found or free plan:', planId);
+      return res.status(400).json({ error: 'Invalid subscription plan' });
+    }
+
+    /* Forever / ₹0 plans are the free tier — never checked out */
+    if (pricingPlan.interval === 'forever') {
+      console.log('[PAYMENT] Forever (free) plan cannot be purchased:', planId);
+      return res.status(400).json({ error: 'This plan is the free tier — it cannot be purchased' });
+    }
+
+    /* Look up the user in MongoDB */
+    const user = await User.findOne({ clerkId: req.userId });
+    if (!user) {
+      console.log('[PAYMENT] User not found for clerkId:', req.userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    /*
+     * Block duplicate purchase only while access is still live.
+     * Expired users CAN re-subscribe now (previously blocked forever).
+     */
+    const isStillActive = user.subscription?.status === 'active'
+      && (!user.subscription.currentPeriodEnd || new Date(user.subscription.currentPeriodEnd) >= new Date());
+    if (isStillActive) {
+      console.log('[PAYMENT] User already has live access:', user._id);
+      return res.status(400).json({ error: 'You already have an active subscription' });
+    }
+
+    /* Normalize a stale 'active' status (period already over) */
+    if (user.subscription?.status === 'active' && !isStillActive) {
+      console.log('[PAYMENT] Detected expired-but-active user — marking expired:', user._id);
+      user.subscription.status = 'expired';
+      user.subscription.currentPeriodEnd = null;
+      await user.save();
+    }
+
+    /* ── Validate promo code if provided ── */
+    let appliedPromoDoc = null;
+    let firstCharge = pricingPlan.price;
+    try {
+      const promoResult = await validatePromoCode(promoCode, pricingPlan.price);
+      appliedPromoDoc = promoResult.promoDoc;
+      firstCharge = promoResult.firstCharge;
+    } catch (promoErr) {
+      console.log('[PAYMENT] Promo rejected:', promoErr.message);
+      return res.status(400).json({ error: promoErr.message });
+    }
+
+    /* Cashfree rejects ₹0 orders — free_month promos cannot apply to one-time plans */
+    if (firstCharge <= 0) {
+      console.log('[PAYMENT] First charge is ₹0 — not supported for one-time orders');
+      return res.status(400).json({ error: 'This promo gives a fully free payment which is not supported for this plan.' });
+    }
+
+    /* ── Build the PG order request ── */
+    const orderId = generateOrderId(user._id);
+    const serverUrl = process.env.SERVER_URL || 'http://localhost:3001';
+    /* Backend return endpoint — Cashfree may POST; we 302 the browser to the SPA */
+    const returnUrl = `${serverUrl}/api/payments/return?order_id=${orderId}`;
+
+    const orderRequest = {
+      order_id: orderId,
+      order_amount: firstCharge,
+      order_currency: 'INR',
+      order_note: `${pricingPlan.name} — TheJobStarter Premium`,
+      customer_details: {
+        customer_id: user._id.toString(),
+        customer_phone: phone,
+        customer_email: user.email || ''
+      },
+      order_meta: {
+        return_url: returnUrl,
+        notify_url: `${serverUrl}/api/payments/webhook`
+      }
+    };
+
+    console.log('[PAYMENT] PGCreateOrder REQUEST:', JSON.stringify(orderRequest, null, 2));
+    const cf = getCashfreeClient();
+    const cfResponse = await cf.PGCreateOrder(orderRequest);
+    console.log('[PAYMENT] PGCreateOrder RESPONSE:', JSON.stringify(cfResponse?.data, null, 2));
+    const order = cfResponse.data;
+
+    if (!order.payment_session_id) {
+      console.error('[PAYMENT] No payment_session_id in order response');
+      return res.status(500).json({ error: 'Payment could not be initiated. Please try again.' });
+    }
+
+    /* Save payment context on the User doc (redirect for PaymentSuccess) */
+    user.subscription.pendingRedirect = redirectUrl || '';
+    user.phone = phone;
+    if (appliedPromoDoc) {
+      user.subscription.appliedPromo = appliedPromoDoc._id;
+    }
+    await user.save();
+
+    /* Pending transaction — carries plan metadata used at activation time */
+    await PaymentTransaction.create({
+      user: user._id,
+      type: 'subscription_created',
+      amount: firstCharge,
+      currency: 'INR',
+      cashfreeOrderId: orderId,
+      status: 'pending',
+      promoCode: appliedPromoDoc?._id || null,
+      metadata: {
+        planId: pricingPlan.id,
+        planName: pricingPlan.name,
+        planInterval: pricingPlan.interval,
+        durationDays: siteConfig?.subscriptionSettings?.durationDays || 30
+      }
+    });
+    console.log('[PAYMENT] Pending transaction stored for order:', orderId);
+
+    console.log('[PAYMENT] Order created successfully for user:', user._id);
+    res.json({
+      data: {
+        orderId: order.order_id,
+        paymentSessionId: order.payment_session_id,
+        firstCharge,
+        status: order.order_status,
+        paymentMode: process.env.CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
+      }
+    });
+  } catch (error) {
+    console.error('[PAYMENT] Error creating order:', error.message);
+    console.error('[PAYMENT] Error details:', error.response?.data || error);
+
+    /* Friendly message for the not-yet-activated Cashfree profile */
+    const cfCode = error.response?.data?.code;
+    if (cfCode === 'profile_inactive') {
+      console.log('[PAYMENT] Cashfree merchant profile inactive — returning friendly error');
+      return res.status(400).json({
+        error: 'Payments are temporarily unavailable — your Cashfree account is still being activated. Please try again in a few hours.',
+        code: cfCode
+      });
+    }
+    res.status(500).json({ error: error.message || 'Failed to create order' });
+  }
+}
+
+/*
  * POST /api/payments/webhook
  *
  * Cashfree webhook handler — receives payment and subscription lifecycle events.
@@ -430,6 +723,68 @@ export async function handleWebhook(req, res) {
       amount: paymentAmount,
       paymentStatus
     }));
+
+    /*
+     * ── One-time PG order events (no subscription attached) ──
+     * These come from the monthly/annual manual-payment flow (createOrder).
+     * Event types: PAYMENT_SUCCESS_WEBHOOK / PAYMENT_SUCCESS / ORDER_PAID (success),
+     * PAYMENT_FAILED_WEBHOOK / PAYMENT_FAILED (failure).
+     * The target user is resolved via the pending PaymentTransaction, NOT the User doc.
+     */
+    const isOrderEvent = !!cashfreeOrderId && !cashfreeSubscriptionId;
+    if (isOrderEvent) {
+      console.log('[PAYMENT] Order webhook detected — order:', cashfreeOrderId, '| event:', event.type);
+
+      /* Events we don't care about for one-time orders — ack and ignore */
+      const orderSuccessEvents = ['PAYMENT_SUCCESS_WEBHOOK', 'PAYMENT_SUCCESS', 'ORDER_PAID'];
+      const orderFailedEvents = ['PAYMENT_FAILED_WEBHOOK', 'PAYMENT_FAILED'];
+      if (!orderSuccessEvents.includes(event.type) && !orderFailedEvents.includes(event.type)) {
+        console.log('[PAYMENT] Ignoring non-payment order event:', event.type);
+        return res.status(200).json({ status: 'ignored' });
+      }
+
+      /* Find the pending transaction for this order */
+      const tx = await PaymentTransaction.findOne({ cashfreeOrderId });
+      if (!tx) {
+        console.log('[PAYMENT] No transaction found for order:', cashfreeOrderId);
+        return res.status(200).json({ status: 'ignored' });
+      }
+      const user = await User.findById(tx.user);
+      if (!user) {
+        console.log('[PAYMENT] No user found for order transaction:', cashfreeOrderId);
+        return res.status(200).json({ status: 'ignored' });
+      }
+
+      const isSuccess = orderSuccessEvents.includes(event.type)
+        || paymentStatus === 'SUCCESS';
+      if (isSuccess) {
+        console.log('[PAYMENT] Order payment SUCCESS — activating user:', user._id);
+        await finalizeOrderPayment(user, tx, {
+          cashfreePaymentId,
+          amount: paymentAmount,
+          eventType: event.type,
+          source: 'webhook'
+        });
+      } else {
+        console.log('[PAYMENT] Order payment FAILED — recording failure:', cashfreeOrderId);
+        tx.status = 'failed';
+        tx.metadata = { ...(tx.metadata || {}), webhookEvent: event.type, source: 'webhook' };
+        await tx.save();
+        /*
+         * Only flip to past_due when the user has NO live access already
+         * (e.g. an expired user's renewal failed). If they still have a valid
+         * paid period, a failed early renewal must NOT cut off their access.
+         */
+        const hasLiveAccess = user.subscription?.status === 'active'
+          && (!user.subscription.currentPeriodEnd || new Date(user.subscription.currentPeriodEnd) >= new Date());
+        if (user.subscription?.status === 'active' && !hasLiveAccess) {
+          user.subscription.status = 'past_due';
+          await user.save();
+        }
+      }
+      console.log('[PAYMENT] Order webhook processed | user:', user._id, '| event:', event.type);
+      return res.status(200).json({ status: 'success' });
+    }
 
     /* Find the user by cashfreeSubscriptionId */
     const user = await User.findOne({ 'subscription.cashfreeSubscriptionId': cashfreeSubscriptionId });
@@ -484,7 +839,7 @@ export async function handleWebhook(req, res) {
         break;
 
       default:
-        console.log('[PAYMENT] Unknown webhook event type:', eventType);
+        console.log('[PAYMENT] Unknown webhook event type:', event.type);
         return res.status(200).json({ status: 'ignored' });
     }
 
@@ -619,12 +974,29 @@ export async function getSubscriptionStatus(req, res) {
 
     console.log('[PAYMENT] User subscription status:', user.subscription?.status);
 
+    /*
+     * Lazy expiry check — if the user's paid period has ended, flip them to
+     * 'expired' right here (a one-time self-heal write) instead of waiting
+     * for the hourly sweep. Keeps the UI honest for late visitors.
+     */
+    const sub = user.subscription;
+    if (sub?.status === 'active' && sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) < new Date()) {
+      console.log('[PAYMENT] Lazy-expiring user:', user._id, '| period ended:', sub.currentPeriodEnd);
+      sub.status = 'expired';
+      sub.currentPeriodEnd = null;
+      await User.updateOne({ _id: user._id }, { $set: { 'subscription.status': 'expired', 'subscription.currentPeriodEnd': null } });
+    }
+
     res.json({
       data: {
-        status: user.subscription?.status || 'free',
-        currentPeriodStart: user.subscription?.currentPeriodStart || null,
-        currentPeriodEnd: user.subscription?.currentPeriodEnd || null,
-        appliedPromo: user.subscription?.appliedPromo || null,
+        status: sub?.status || 'free',
+        planId: sub?.planId || '',
+        planName: sub?.planName || '',
+        planInterval: sub?.planInterval || '',
+        hasAutoPay: !!sub?.cashfreeSubscriptionId, /* true = Cashfree Subscriptions (auto-charge); false = manual one-time orders */
+        currentPeriodStart: sub?.currentPeriodStart || null,
+        currentPeriodEnd: sub?.currentPeriodEnd || null,
+        appliedPromo: sub?.appliedPromo || null,
         coachingCenter: !!user.coachingCenter
       }
     });
@@ -657,7 +1029,85 @@ export async function getSubscriptionStatus(req, res) {
 export async function verifySubscription(req, res) {
   try {
     console.log('[PAYMENT] verifySubscription called by user:', req.userId);
-    const { subscriptionId } = req.body;
+    const { subscriptionId, orderId } = req.body;
+
+    /*
+     * ── One-time order verification path (manual payments) ──
+     * Used by PaymentSuccess when the return URL carried order_id.
+     * Fetches the order from Cashfree; if PAID, activates the user exactly
+     * like the webhook would (shared finalizeOrderPayment — idempotent).
+     */
+    if (orderId) {
+      console.log('[PAYMENT] verifySubscription: verifying one-time order:', orderId);
+      const tx = await PaymentTransaction.findOne({ cashfreeOrderId: orderId });
+      if (!tx) {
+        console.log('[PAYMENT] verifySubscription: no transaction for order:', orderId);
+        return res.status(404).json({ error: 'Order not found for this user' });
+      }
+      const user = await User.findById(tx.user);
+      if (!user) {
+        console.log('[PAYMENT] verifySubscription: no user for order transaction:', orderId);
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      /* Already active locally with live access — nothing to do */
+      const alreadyActive = user.subscription?.status === 'active'
+        && (!user.subscription.currentPeriodEnd || new Date(user.subscription.currentPeriodEnd) >= new Date());
+      if (alreadyActive) {
+        console.log('[PAYMENT] verifySubscription: user already active for order:', orderId);
+        return res.json({
+          data: {
+            status: 'active',
+            currentPeriodStart: user.subscription.currentPeriodStart,
+            currentPeriodEnd: user.subscription.currentPeriodEnd,
+            redirect: user.subscription.pendingRedirect || ''
+          }
+        });
+      }
+
+      /* Ask Cashfree whether the order was actually paid */
+      let orderStatus = '';
+      let paymentId = '';
+      try {
+        const cf = getCashfreeClient();
+        const cfResp = await cf.PGFetchOrder(orderId);
+        const order = cfResp?.data;
+        orderStatus = order?.order_status || '';
+        paymentId = order?.payments?.[0]?.cf_payment_id || '';
+        console.log('[PAYMENT] verifySubscription: Cashfree order status:', orderStatus, '| payment:', paymentId);
+      } catch (cfErr) {
+        console.error('[PAYMENT] verifySubscription: Cashfree order fetch error:', cfErr.message);
+      }
+
+      if (orderStatus === 'PAID') {
+        const savedRedirect = user.subscription.pendingRedirect || '';
+        await finalizeOrderPayment(user, tx, {
+          cashfreePaymentId: paymentId,
+          amount: tx.amount,
+          eventType: 'VERIFY_ORDER',
+          source: 'verify_endpoint'
+        });
+        console.log('[PAYMENT] verifySubscription: user activated via order verification:', user._id);
+        return res.json({
+          data: {
+            status: 'active',
+            currentPeriodStart: user.subscription.currentPeriodStart,
+            currentPeriodEnd: user.subscription.currentPeriodEnd,
+            redirect: savedRedirect
+          }
+        });
+      }
+
+      /* Not paid yet — webhook will activate when Cashfree confirms */
+      console.log('[PAYMENT] verifySubscription: order not yet paid:', orderStatus);
+      return res.json({
+        data: {
+          status: user.subscription?.status || 'pending',
+          cashfreeStatus: orderStatus,
+          note: 'Payment not yet confirmed by Cashfree. The system will update automatically once confirmed.'
+        }
+      });
+    }
 
     if (!subscriptionId) {
       console.log('[PAYMENT] verifySubscription: subscriptionId is required');
@@ -775,13 +1225,16 @@ export async function verifySubscription(req, res) {
  */
 export async function handlePaymentReturn(req, res) {
   try {
-    /* Extract subscription_id from query (GET) or body (POST) */
-    const subscriptionId = req.query.subscription_id
-      || req.body?.subscription_id
-      || req.body?.order_id
-      || '';
+    /*
+     * Extract identifiers from query string (GET redirect) OR body (Cashfree POST).
+     * - One-time orders arrive as ?order_id=... (return_url carries it in the query)
+     * - Auto-pay subscriptions arrive as ?subscription_id=...
+     */
+    const orderId = req.query.order_id || req.body?.order_id || '';
+    const subscriptionId = req.query.subscription_id || req.body?.subscription_id || '';
     const cleanClientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
-    const redirectUrl = `${cleanClientUrl}/payment/success${subscriptionId ? `?subscription_id=${encodeURIComponent(subscriptionId)}` : ''}`;
+    const param = orderId ? `order_id=${encodeURIComponent(orderId)}` : subscriptionId ? `subscription_id=${encodeURIComponent(subscriptionId)}` : '';
+    const redirectUrl = `${cleanClientUrl}/payment/success${param ? `?${param}` : ''}`;
     console.log('[PAYMENT] Handling payment return — redirecting to:', redirectUrl);
     res.redirect(302, redirectUrl);
   } catch (error) {
@@ -807,11 +1260,12 @@ export async function cancelSubscription(req, res) {
 
     const cashfreeSubId = user.subscription.cashfreeSubscriptionId;
 
+    /*
+     * Only call the Cashfree Subscriptions API when this user actually has an
+     * auto-pay subscription. Manual (one-time order) subscribers have no
+     * recurring charge to stop — local cancellation is all that's needed.
+     */
     if (cashfreeSubId) {
-      /*
-       * Call Cashfree API to cancel the subscription and stop future charges.
-       * SubsManageSubscription with action: 'CANCEL' cancels the recurring subscription.
-       */
       try {
         console.log('[PAYMENT] Calling Cashfree SubsManageSubscription with CANCEL for:', cashfreeSubId);
         const cf = getCashfreeClient();
@@ -819,11 +1273,15 @@ export async function cancelSubscription(req, res) {
         console.log('[PAYMENT] Cashfree subscription cancelled successfully');
       } catch (cfError) {
         /*
-         * If Cashfree returns an error (e.g., already cancelled), log it but
-         * proceed with local cancellation to keep state consistent.
+         * Do NOT swallow Cashfree errors — if the cancellation failed there,
+         * the Merchant may still auto-charge the customer. Return 500 so the
+         * UI can tell the user the cancel did not go through.
          */
         console.error('[PAYMENT] Cashfree cancel API error:', cfError.message);
+        return res.status(500).json({ error: 'Could not cancel your subscription with the payment provider. Please try again or contact support.' });
       }
+    } else {
+      console.log('[PAYMENT] Manual (one-time order) subscription — skipping Cashfree cancel API');
     }
 
     /* Update local state */

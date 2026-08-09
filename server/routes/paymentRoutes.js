@@ -1,16 +1,18 @@
 /*
- * Payment Routes — Cashfree Subscription API endpoints
+ * Payment Routes — Cashfree (Subscriptions API + Payment Gateway Orders)
  *
- * POST   /api/payments/create-subscription   Create a Cashfree subscription order
- * POST   /api/payments/webhook                Cashfree webhook handler (raw body)
- * POST   /api/payments/apply-promo            Validate a promo code
- * GET    /api/payments/status                 Get current subscription status
- * POST   /api/payments/cancel                 Cancel active subscription
+ * POST   /api/payments/create-order         Create a one-time PG order (manual monthly)
+ * POST   /api/payments/create-subscription  Create a Cashfree subscription order (auto-pay)
+ * POST   /api/payments/webhook              Cashfree webhook handler (raw body)
+ * POST   /api/payments/apply-promo          Validate a promo code
+ * GET    /api/payments/status               Get current subscription status
+ * POST   /api/payments/cancel               Cancel active subscription
  */
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import {
   createSubscription,
+  createOrder,
   handleWebhook,
   handlePaymentReturn,
   applyPromo,
@@ -40,6 +42,7 @@ router.all('/return', handlePaymentReturn);
  * User must be logged in to create/subscribe/check/cancel.
  */
 router.post('/create-subscription', requireAuth, createSubscription);
+router.post('/create-order', requireAuth, createOrder);
 router.post('/verify-subscription', requireAuth, verifySubscription);
 router.post('/apply-promo', requireAuth, applyPromo);
 router.get('/status', requireAuth, getSubscriptionStatus);

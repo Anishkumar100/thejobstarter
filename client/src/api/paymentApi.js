@@ -21,6 +21,18 @@ export function createSubscription(data) {
 }
 
 /*
+ * Create a one-time Payment Gateway order (manual monthly/annual payments)
+ * @param {Object} data - { plan, phone, promoCode?, redirectUrl? }
+ * Returns { orderId, paymentSessionId, firstCharge, paymentMode }
+ */
+export function createOrder(data) {
+  return apiRequest('/payments/create-order', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+/*
  * Validate a promo code and get the discounted price
  * @param {string} code - The promo code to validate
  */
@@ -53,6 +65,17 @@ export function verifySubscription(subscriptionId) {
   return apiRequest('/payments/verify-subscription', {
     method: 'POST',
     body: JSON.stringify({ subscriptionId })
+  });
+}
+
+/*
+ * Verify a one-time order after the Cashfree checkout returns
+ * @param {string} orderId - Cashfree PG order ID
+ */
+export function verifyOrder(orderId) {
+  return apiRequest('/payments/verify-subscription', {
+    method: 'POST',
+    body: JSON.stringify({ orderId })
   });
 }
 

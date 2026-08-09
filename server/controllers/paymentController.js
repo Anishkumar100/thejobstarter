@@ -578,10 +578,18 @@ export async function createOrder(req, res) {
       return res.status(400).json({ error: promoErr.message });
     }
 
-    /* Cashfree rejects ₹0 orders — free_month promos cannot apply to one-time plans */
+    /*
+     * ── Fully-free promos (free_month → ₹0) ──
+     * Cashfree rejects ₹0 orders, so a free first period is NOT given away
+     * as a ₹0 grant. Instead the customer pays the ₹1 minimum order amount
+     * through the normal checkout — they get the payment experience, the
+     * transaction is genuine, and Cashfree's processing fee is covered.
+     * The promo's usedCount increments only when the payment is confirmed
+     * (webhook / verify), exactly like any other paid order.
+     */
     if (firstCharge <= 0) {
-      console.log('[PAYMENT] First charge is ₹0 — not supported for one-time orders');
-      return res.status(400).json({ error: 'This promo gives a fully free payment which is not supported for this plan.' });
+      firstCharge = 1;
+      console.log('[PAYMENT] Free promo applied — charging ₹1 minimum processing fee');
     }
 
     /* ── Build the PG order request ── */
@@ -925,8 +933,13 @@ export async function applyPromo(req, res) {
 
     switch (promo.type) {
       case 'free_month':
-        discountedPrice = 0;
-        description = `First ${pricingPlan.interval === 'once' ? 'payment' : 'billing cycle'} free, then ₹${basePrice}${intervalLabel}`;
+        /*
+         * Free first period — the customer still pays the ₹1 minimum order
+         * amount (Cashfree rejects ₹0 orders, and a real transaction keeps
+         * the flow legitimate). ₹1 covers Cashfree's processing fee.
+         */
+        discountedPrice = 1;
+        description = `First ${pricingPlan.interval === 'once' ? 'payment' : 'billing cycle'} free — pay ₹1 processing fee, then ₹${basePrice}${intervalLabel}`;
         break;
       case 'discount_percent':
         discountedPrice = Math.round(basePrice * (1 - promo.value / 100));

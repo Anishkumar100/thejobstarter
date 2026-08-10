@@ -234,43 +234,43 @@ export default function EditProfile() {
         </div>
 
         <div className="input-group">
-          <label htmlFor="displayName">Display Name</label>
+          <label htmlFor="displayName">Display Name <span style={{ color: 'var(--error)', fontWeight: 700 }}>*</span></label>
           <input id="displayName" className="input" value={displayName} onChange={e => setDisplayName(e.target.value)} />
         </div>
         <div className="input-group">
-          <label htmlFor="bio">Bio</label>
+          <label htmlFor="bio">Bio <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>optional</span></label>
           <textarea id="bio" className="textarea" rows={3} value={bio} onChange={e => setBio(e.target.value)} />
         </div>
         <div className="input-group">
-          <label htmlFor="college">College</label>
+          <label htmlFor="college">College <span style={{ color: 'var(--error)', fontWeight: 700 }}>*</span></label>
           <input id="college" className="input" placeholder="e.g. MIT" value={college} onChange={e => setCollege(e.target.value)} />
         </div>
         <div className="input-group">
-          <label htmlFor="year">Year</label>
+          <label htmlFor="year">Year <span style={{ color: 'var(--error)', fontWeight: 700 }}>*</span></label>
           <input id="year" className="input" placeholder="e.g. 3rd" value={year} onChange={e => setYear(e.target.value)} />
         </div>
         <div className="input-group">
-          <label htmlFor="skills">Skills (comma-separated)</label>
+          <label htmlFor="skills">Skills (comma-separated) <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>optional</span></label>
           <input id="skills" className="input" placeholder="e.g. DSA, React, Python" value={skillsStr} onChange={e => setSkillsStr(e.target.value)} />
         </div>
 
         <hr style={{ margin: 'var(--space-lg) 0', border: 'none', borderTop: '3px solid var(--border-color)' }} />
-        <p style={{ fontWeight: 700, marginBottom: 'var(--space-md)', fontSize: '0.85rem', textTransform: 'uppercase' }}>External Links</p>
+        <p style={{ fontWeight: 700, marginBottom: 'var(--space-md)', fontSize: '0.85rem', textTransform: 'uppercase' }}>External Links <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none' }}>(all optional)</span></p>
 
         <div className="input-group">
-          <label htmlFor="leetcode">LeetCode URL</label>
+          <label htmlFor="leetcode">LeetCode URL <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>optional</span></label>
           <input id="leetcode" className="input" placeholder="https://leetcode.com/..." value={leetcode} onChange={e => setLeetcode(e.target.value)} />
         </div>
         <div className="input-group">
-          <label htmlFor="github">GitHub URL</label>
+          <label htmlFor="github">GitHub URL <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>optional</span></label>
           <input id="github" className="input" placeholder="https://github.com/..." value={github} onChange={e => setGithub(e.target.value)} />
         </div>
         <div className="input-group">
-          <label htmlFor="linkedin">LinkedIn URL</label>
+          <label htmlFor="linkedin">LinkedIn URL <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>optional</span></label>
           <input id="linkedin" className="input" placeholder="https://linkedin.com/in/..." value={linkedin} onChange={e => setLinkedin(e.target.value)} />
         </div>
         <div className="input-group">
-          <label htmlFor="website">Personal Website</label>
+          <label htmlFor="website">Personal Website <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 400 }}>optional</span></label>
           <input id="website" className="input" placeholder="https://yoursite.com" value={website} onChange={e => setWebsite(e.target.value)} />
         </div>
 

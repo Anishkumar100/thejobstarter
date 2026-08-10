@@ -132,6 +132,9 @@ function AssignmentCard({ assignment: a, now, navigate }) {
   /* IST-safe window: opens at IST midnight of startDate, deadline = end-of-day IST of endDate */
   const endOfEndDate = getIstNextDayStart(a.endDate);
   const startOfStartDate = getIstDayStart(a.startDate);
+  /* Display-friendly dates for the card header */
+  const startDate = new Date(a.startDate);
+  const endDate = new Date(a.endDate);
   const isOverdue = now >= endOfEndDate;
   const isActiveRange = now >= startOfStartDate && now < endOfEndDate;
   const hasSubmitted = !!a._submission;

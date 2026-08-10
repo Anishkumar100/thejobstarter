@@ -257,6 +257,8 @@ export default function CoordinatorAssignmentDetail() {
 
   /* IST-safe: deadline = end-of-day IST of endDate */
   const endOfEndDate = getIstNextDayStart(assignment.endDate);
+  /* Display end date for the deadline labels (was referenced but never declared) */
+  const ed = new Date(assignment.endDate);
   const isOverdue = endOfEndDate <= new Date();
   const submittedCount = assignment.submissions?.length || 0;
   const totalStudents = assignment.notSubmitted?.length + submittedCount || 0;

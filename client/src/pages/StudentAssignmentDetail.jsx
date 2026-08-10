@@ -43,6 +43,9 @@ export default function StudentAssignmentDetail() {
   /* IST-safe window: opens at IST midnight of startDate, deadline = end-of-day IST of endDate */
   const endOfEndDate = getIstNextDayStart(a.endDate);
   const startOfStartDate = getIstDayStart(a.startDate);
+  /* Display-friendly dates for the UI (used in the header and 'opens on' notice) */
+  const startDate = new Date(a.startDate);
+  const endDate = new Date(a.endDate);
   const isActiveRange = now >= startOfStartDate && now < endOfEndDate;
   const isOverdue = now >= endOfEndDate;
   const hasSubmitted = !!a._submission;

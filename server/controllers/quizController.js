@@ -172,19 +172,39 @@ export async function getMyAttempts(req, res) {
 
     console.log('[QUIZ] My attempts fetched:', attempts.length);
 
-    /* Attach the problem slug to each attempt for navigation */
+    /* Attach the problem slug + its lesson/subtopic slugs to each attempt for navigation */
     const results = await Promise.all(attempts.map(async (att) => {
+      /* Guard: quiz may have been deleted since the attempt was made */
+      if (!att.quiz) {
+        return {
+          _id: att._id,
+          quizId: null,
+          problemModel: null,
+          problemSlug: null,
+          lessonSlug: null,
+          subtopicSlug: null,
+          subject: 'dsa',
+          questions: [],
+          answers: att.answers || [],
+          score: att.score,
+          attemptedAt: att.attemptedAt
+        };
+      }
       const Model = { Problem, DbmsProblem, OsProblem, ProgrammingProblem, AptitudeProblem }[att.quiz.problemModel];
-      let problemSlug = null;
+      let problemSlug = null, lessonSlug = null, subtopicSlug = null;
       if (Model) {
-        const problem = await Model.findById(att.quiz.problemId).select('slug').lean();
+        const problem = await Model.findById(att.quiz.problemId).select('slug lessonSlug subtopicSlug').lean();
         problemSlug = problem?.slug || null;
+        lessonSlug = problem?.lessonSlug || null;
+        subtopicSlug = problem?.subtopicSlug || null;
       }
       return {
         _id: att._id,
         quizId: att.quiz._id,
         problemModel: att.quiz.problemModel,
         problemSlug,
+        lessonSlug,
+        subtopicSlug,
         subject: MODEL_TO_SUBJECT[att.quiz.problemModel] || 'dsa',
         questions: att.quiz.questions,
         answers: att.answers,

@@ -458,7 +458,7 @@ export default function SubjectProgressDetail() {
                         }) : ''}
                         {att.problemSlug && (
                           <span> · <Link
-                            to={`/${subject === 'dsa' ? 'dsa' : subject === 'dbms' ? 'dbms' : subject === 'programming' ? 'programming' : subject === 'aptitude' ? 'aptitude' : 'os'}/${att.problemSlug}`}
+                            to={`/${att.subject === 'dsa' ? 'dsa' : att.subject === 'dbms' ? 'dbms' : att.subject === 'programming' ? 'programming' : att.subject === 'aptitude' ? 'aptitude' : 'os'}/${[att.lessonSlug, att.subtopicSlug, att.problemSlug].filter(Boolean).join('/')}`}
                             onClick={e => e.stopPropagation()}
                             style={{ textDecoration: 'underline', color: 'var(--accent-blue, #0066ff)' }}
                           >View problem</Link></span>

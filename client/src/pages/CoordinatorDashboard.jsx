@@ -7,7 +7,7 @@ import {
   Users, Layers, FileText, Plus, ArrowRight, AlertCircle,
   CheckCircle, Clock, GraduationCap, Building2, TrendingUp, Download,
   BookOpen, Database, Monitor, Terminal, BarChart3, Activity,
-  Zap, Eye, ChevronLeft, ChevronRight, Calendar, UserPlus
+  Zap, Eye, ChevronLeft, ChevronRight, Calendar, UserPlus, Shield
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -34,6 +34,7 @@ export default function CoordinatorDashboard() {
   const [batches, setBatches] = useState([]);
   const [stats, setStats] = useState(null);
   const [center, setCenter] = useState(null);
+  const [faculties, setFaculties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [allStudents, setAllStudents] = useState([]);
@@ -52,12 +53,14 @@ export default function CoordinatorDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [batchesRes, statsRes] = await Promise.all([
+      const [batchesRes, statsRes, facultiesRes] = await Promise.all([
         apiRequest('/coordinator/batches/progress'),
-        apiRequest('/coordinator/stats')
+        apiRequest('/coordinator/stats'),
+        apiRequest('/coordinator/faculties')
       ]);
       setBatches(batchesRes.data || []);
       setStats(statsRes.data);
+      setFaculties(facultiesRes.data || []);
       if (statsRes.data?.center) setCenter(statsRes.data.center);
     } catch (err) {
       console.error('[COORD DASH] Error:', err.message);
@@ -78,14 +81,16 @@ export default function CoordinatorDashboard() {
         const students = res.data?.students || [];
         setAllStudents(students);
 
-        /* Derive lagging students — needs attention or behind pace */
+        /* Derive lagging students — needs attention or behind pace (faculty excluded: they are teachers, not students) */
         const lagging = students
+          .filter(s => !s.isFaculty)
           .filter(s => s.needsAttention || s.progress?.planProgress?.paceStatus === 'behind')
           .sort((a, b) => (b.attentionReasons?.length || 0) - (a.attentionReasons?.length || 0));
         setLaggingStudents(lagging);
 
-        /* Derive top performers — has plan progress, not flagged, sorted by completion % */
+        /* Derive top performers — has plan progress, not flagged, sorted by completion % (faculty excluded) */
         const top = students
+          .filter(s => !s.isFaculty)
           .filter(s => {
             if (s.needsAttention) return false;
             const pp = s.progress?.planProgress;
@@ -121,8 +126,9 @@ export default function CoordinatorDashboard() {
     return topStudents.filter(s => s._cp >= lo && s._cp <= hi);
   })();
 
-  /* Recently joined — sorted by join date */
+  /* Recently joined — sorted by join date (faculty excluded: teachers are not students) */
   const recentlyJoined = [...allStudents]
+    .filter(s => !s.isFaculty)
     .filter(s => s.coachingCenterJoinedAt)
     .sort((a, b) => new Date(b.coachingCenterJoinedAt) - new Date(a.coachingCenterJoinedAt));
 
@@ -284,6 +290,16 @@ export default function CoordinatorDashboard() {
           <Users size={22} style={{ color: 'var(--text-primary)', marginBottom: 6 }} />
           <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{totalStudents}</div>
           <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Students</div>
+        </Link>
+        <Link to="/coordinator/faculties" style={{ textDecoration: 'none', color: 'inherit', ...CARD, padding: 'var(--space-md)', textAlign: 'center', transition: 'transform 0.12s', borderColor: '#0f766e' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '8px 8px 0 #0f766e'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '6px 6px 0 #000'; }}>
+          <Shield size={22} style={{ color: '#0f766e', marginBottom: 6 }} />
+          <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{faculties.length}</div>
+          <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Faculty Members</div>
+          <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.3, borderTop: '2px solid #000', paddingTop: 4 }}>
+            Teachers managing batches. Open Manage Faculty for scope and revoke.
+          </p>
         </Link>
         <Link to="/coordinator/batches" style={{ textDecoration: 'none', color: 'inherit', ...CARD, padding: 'var(--space-md)', textAlign: 'center', transition: 'transform 0.12s' }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '8px 8px 0 #000'; }}

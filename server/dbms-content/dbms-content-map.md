@@ -1,6 +1,6 @@
 # DBMS Curriculum Content Map — v1 Launch Scope (thejobstarter)
 
-> **Progress:** Lessons 1 of 23 seeded — 8/6/2026: "Introduction to DBMS" (2 subtopics, 1 problem + 8-question quiz, 13 meta entries). Verify with `node dbms-content/verify_seed.mjs`. Content lives in `server/seeds/seedDbmsContent.js`.
+> **Progress:** Lessons 12 of 23 seeded — 8/11/2026: categories 0–2 started (Introduction to DBMS → Normal Forms: 24 subtopics, 23 problems, 23 quizzes, 35 meta entries). Verify with `node dbms-content/verify_seed.mjs`. Content lives in `server/seeds/seedDbmsContent.js`. Lesson docs generated — 8/12/2026: `01-introduction-to-dbms.md` → `12-normal-forms-1nf-bcnf.md` via `node dbms-content/generate_docs.mjs`.
 
 This file contains the full v1 build scope for the DBMS subject, following the same structure as the DSA and Aptitude content maps (Category → Lesson → Subtopic → Problem).
 

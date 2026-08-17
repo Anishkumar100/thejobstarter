@@ -1,6 +1,6 @@
 # DBMS Learning Document — Introduction to DBMS
 
-> A comprehensive, student-friendly guide to Introduction to DBMS — the foundation every database course stands on.
+> A comprehensive, student-friendly guide to Introduction to DBMS — the foundation every DBMS course stands on.
 > Master why a DBMS beats a raw file system, the three-schema architecture that keeps users and storage decoupled, and the data-model family tree from relational tables to network and hierarchical trees.
 
 ---
@@ -34,19 +34,19 @@ Now imagine a **single golden ledger** that all your stalls share, plus a strict
 
 ### The Five Superpowers of a DBMS
 
-**1. No Data Twice (Redundancy-Free)**
-A file system stores the customer's phone number in five files, five shapes. A DBMS stores it **exactly once** and every screen reads that one copy — no disagreement possible. If 2,00,000 copies of a record would eat 12 GB in files, one copy in a DBMS eats almost nothing.
+### 1. No Data Twice (Redundancy-Free)
+A file system stores the customer's phone number in five files, five shapes. A DBMS stores it **exactly once** and every screen reads that one copy → no disagreement possible. If 2,00,000 copies of a record would eat 12 GB in files, one copy in a DBMS eats almost nothing.
 
-**2. One Source of Truth**
+### 2. One Source of Truth
 Centralise it: the address lives in one row. Same data, same meaning, used by every app — you stop trusting which copy is right.
 
-**3. Access Controlled**
-The DBMS sits between the user and the raw data like a security guard — passwords, roles, row-level permissions. A spreadsheet has no walls; `GRANT` and `REVOKE` do.
+### 3. Access Controlled
+DBMS sits between the user and the raw data like a security guard — passwords, roles, row-level permissions. A spreadsheet has no walls; `GRANT` and `REVOKE` do.
 
-**4. Scale Without a Heart-Attack**
-"Total sales over ₹10,00,000" = scanning 4 million CSV rows by hand. With an **index**, the DBMS jumps straight to the relevant rows — the same lazy trick as a book's index.
+### 4. Scale Without a Heart-Attack
+"Total sales over ₹10,00,000" = scanning 4 million CSV rows by hand. With an **index**, the DBMS jumps straight to the rows — the same lazy trick as a book's index.
 
-**5. Safe Concurrency (many users at once)**
+### 5. Safe Concurrency (many users at once)
 Two clerks updating the same stock at the same instant is the classic file-corruption. A DBMS locks the row, applies the writes one after another, and every viewer sees a consistent snapshot.
 
 ### When Does the File System Win?
@@ -60,8 +60,6 @@ Two clerks updating the same stock at the same instant is the classic file-corru
 ### Key Takeaway
 
 A file system **stores** raw bytes. A DBMS **manages** them — deduplication, one source of truth, a security gate, an index for speed, and locks for safety. That is why libraries, banks, and the internet all run on DBMS, not on folders.
-
----
 
 ## 1.2 Database Architecture & Data Models
 
@@ -78,21 +76,20 @@ Think of a university. A student sees a simple login screen and a course card. T
 | **Internal** (Physical level) | Storage engine | How rows are placed on disk: blocks, indexes, pointers | Records packed in 4 KB blocks with a B+tree index on `ID` |
 
 ### Why Have a Middle Floor?
-
-Because it keeps the **users and the storage decoupled**. You can rebuild the entire physical layer — a faster index, a different block size — and **no app changes a single line**. The conceptual schema is the contract in between that both sides agree on.
+Because it keeps the users and the storage **decoupled**. You can rebuild the whole physical layer (faster index, different block size) and **no app changes a single line** — the conceptual schema is the contract in between.
 
 ### Data Models — How We Draw the Conceptual World
 
 A data model decides the *shape* in which records relate. There are four big families:
 
-**1. Relational Model — the king of tables**
+### 1. Relational Model — the king of tables
 Data lives in **tables** (relations). Rows = records, columns = attributes, keys connect tables. SQL speaks this shape. MySQL, PostgreSQL, Oracle — today's default for the world.
 
-```
+```sql
 STUDENT                      COURSE
 ID | Name  | Grade           ID | Title
-1  | Riya  | A               1  | DBMS
-2  | Aditi  | B              2  | DSA
+1  | Aarav | A               1  | DBMS
+2  | Meera | B               2  | DSA
 
 STUDENT_COURSE (the link table)
 studentID | courseID
@@ -101,40 +98,39 @@ studentID | courseID
 2         | 1
 ```
 
-**2. Hierarchical Model — the family tree**
+### 2. Hierarchical Model — the family tree
 Data organised as a **tree**: one parent, many children, every child has exactly one parent. Think org charts or folder trees. Fast for tree queries, painful for many-to-many. IBM's IMS was built on this.
 
 ```
              College
-       ┌───────┼──────┐
-    Dept A   Dept B   Dept C
-     │                │
-  Students         Teachers
+        ┌───────┼───────┐
+     Dept A     Dept B   Dept C
+      │                   │
+   Students           Teachers
 ```
 
-**3. Network Model — the web of pointers**
-Like hierarchy, but a child can have **many parents** — records linked by explicit pointers. Flexible but the data itself can become tangled: changing a pointer structure means rewriting queries. The CODASYL/DBTG model is the classic example.
+### 3. Network Model — the web of pointers
+Like hierarchy, but a child can have **many parents** — records linked by explicit pointers. Flexible but the data itself is spaghetti: changing a pointer structure means rewriting queries. CODASYL/DBTG model.
 
-**4. Object-Oriented / Document Model — the modern rebels**
-Records as objects (OODBMS) or JSON documents (MongoDB, CouchDB). No rigid schema is needed — each document can carry its own fields. Loved when data is naturally nested, like a blog post with its comments inside it.
+### 4. Object-Oriented / Document Model — the modern rebels
+Records as objects (OODBMS) or JSON documents (MongoDB, CouchDB). No rigid schema needed — each document can carry its own fields. Loved when data is naturally nested, like a blog post with its comments inside it.
 
 ```json
 {
-  "student": "Aditi",
+  "student": "Aarav",
   "grade": "A",
   "hobbies": ["chess", "cricket"]
 }
 ```
 
 ### Which Model Wins?
-
-There is no absolute winner — it depends on the question you are asking:
+There is no absolute winner — it depends on the question:
 
 | Need | Model |
 |---|---|
 | Account balances, joins, reports | Relational (SQL) |
 | Parent→child drill-down, org charts | Hierarchical |
-| Complex many-to-many, legacy systems | Network |
+| Complex many-to-many, legacy | Network |
 | Flexible JSON, nested documents | Document (NoSQL) |
 
 ### Key Takeaway
@@ -147,13 +143,11 @@ Every database has three windows: **External** (user view), **Conceptual** (pure
 
 ## 2.1 Identify the Three-Schema Architecture Level
 
-```
-|                    |                                  |
-|--------------------|----------------------------------|
-| **Difficulty**     | Easy                             |
-| **Subtopic**       | Database Architecture & Data Models |
-| **Companies**      | Amazon, Google, Oracle           |
-```
+| | |
+|---|---|
+| **Difficulty** | Easy |
+| **Subtopic** | Database Architecture & Data Models |
+| **Companies** | Amazon, Google, Oracle |
 
 ### Problem Statement
 
@@ -163,16 +157,16 @@ You are given five statements that different people make about the same universi
 
 | Input | Output | Explanation |
 |---|---|---|
-| An app shows rows about a user's name and grade only | External | The statement talks about what a single user/app sees to a view of the data |
-| The designer says "Student and Course are two tables with a many-to-many link" | Conceptual | Says nothing about disk; talks about tables, keys, relationships |
-| The DBA says "pack records into 4 KB blocks with a B+tree index" | Internal | Mention of blocks, indexes and file layout = physical concern |
-| "A student may enroll in many courses, and a course may have many students" | Conceptual | A relationship between entities — structure and meaning |
-| The user sees only two columns and has no idea what the raw table is | External | A user's personalised window on the data |
+| An app developer says: 'I only show the user their name, grade and hobby — my screen never touches the raw table.' | External | The statement talks about what a single user/application sees — a rearranged or computed projection of data. That is the view level (External schema). |
+| The database designer says: 'Student and Course are two tables linked by a many-to-many relationship through a STUDENT_COURSE link table.' | Conceptual | This describes the pure structure — tables, keys, relationships — with zero storage detail. That is the Conceptual (logical) schema. |
+| A DBA says: 'I will pack the rows into 4 KB blocks and build a B+tree index on the Student ID column.' | Internal | Blocks, indexes, and file layout are physical storage concerns. That is the Internal (physical) schema. |
+| A lecturer says: 'A student may enroll in many courses, and a course may have many students.' | Conceptual | This describes a relationship between entities — structure and meaning, not storage. That is the Conceptual schema. |
+| A user says: 'On my app, I see two columns: my grade and my hobby. I have no idea what a STUDENT table looks like.' | External | The user sees only their personalised window on the data — the External (view) level. |
 
 ### Constraints
 
-- Classify each statement as exactly one of: External, Conceptual, Internal
-- You may replay each statement as it relates to the same three-schema blueprint
+- Classify each statement as exactly one of: External, Conceptual, Internal.
+- Watch for trigger words — user/app/screen → External; table/relationship/key → Conceptual; block/index/disk/pointer → Internal.
 
 ### Approach
 
@@ -183,26 +177,20 @@ Ask: **Who is speaking, and about what?**
 | If the speaker talks about… | It is |
 |---|---|
 | What a user or app **sees** (screens, views, visible columns) | **External** |
-| The **structure and meaning** — tables, keys, relationships, cardinality | **Conceptual** |
+| **Structure and meaning** — tables, keys, relationships, cardinality | **Conceptual** |
 | **Storage on disk** — blocks, indexes, pointers, file layout | **Internal** |
 
 **Step-by-Step Method**
 
-1. **Read the statement and find the subject.** Is it about a screen, a table, or a disk?
+1. **Read the statement and find the subject.** Is it about a screen, a table design, or a disk?
 2. **User/app + visible columns → External.** Views are tailor-made projections — often they hide or recompute columns.
-3. **Designer + structure → Conceptual.** "Student and Course are linked" describes the schema's meaning, not its storage.
-4. **Engineer + blocks/indexes → Internal.** "4 KB blocks" and "B+tree" are pure physical talk.
+3. **Designer + structure → Conceptual.** "Student and Course are linked" describes the schema's meaning, not its bits.
+4. **DBA + blocks/indexes → Internal.** "4 KB blocks" and "B+tree" are pure physical talk.
 5. **When in doubt, remember the middle floor is the contract.** If the statement stays true no matter how the data is stored on disk, it is Conceptual. If it mentions the disk at all, it is Internal. If it mentions a screen or a specific user's needs, it is External.
 
 **Why This Trick Always Works**
 
-The three-schema architecture exists exactly so that these three audiences can talk about the same database without confusion. The **view level** is cosmetic (what you see), the **logical level** is structural (what it means), the **physical level** is mechanical (how it is stored). Interview questions hide exactly these trigger words — hunt for them.
-
-| Trigger words | Level |
-|---|---|
-| user, app, screen, view, visible columns | External |
-| table, key, relationship, cardinality, schema | Conceptual |
-| block, index, pointer, disk, file layout | Internal |
+The three-schema architecture exists exactly so that these three audiences can talk about the same database without confusion. The **view level** is cosmetic (what you see), the **logical level** is structural (what it means), the **physical level** is mechanical (how it is stored). Real-world interview questions hide exactly these trigger words — hunt for them.
 
 ### Code
 
@@ -214,8 +202,8 @@ FROM Student;
 
 -- CONCEPTUAL: the pure structure (tables + relationship)
 CREATE TABLE Student (
-  id    INT PRIMARY KEY,
-  name  VARCHAR(50),
+  id   INT PRIMARY KEY,
+  name VARCHAR(50),
   grade CHAR(1)
 );
 

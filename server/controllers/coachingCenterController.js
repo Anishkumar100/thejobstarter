@@ -285,9 +285,16 @@ export async function removeStudentFromCenter(req, res) {
     student.coachingCenterJoinedAt = null;
     student.batch = null;
     student.courseOffering = null;
+    /*
+     * Faculty status dies with the center link — a faculty member can only
+     * teach batches of the center they belong to. Clearing these two fields
+     * makes the unlink a full de-facultying (regular student again).
+     */
+    student.isFaculty = false;
+    student.facultyBatches = [];
     await student.save();
 
-    console.log('[COACHING] Student removed from center:', userId, '— batch and courseOffering also cleared');
+    console.log('[COACHING] Student removed from center:', userId, '— batch, courseOffering and faculty status cleared');
     res.json({ success: true, data: { _id: student._id, displayName: student.displayName, username: student.username } });
   } catch (error) {
     console.error('[COACHING] Error removing student from center:', error.message);

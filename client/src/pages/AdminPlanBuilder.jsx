@@ -30,14 +30,15 @@ const CARD = {
   boxShadow: 'var(--shadow)'
 };
 
-export default function AdminPlanBuilder() {
+export default function AdminPlanBuilder({ apiScope }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: clerkUser } = useUser();
   const role = clerkUser?.publicMetadata?.role;
   const isAdmin = role === 'admin';
   const isEditing = Boolean(id);
-  const planApiBase = isAdmin ? '/plans' : '/coordinator/plans';
+  /* Optional scope override (e.g. apiScope="faculty"). Default keeps admin/coordinator behavior identical. */
+  const planApiBase = apiScope === 'faculty' ? '/faculty/plans' : (isAdmin ? '/plans' : '/coordinator/plans');
 
   /* ── Plan form state ── */
   const [planName, setPlanName] = useState('');
@@ -261,7 +262,7 @@ export default function AdminPlanBuilder() {
         });
       }
       setDirty(false);
-      const basePath = isAdmin ? '/admin/plans' : '/coordinator/plans';
+      const basePath = apiScope === 'faculty' ? '/faculty/plans' : (isAdmin ? '/admin/plans' : '/coordinator/plans');
       navigate(basePath);
     } catch (err) {
       console.error('[PLAN BUILDER] Save error:', err.message);
@@ -330,12 +331,12 @@ export default function AdminPlanBuilder() {
   return (
     <div style={{ padding: 'var(--space-lg)', maxWidth: 1400, margin: '0 auto' }}>
       <Helmet>
-        <title>{isEditing ? 'Edit Plan' : 'Create Plan'} — {isAdmin ? 'Admin' : 'Coordinator'} — TheWebytes</title>
+        <title>{isEditing ? 'Edit Plan' : 'Create Plan'} — {apiScope === 'faculty' ? 'Faculty' : (isAdmin ? 'Admin' : 'Coordinator')} — TheWebytes</title>
       </Helmet>
 
       {/* ── Back link ── */}
       <button
-        onClick={() => navigate(isAdmin ? '/admin/plans' : '/coordinator/plans')}
+        onClick={() => navigate(apiScope === 'faculty' ? '/faculty/plans' : (isAdmin ? '/admin/plans' : '/coordinator/plans'))}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 'var(--space-md)',
           fontSize: '0.85rem', color: 'var(--text-secondary)',

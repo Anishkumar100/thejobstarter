@@ -42,9 +42,9 @@ export async function getCoordinatorAssignments(req, res) {
       const totalSubmissions = await AssignmentSubmission.countDocuments({ assignment: a._id });
       const approvedCount = await AssignmentSubmission.countDocuments({ assignment: a._id, status: 'approved' });
       const pendingCount = await AssignmentSubmission.countDocuments({ assignment: a._id, status: 'submitted' });
-      /* Count students only if assignment has a batch */
+      /* Count students only if assignment has a batch — faculty are not students */
       const totalStudents = a.batch?._id 
-        ? await User.countDocuments({ coachingCenter: centerId, batch: a.batch._id })
+        ? await User.countDocuments({ coachingCenter: centerId, batch: a.batch._id, isFaculty: { $ne: true } })
         : 0;
       return {
         ...a,

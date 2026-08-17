@@ -547,6 +547,13 @@
   color: #fff;
 }
 
+/* Faculty badge — school icon */
+.navbar__org-badge--faculty {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #fff;
+}
+
 .navbar__user:hover .navbar__premium-badge,
 .navbar__user:hover .navbar__org-badge {
   transform: rotate(-10deg) scale(1.15);

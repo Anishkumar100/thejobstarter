@@ -3,7 +3,7 @@ import { useAuthStore } from '../../stores/useAuthStore.js';
 import { useThemeStore } from '../../stores/useThemeStore.js';
 import { useNotificationStore } from '../../stores/useNotificationStore.js';
 import { useState, useEffect, useRef } from 'react';
-import { Menu, X, Moon, Sun, MessageCircle, User, Settings, LogOut, Bell, LayoutDashboard, Sparkles, Zap, ChevronDown, Users, HelpCircle, GraduationCap, Building2, Newspaper } from 'lucide-react';
+import { Menu, X, Moon, Sun, MessageCircle, User, Settings, LogOut, Bell, LayoutDashboard, Sparkles, Zap, ChevronDown, Users, HelpCircle, GraduationCap, Building2, Newspaper, School } from 'lucide-react';
 import BrandLogo from './BrandLogo.jsx';
 
 /*
@@ -44,6 +44,9 @@ export default function Navbar() {
   /* Role/org badge logic */
   const isCoordinator = user?.publicMetadata?.role === 'coordinator' || !!user?.coordinatorFor;
   const isStudentInCenter = !!user?.coachingCenter && !isCoordinator;
+
+  /* Faculty status is Mongo-backed (mirrored into the store by AuthSync) — never from Clerk metadata */
+  const isFaculty = !!user?.isFaculty;
 
   /* Build the full nav links list dynamically */
   const navLinks = [
@@ -191,6 +194,11 @@ export default function Navbar() {
                       <GraduationCap size={12} />
                     </span>
                   )}
+                  {isFaculty && (
+                    <span className="navbar__org-badge navbar__org-badge--faculty" title="Faculty">
+                      <School size={12} />
+                    </span>
+                  )}
                   {isPremium && !isCenterOrCoordinator && (
                     <span className="navbar__premium-badge" title="Premium Member">
                       <Sparkles size={12} />
@@ -229,6 +237,16 @@ export default function Navbar() {
                       <User size={16} />
                       <span>View Profile</span>
                     </Link>
+                    {isFaculty && (
+                      <Link
+                        to="/faculty"
+                        className="navbar__dropdown-item"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        <School size={16} />
+                        <span>Faculty Panel</span>
+                      </Link>
+                    )}
                     <Link
                       to="/settings/profile"
                       className="navbar__dropdown-item"
@@ -349,6 +367,12 @@ export default function Navbar() {
                   <Link to="/dashboard" className="navbar__overlay-msg-btn" onClick={closeMenu} style={{ borderTop: 'none' }}>
                     <LayoutDashboard size={18} />
                     Dashboard
+                  </Link>
+                )}
+                {isFaculty && (
+                  <Link to="/faculty" className="navbar__overlay-msg-btn" onClick={closeMenu} style={{ borderTop: 'none' }}>
+                    <School size={18} />
+                    Faculty Panel
                   </Link>
                 )}
                 <Link to="/messages" className="navbar__overlay-msg-btn" onClick={closeMenu}>

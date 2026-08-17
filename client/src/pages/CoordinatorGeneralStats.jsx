@@ -211,7 +211,8 @@ export default function CoordinatorGeneralStats() {
 
       {/* ═══ NEEDS ATTENTION ═══ */}
       {(() => {
-        const flagged = students.filter(s => s.needsAttention);
+        /* Students only — faculty (teachers) are not part of student progress lists */
+        const flagged = students.filter(s => s.isFaculty !== true && s.needsAttention);
         return (
           <div style={{ marginBottom: 'var(--space-xl)', ...CARD, borderLeft: '8px solid var(--error)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
@@ -491,7 +492,8 @@ export default function CoordinatorGeneralStats() {
                 </tr>
               </thead>
               <tbody>
-                {students.slice(0, 8).map((s, idx) => {
+                {/* Students only — faculty are never shown in student lists */}
+                {students.filter(s => s.isFaculty !== true).slice(0, 8).map((s, idx) => {
                   const pct = computeOverallPct(s.progress);
                   return (
                     <tr key={s._id} style={{ borderBottom: '2px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'var(--bg-tertiary)' }}>

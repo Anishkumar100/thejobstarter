@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { requireCoordinator } from '../middleware/coordinatorOnly.js';
-import { getStudents, getStats, getStudentById, updateStudent, removeStudent, exportCoordinatorCsv, getCoordinatorBatches, createCoordinatorBatch, updateCoordinatorBatch, deleteCoordinatorBatch, assignStudentToBatch, removeStudentFromBatch, bulkAssignStudentsToBatch, bulkRemoveStudentsFromBatch, getCoordinatorCourseOfferings, createCoordinatorCourseOffering, updateCoordinatorCourseOffering, deleteCoordinatorCourseOffering, updateStudentCourse, updateCenterCode } from '../controllers/coordinatorController.js';
+import { getStudents, getStats, getStudentById, updateStudent, removeStudent, exportCoordinatorCsv, getCoordinatorBatches, createCoordinatorBatch, updateCoordinatorBatch, deleteCoordinatorBatch, assignStudentToBatch, removeStudentFromBatch, bulkAssignStudentsToBatch, bulkRemoveStudentsFromBatch, getCoordinatorCourseOfferings, createCoordinatorCourseOffering, updateCoordinatorCourseOffering, deleteCoordinatorCourseOffering, updateStudentCourse, updateCenterCode, promoteStudentToFaculty, revokeFaculty, getCoordinatorFaculties, updateFacultyBatches } from '../controllers/coordinatorController.js';
 import { getCoordinatorPlans, getCoordinatorPlanById, createCoordinatorPlan, updateCoordinatorPlan, deleteCoordinatorPlan, getBatchesWithPlans, getBatchStudentsWithProgress, getCoordinatorPlanAssignments, assignCoordinatorPlanToBatch, unassignCoordinatorPlanFromBatch } from '../controllers/planController.js';
 
 const router = Router();
@@ -18,6 +18,12 @@ router.patch('/students/:userId', requireAuth, requireCoordinator, updateStudent
 router.patch('/students/:userId/remove', requireAuth, requireCoordinator, removeStudent);
 router.patch('/students/:userId/batch', requireAuth, requireCoordinator, assignStudentToBatch);
 router.patch('/students/:userId/batch/remove', requireAuth, requireCoordinator, removeStudentFromBatch);
+
+/* ── Faculty management (Mongo-only — faculty is never a Clerk role) ── */
+router.post('/students/:userId/promote', requireAuth, requireCoordinator, promoteStudentToFaculty);
+router.post('/students/:userId/revoke-faculty', requireAuth, requireCoordinator, revokeFaculty);
+router.get('/faculties', requireAuth, requireCoordinator, getCoordinatorFaculties);
+router.put('/faculties/:userId/batches', requireAuth, requireCoordinator, updateFacultyBatches);
 router.get('/stats', requireAuth, requireCoordinator, getStats);
 router.get('/export', requireAuth, requireCoordinator, exportCoordinatorCsv);
 router.get('/batches', requireAuth, requireCoordinator, getCoordinatorBatches);

@@ -8,6 +8,10 @@ export const useAuthStore = create((set, get) => ({
   isPremium: false,
   subscriptionStatus: null, // 'free' | 'active' | 'canceled' | 'expired' | 'past_due'
   loading: true,
+  /* False until AuthSync's async server-profile fetch resolves (success OR failure).
+     Route guards must wait for this before bouncing users, or fresh visits race
+     against the fetch and loop forever. */
+  profileFetched: false,
 
   setUser: (user) => {
     set({
@@ -15,7 +19,9 @@ export const useAuthStore = create((set, get) => ({
       isAuthenticated: !!user,
       isAdmin: user?.publicMetadata?.role === 'admin',
       isPremium: !!user?.coachingCenter, /* Center-enrolled = premium access */
-      loading: false
+      loading: false,
+      /* Profile refetch begins on every login — reset until it resolves */
+      profileFetched: false
     });
     /* Fetch subscription status in background when user logs in */
     if (user) {
@@ -24,7 +30,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   clearUser: () => {
-    set({ user: null, isAuthenticated: false, isAdmin: false, isPremium: false, subscriptionStatus: null, loading: false });
+    set({ user: null, isAuthenticated: false, isAdmin: false, isPremium: false, subscriptionStatus: null, loading: false, profileFetched: false });
   },
 
   updateUser: (updates) => {
@@ -37,6 +43,12 @@ export const useAuthStore = create((set, get) => ({
       return { user: newUser, isPremium };
     });
   },
+
+  /*
+   * Marks the AuthSync server-profile fetch as resolved (store-root flag).
+   * Route guards (FacultyRoute) wait on this before deciding access.
+   */
+  setProfileFetched: (value) => set({ profileFetched: !!value }),
 
   /*
    * Fetch subscription status from backend and sync into auth store.

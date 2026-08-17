@@ -846,3 +846,167 @@ export async function deletePromoCode(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+/*
+ * ═══ Faculty management (center-scoped, Mongo-only) ═══
+ *
+ * Admin override of the coordinator faculty flows. These live under
+ * /api/coaching-centers/:centerId/* (registered in coachingCenterRoutes.js)
+ * because the admin UI manages teachers inside the center page.
+ * Faculty status is NEVER a Clerk concern — no clerk.users.updateUser calls.
+ * The admin can act on ANY center, but every batch/student inside a single
+ * call must belong to the one :centerId (never trust params beyond that).
+ */
+
+/*
+ * GET /api/coaching-centers/:centerId/faculties
+ * Admin: List faculty of a specific center, with assigned batches populated.
+ */
+export async function getCenterFaculties(req, res) {
+  try {
+    const { id: centerId } = req.params;
+    console.log('[ADMIN] Fetching faculties for center:', centerId);
+
+    const faculties = await User.find({ coachingCenter: centerId, isFaculty: true })
+      .select('displayName username avatar email isFaculty facultyBatches batch coachingCenterJoinedAt')
+      .populate('facultyBatches', 'name code status expectedStudents')
+      .sort({ displayName: 1 });
+
+    console.log('[ADMIN] Faculties fetched:', faculties.length);
+    res.json({ data: faculties });
+  } catch (error) {
+    console.error('[ADMIN] Error fetching faculties:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/coaching-centers/:centerId/students/:userId/promote
+ * Admin: Promote a regular student of THIS center to faculty (Mongo-only).
+ */
+export async function promoteCenterStudentToFaculty(req, res) {
+  try {
+    const { id: centerId, userId } = req.params;
+    console.log('[ADMIN] Promoting student to faculty:', userId, 'center:', centerId);
+
+    const student = await User.findById(userId).select('coachingCenter role isFaculty displayName username');
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    if (!student.coachingCenter || student.coachingCenter.toString() !== centerId) {
+      console.log('[ADMIN] Promote rejected — student not in center:', userId);
+      return res.status(400).json({ error: 'Student is not linked to this center' });
+    }
+    if (student.role !== 'user') {
+      console.log('[ADMIN] Promote rejected — student is a staff role:', userId, student.role);
+      return res.status(400).json({ error: 'Only regular students can be promoted to faculty' });
+    }
+    if (student.isFaculty) {
+      console.log('[ADMIN] Promote rejected — already faculty:', userId);
+      return res.status(400).json({ error: 'Student is already a faculty member' });
+    }
+
+    student.isFaculty = true;
+    student.facultyBatches = [];
+    await student.save();
+
+    console.log('[ADMIN] Student promoted to faculty:', userId);
+    res.json({ success: true, data: { _id: student._id, displayName: student.displayName, username: student.username, isFaculty: true, facultyBatches: [] } });
+  } catch (error) {
+    console.error('[ADMIN] Error promoting student to faculty:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/coaching-centers/:centerId/students/:userId/revoke-faculty
+ * Admin: Revoke faculty status — the person becomes a regular student of
+ * the center again. Clears ONLY isFaculty + facultyBatches.
+ */
+export async function revokeCenterFaculty(req, res) {
+  try {
+    const { id: centerId, userId } = req.params;
+    console.log('[ADMIN] Revoking faculty status for:', userId, 'center:', centerId);
+
+    const student = await User.findById(userId).select('coachingCenter isFaculty displayName username');
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    if (!student.coachingCenter || student.coachingCenter.toString() !== centerId) {
+      console.log('[ADMIN] Revoke rejected — student not in center:', userId);
+      return res.status(400).json({ error: 'Student is not linked to this center' });
+    }
+    if (!student.isFaculty) {
+      console.log('[ADMIN] Revoke rejected — not a faculty member:', userId);
+      return res.status(400).json({ error: 'Student is not a faculty member' });
+    }
+
+    student.isFaculty = false;
+    student.facultyBatches = [];
+    await student.save();
+
+    console.log('[ADMIN] Faculty status revoked — back to regular student:', userId);
+    res.json({ success: true, data: { _id: student._id, displayName: student.displayName, username: student.username, isFaculty: false } });
+  } catch (error) {
+    console.error('[ADMIN] Error revoking faculty status:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * PUT /api/coaching-centers/:centerId/faculties/:userId/batches
+ * Admin: Set the batch scope of a faculty member of THIS center.
+ * Body: { batchIds: [] } — replaces the whole facultyBatches array.
+ * Validates every batch belongs to the given center (single-center rule
+ * is inherent since all batches must match the one :centerId).
+ */
+export async function updateCenterFacultyBatches(req, res) {
+  try {
+    const { id: centerId, userId } = req.params;
+    const { batchIds } = req.body;
+
+    console.log('[ADMIN] Updating faculty batches for:', userId, 'center:', centerId, batchIds);
+
+    if (!Array.isArray(batchIds)) {
+      return res.status(400).json({ error: 'batchIds must be an array' });
+    }
+
+    const faculty = await User.findById(userId).select('coachingCenter isFaculty displayName username');
+    if (!faculty) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (!faculty.coachingCenter || faculty.coachingCenter.toString() !== centerId) {
+      console.log('[ADMIN] Batch assign rejected — user not in center:', userId);
+      return res.status(403).json({ error: 'User is not linked to this center' });
+    }
+    if (!faculty.isFaculty) {
+      console.log('[ADMIN] Batch assign rejected — user is not faculty:', userId);
+      return res.status(400).json({ error: 'User is not a faculty member' });
+    }
+
+    const uniqueIds = [...new Set(batchIds.filter(Boolean))];
+    const batches = uniqueIds.length > 0
+      ? await Batch.find({ _id: { $in: uniqueIds } }).select('coachingCenter name').lean()
+      : [];
+
+    if (batches.length !== uniqueIds.length) {
+      console.log('[ADMIN] Batch assign rejected — unknown batch ids:', uniqueIds);
+      return res.status(400).json({ error: 'One or more batches do not exist' });
+    }
+    for (const batch of batches) {
+      if (batch.coachingCenter.toString() !== centerId) {
+        console.log('[ADMIN] Batch assign rejected — batch belongs to another center:', batch._id);
+        return res.status(400).json({ error: `Batch "${batch.name}" is not in this center` });
+      }
+    }
+
+    faculty.facultyBatches = uniqueIds;
+    await faculty.save();
+
+    console.log('[ADMIN] Faculty batches updated:', userId, '->', uniqueIds.length);
+    res.json({ success: true, data: { _id: faculty._id, facultyBatches: uniqueIds } });
+  } catch (error) {
+    console.error('[ADMIN] Error updating faculty batches:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}

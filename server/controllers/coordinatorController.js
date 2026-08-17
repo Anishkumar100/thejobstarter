@@ -208,10 +208,16 @@ export async function getCoordinatorBatches(req, res) {
       .populate('courseOffering', 'name')
       .sort({ createdAt: -1 })
       .lean();
-    /* Enrich each batch with student count (users in this coaching center assigned to this batch) */
+    /* Enrich each batch with student count (users in this coaching center assigned to this batch).
+       Faculty members are NOT students — exclude them so promoted teachers vanish from student counts.
+       Also attach the teachers assigned to this batch (faculty whose scope includes this batch)
+       so the coordinator UI can mention them separately. */
     const enriched = await Promise.all(batches.map(async b => {
-      const studentCount = await User.countDocuments({ coachingCenter: centerId, batch: b._id });
-      return { ...b, studentCount };
+      const studentCount = await User.countDocuments({ coachingCenter: centerId, batch: b._id, isFaculty: { $ne: true } });
+      const teachers = await User.find({ coachingCenter: centerId, isFaculty: true, facultyBatches: b._id })
+        .select('displayName username avatar _id')
+        .lean();
+      return { ...b, studentCount, teachers };
     }));
     console.log('[COORD] Batches fetched:', enriched.length);
     res.json({ data: enriched });
@@ -864,12 +870,208 @@ export async function removeStudent(req, res) {
     student.coachingCenterJoinedAt = null;
     student.batch = null;
     student.courseOffering = null;
+    /*
+     * Faculty status dies with the center link — same additive rule as the
+     * admin removeStudentFromCenter: a faculty member can only teach batches
+     * of the center they belong to.
+     */
+    student.isFaculty = false;
+    student.facultyBatches = [];
     await student.save();
 
-    console.log('[COORD] Student removed from center:', userId, '— batch and courseOffering also cleared');
+    console.log('[COORD] Student removed from center:', userId, '— batch, courseOffering and faculty status cleared');
     res.json({ success: true, data: { _id: student._id, username: student.username } });
   } catch (error) {
     console.error('[COORD] Error removing student:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/coordinator/students/:userId/promote
+ * Coordinator: Promote a regular student of the own center to faculty.
+ * Mongo-only — faculty status never enters Clerk (no clerk.users.updateUser call).
+ * Optional body { batchId } — when promoting "from a batch", that batch becomes
+ * the teacher's DEFAULT scope (facultyBatches = [batchId]); the coordinator can
+ * assign more batches afterwards via PUT /api/coordinator/faculties/:userId/batches.
+ * Without batchId, facultyBatches stays empty (existing behavior).
+ */
+export async function promoteStudentToFaculty(req, res) {
+  try {
+    const centerId = req.coordinatorCenterId;
+    const { userId } = req.params;
+    const { batchId } = req.body || {};
+
+    console.log('[COORD] Promoting student to faculty:', userId, batchId ? `default batch ${batchId}` : 'no default batch');
+
+    const student = await User.findById(userId).select('coachingCenter role isFaculty displayName username');
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    /* Security: only regular students of THIS center can be promoted */
+    if (!student.coachingCenter || student.coachingCenter.toString() !== centerId.toString()) {
+      console.log('[COORD] Promote rejected — student not in this center:', userId);
+      return res.status(403).json({ error: 'Student is not linked to your center' });
+    }
+    if (student.role !== 'user') {
+      console.log('[COORD] Promote rejected — student is a staff role:', userId, student.role);
+      return res.status(400).json({ error: 'Only regular students can be promoted to faculty' });
+    }
+    if (student.isFaculty) {
+      console.log('[COORD] Promote rejected — already faculty:', userId);
+      return res.status(400).json({ error: 'Student is already a faculty member' });
+    }
+
+    /* If a default batch was given, validate it belongs to THIS center */
+    if (batchId) {
+      const batch = await Batch.findById(batchId).select('coachingCenter name').lean();
+      if (!batch) {
+        return res.status(400).json({ error: 'Batch does not exist' });
+      }
+      if (batch.coachingCenter.toString() !== centerId.toString()) {
+        console.log('[COORD] Promote rejected — default batch belongs to another center:', batchId);
+        return res.status(400).json({ error: `Batch "${batch.name}" is not in your center` });
+      }
+    }
+
+    student.isFaculty = true;
+    /* Promote "from a batch" → that batch is the default scope; otherwise empty scope */
+    student.facultyBatches = batchId ? [batchId] : [];
+    await student.save();
+
+    console.log('[COORD] Student promoted to faculty:', userId, 'scope:', student.facultyBatches);
+    res.json({ success: true, data: { _id: student._id, displayName: student.displayName, username: student.username, isFaculty: true, facultyBatches: student.facultyBatches } });
+  } catch (error) {
+    console.error('[COORD] Error promoting student to faculty:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * POST /api/coordinator/students/:userId/revoke-faculty
+ * Coordinator: Revoke faculty status — the person becomes a regular student
+ * of the center again. Clears ONLY isFaculty + facultyBatches; their own
+ * coachingCenter, student batch, progress, and submissions all survive.
+ */
+export async function revokeFaculty(req, res) {
+  try {
+    const centerId = req.coordinatorCenterId;
+    const { userId } = req.params;
+
+    console.log('[COORD] Revoking faculty status for:', userId);
+
+    const student = await User.findById(userId).select('coachingCenter isFaculty displayName username');
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    /* Only own-center faculty can be revoked */
+    if (!student.coachingCenter || student.coachingCenter.toString() !== centerId.toString()) {
+      console.log('[COORD] Revoke rejected — student not in this center:', userId);
+      return res.status(403).json({ error: 'Student is not linked to your center' });
+    }
+    if (!student.isFaculty) {
+      console.log('[COORD] Revoke rejected — not a faculty member:', userId);
+      return res.status(400).json({ error: 'Student is not a faculty member' });
+    }
+
+    /* Targeted clear — nothing else on the user doc is touched */
+    student.isFaculty = false;
+    student.facultyBatches = [];
+    await student.save();
+
+    console.log('[COORD] Faculty status revoked — back to regular student:', userId);
+    res.json({ success: true, data: { _id: student._id, displayName: student.displayName, username: student.username, isFaculty: false } });
+  } catch (error) {
+    console.error('[COORD] Error revoking faculty status:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * GET /api/coordinator/faculties
+ * Coordinator: List all faculty members of the own center,
+ * with their assigned batches populated.
+ */
+export async function getCoordinatorFaculties(req, res) {
+  try {
+    const centerId = req.coordinatorCenterId;
+    console.log('[COORD] Fetching faculties for center:', centerId);
+
+    const faculties = await User.find({ coachingCenter: centerId, isFaculty: true })
+      .select('displayName username avatar email isFaculty facultyBatches batch coachingCenterJoinedAt')
+      .populate('facultyBatches', 'name code status expectedStudents')
+      .sort({ displayName: 1 });
+
+    console.log('[COORD] Faculties fetched:', faculties.length);
+    res.json({ data: faculties });
+  } catch (error) {
+    console.error('[COORD] Error fetching faculties:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+/*
+ * PUT /api/coordinator/faculties/:userId/batches
+ * Coordinator: Set the batch scope of a faculty member.
+ * Body: { batchIds: [] } — replaces the whole facultyBatches array.
+ * Validates: every batch belongs to the coordinator's center, all batches
+ * share ONE center (single-center rule), the target is a faculty member
+ * of the coordinator's center.
+ */
+export async function updateFacultyBatches(req, res) {
+  try {
+    const centerId = req.coordinatorCenterId;
+    const { userId } = req.params;
+    const { batchIds } = req.body;
+
+    console.log('[COORD] Updating faculty batches for:', userId, batchIds);
+
+    if (!Array.isArray(batchIds)) {
+      return res.status(400).json({ error: 'batchIds must be an array' });
+    }
+
+    /* Target must be an own-center faculty member */
+    const faculty = await User.findById(userId).select('coachingCenter isFaculty displayName username');
+    if (!faculty) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (!faculty.coachingCenter || faculty.coachingCenter.toString() !== centerId.toString()) {
+      console.log('[COORD] Batch assign rejected — user not in this center:', userId);
+      return res.status(403).json({ error: 'User is not linked to your center' });
+    }
+    if (!faculty.isFaculty) {
+      console.log('[COORD] Batch assign rejected — user is not faculty:', userId);
+      return res.status(400).json({ error: 'User is not a faculty member' });
+    }
+
+    /* Validate every batch belongs to the coordinator's center */
+    const uniqueIds = [...new Set(batchIds.filter(Boolean))];
+    const batches = uniqueIds.length > 0
+      ? await Batch.find({ _id: { $in: uniqueIds } }).select('coachingCenter status name').lean()
+      : [];
+
+    if (batches.length !== uniqueIds.length) {
+      console.log('[COORD] Batch assign rejected — unknown batch ids:', uniqueIds);
+      return res.status(400).json({ error: 'One or more batches do not exist' });
+    }
+    for (const batch of batches) {
+      if (batch.coachingCenter.toString() !== centerId.toString()) {
+        console.log('[COORD] Batch assign rejected — batch belongs to another center:', batch._id);
+        return res.status(400).json({ error: `Batch "${batch.name}" is not in your center` });
+      }
+    }
+
+    /* Single-center rule is inherent — every batch above already belongs to THIS center */
+
+    faculty.facultyBatches = uniqueIds;
+    await faculty.save();
+
+    console.log('[COORD] Faculty batches updated:', userId, '->', uniqueIds.length);
+    res.json({ success: true, data: { _id: faculty._id, facultyBatches: uniqueIds } });
+  } catch (error) {
+    console.error('[COORD] Error updating faculty batches:', error.message);
     res.status(500).json({ error: error.message });
   }
 }

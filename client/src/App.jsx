@@ -143,6 +143,8 @@ import CoordinatorBatches from './pages/CoordinatorBatches.jsx';
 import CoordinatorBatchDetail from './pages/CoordinatorBatchDetail.jsx';
 import CoordinatorCourses from './pages/CoordinatorCourses.jsx';
 import CoordinatorStudentsList from './pages/CoordinatorStudentsList.jsx';
+import CoordinatorFaculties from './pages/CoordinatorFaculties.jsx';
+import CoordinatorFacultyDetail from './pages/CoordinatorFacultyDetail.jsx';
 import CoordinatorStudentDetail from './pages/CoordinatorStudentDetail.jsx';
 import CoordinatorProfile from './pages/CoordinatorProfile.jsx';
 import CoordinatorAssignments from './pages/CoordinatorAssignments.jsx';
@@ -150,8 +152,20 @@ import CoordinatorAssignmentDetail from './pages/CoordinatorAssignmentDetail.jsx
 import StudentAssignments from './pages/StudentAssignments.jsx';
 import StudentAssignmentDetail from './pages/StudentAssignmentDetail.jsx';
 import CoordinatorLayout from './components/coordinator/CoordinatorLayout.jsx';
+import FacultyLayout from './components/faculty/FacultyLayout.jsx';
+import FacultyDashboard from './pages/FacultyDashboard.jsx';
+import FacultyGeneralStats from './pages/FacultyGeneralStats.jsx';
+import FacultyStudents from './pages/FacultyStudents.jsx';
+import FacultyStudentDetail from './pages/FacultyStudentDetail.jsx';
+import FacultyBatches from './pages/FacultyBatches.jsx';
+import FacultyBatchDetail from './pages/FacultyBatchDetail.jsx';
+import FacultyAssignments from './pages/FacultyAssignments.jsx';
+import FacultyAssignmentDetail from './pages/FacultyAssignmentDetail.jsx';
+import FacultyPlans from './pages/FacultyPlans.jsx';
+import Loader from './components/ui/Loader.jsx';
 import AdminPlanList from './pages/AdminPlanList.jsx';
 import AdminPlanBuilder from './pages/AdminPlanBuilder.jsx';
+/* Faculty plan new/edit reuse the shared AdminPlanBuilder with apiScope="faculty" */
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import NotFound from './pages/NotFound.jsx';
 
@@ -190,8 +204,32 @@ function CoordinatorRoute({ children }) {
   return children;
 }
 
+/*
+ * FacultyRoute — reads isFaculty from the auth store (Mongo-backed),
+ * NEVER from Clerk publicMetadata (Clerk doesn't know about faculty).
+ *
+ * IMPORTANT: the signed-in check uses Clerk's useUser() (synchronous),
+ * NOT the store — AuthSync populates the store in an effect AFTER first
+ * paint, so checking the store for sign-in state would bounce signed-in
+ * users through /sign-in on every fresh page load (infinite loop).
+ * The store is only consulted for isFaculty, gated on profileFetched so
+ * the async profile fetch has resolved before we decide.
+ */
+function FacultyRoute({ children }) {
+  if (!HAS_CLERK) return children;
+  const { user: clerkUser } = useUser();
+  const storeUser = useAuthStore(s => s.user);
+  const profileFetched = useAuthStore(s => s.profileFetched);
+  /* ClerkGate already blocks until Clerk is loaded, so this only fires when truly signed out */
+  if (!clerkUser) return <RedirectToSignIn />;
+  /* Server profile fetch still in flight — hold position, don't bounce */
+  if (!profileFetched) return <Loader text="CHECKING YOUR ACCESS..." />;
+  if (!storeUser?.isFaculty) return <Navigate to="/" />;
+  return children;
+}
+
 function AuthSync() {
-  const { setUser, updateUser, clearUser, user: authUser } = useAuthStore();
+  const { setUser, updateUser, clearUser, setProfileFetched, user: authUser } = useAuthStore();
   const { user: clerkUser, isSignedIn } = useUser();
 
   useEffect(() => {
@@ -234,12 +272,22 @@ function AuthSync() {
             if (json.data.batch) {
               serverUpdates.batch = json.data.batch;
             }
+            /* Mirror faculty status + assigned batches so FacultyRoute can guard.
+               Set EXPLICITLY (false/[]) so guards can distinguish "not faculty"
+               from "fetch not resolved yet". */
+            serverUpdates.isFaculty = !!json.data.isFaculty;
+            serverUpdates.facultyBatches = Array.isArray(json.data.facultyBatches) ? json.data.facultyBatches : [];
             if (Object.keys(serverUpdates).length > 0) {
               updateUser(serverUpdates);
             }
           }
         } catch (err) {
           console.error('[AUTH] Error fetching server profile:', err.message);
+        } finally {
+          /* Mark the profile fetch resolved (success OR failure) so route guards
+             stop waiting and can make their decision. Must set the STORE-ROOT
+             flag (not user-level) — FacultyRoute reads it via useAuthStore(s => s.profileFetched). */
+          setProfileFetched(true);
         }
       })();
     } else {
@@ -336,6 +384,8 @@ function AppRoutes() {
       <Route path="/coordinator/batches" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorBatches /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/batches/:id" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorBatchDetail /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/students" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentsList /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/faculties" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorFaculties /></CoordinatorLayout></CoordinatorRoute>} />
+      <Route path="/coordinator/faculties/:userId" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorFacultyDetail /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/students/:userId" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorStudentDetail /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/profile" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorProfile /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/assignments" element={<CoordinatorRoute><CoordinatorLayout><CoordinatorAssignments /></CoordinatorLayout></CoordinatorRoute>} />
@@ -344,6 +394,19 @@ function AppRoutes() {
       <Route path="/coordinator/plans/new" element={<CoordinatorRoute><CoordinatorLayout><AdminPlanBuilder /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/plans/:id" element={<CoordinatorRoute><CoordinatorLayout><AdminPlanBuilder /></CoordinatorLayout></CoordinatorRoute>} />
       <Route path="/coordinator/plans/:id/edit" element={<CoordinatorRoute><CoordinatorLayout><AdminPlanBuilder /></CoordinatorLayout></CoordinatorRoute>} />
+
+      <Route path="/faculty" element={<FacultyRoute><FacultyLayout><FacultyDashboard /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/general-stats" element={<FacultyRoute><FacultyLayout><FacultyGeneralStats /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/students" element={<FacultyRoute><FacultyLayout><FacultyStudents /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/students/:userId" element={<FacultyRoute><FacultyLayout><FacultyStudentDetail /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/batches" element={<FacultyRoute><FacultyLayout><FacultyBatches /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/batches/:id" element={<FacultyRoute><FacultyLayout><FacultyBatchDetail /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/assignments" element={<FacultyRoute><FacultyLayout><FacultyAssignments /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/assignments/:id" element={<FacultyRoute><FacultyLayout><FacultyAssignmentDetail /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/plans" element={<FacultyRoute><FacultyLayout><FacultyPlans /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/plans/new" element={<FacultyRoute><FacultyLayout><AdminPlanBuilder apiScope="faculty" /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/plans/:id" element={<FacultyRoute><FacultyLayout><AdminPlanBuilder apiScope="faculty" /></FacultyLayout></FacultyRoute>} />
+      <Route path="/faculty/plans/:id/edit" element={<FacultyRoute><FacultyLayout><AdminPlanBuilder apiScope="faculty" /></FacultyLayout></FacultyRoute>} />
       <Route path="/messages" element={<ProtectedRoute><AppLayout><MessagesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/messages/:userId" element={<ProtectedRoute><AppLayout><MessageThreadPage /></AppLayout></ProtectedRoute>} />
 

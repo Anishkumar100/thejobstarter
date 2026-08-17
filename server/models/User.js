@@ -36,6 +36,16 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['user', 'admin', 'coordinator'], default: 'user' },
 
   /*
+   * Faculty fields — MONGO-ONLY (Clerk never knows about faculty status).
+   * A faculty member is a regular student of a center who also teaches
+   * the batches listed in facultyBatches. isFaculty defaults to false for
+   * every normal user, and facultyBatches is strictly additive — it does
+   * NOT replace the user's own student `batch` field.
+   */
+  isFaculty: { type: Boolean, default: false },
+  facultyBatches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Batch', default: [] }],
+
+  /*
    * Subscription fields for Cashfree payments (recurring OR one-time orders).
    * Default ensures every user has subscription.status set to 'free' on creation.
    *

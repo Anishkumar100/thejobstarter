@@ -32,6 +32,16 @@ export default function AdminCoachingCenterDetail() {
   const [plans, setPlans] = useState([]);
   const [plansLoading, setPlansLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  /* Faculty management (Mongo-only role) */
+  const [faculties, setFaculties] = useState([]);
+  const [facultiesLoading, setFacultiesLoading] = useState(false);
+  const [promotingUserId, setPromotingUserId] = useState(null);
+  const [revokingFacultyId, setRevokingFacultyId] = useState(null);
+  const [facultyScopeEdit, setFacultyScopeEdit] = useState(null); /* faculty userId being edited */
+  const [facultyScopeSelection, setFacultyScopeSelection] = useState([]);
+  const [facultyScopeSaving, setFacultyScopeSaving] = useState(false);
+  /* Roster role filter — faculty hidden from the student list by default */
+  const [roleFilter, setRoleFilter] = useState('students'); /* 'students' | 'faculties' | 'all' */
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -45,6 +55,7 @@ export default function AdminCoachingCenterDetail() {
       fetchBatchesForCenter();
       fetchCourseOfferingsForCenter();
       fetchCenterPlans();
+      fetchFacultiesForCenter();
     }
   }, [currentCenter]);
 
@@ -109,6 +120,115 @@ export default function AdminCoachingCenterDetail() {
       console.error('[ADMIN] Error fetching plans:', err.message);
     }
     setPlansLoading(false);
+  };
+
+  /*
+   * Fetch faculty members for this center (Mongo-only role)
+   */
+  const fetchFacultiesForCenter = async () => {
+    setFacultiesLoading(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const token = await window.Clerk?.session?.getToken();
+      const res = await fetch(`${API_BASE}/coaching-centers/${id}/faculties`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      const json = await res.json();
+      if (json.data) setFaculties(json.data);
+    } catch (err) {
+      console.error('[ADMIN] Error fetching faculties:', err.message);
+    }
+    setFacultiesLoading(false);
+  };
+
+  /*
+   * Promote a regular student of this center to faculty (Mongo-only role)
+   */
+  const handlePromoteStudent = async (student) => {
+    if (!window.confirm(`Promote ${student.displayName || student.username} to Faculty?\n\nThey will get access to the Faculty Panel. Assign their batch scope below.`)) return;
+    setPromotingUserId(student._id);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const token = await window.Clerk?.session?.getToken();
+      const res = await fetch(`${API_BASE}/coaching-centers/${id}/students/${student._id}/promote`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Promote failed');
+      console.log('[ADMIN] Student promoted to faculty:', json.data?.username);
+      setStudents(prev => prev.map(s => s._id === student._id ? { ...s, isFaculty: true } : s));
+      fetchFacultiesForCenter();
+    } catch (err) {
+      console.error('[ADMIN] Promote failed:', err.message);
+      alert('Failed: ' + err.message);
+    }
+    setPromotingUserId(null);
+  };
+
+  /*
+   * Revoke faculty status — person becomes a regular student again
+   */
+  const handleRevokeFaculty = async (student) => {
+    if (!window.confirm(`Revoke faculty status from ${student.displayName || student.username}?\n\nThey become a regular student of this centre again. Nothing else is touched.`)) return;
+    setRevokingFacultyId(student._id);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const token = await window.Clerk?.session?.getToken();
+      const res = await fetch(`${API_BASE}/coaching-centers/${id}/students/${student._id}/revoke-faculty`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Revoke failed');
+      console.log('[ADMIN] Faculty status revoked:', json.data?.username);
+      setStudents(prev => prev.map(s => s._id === student._id ? { ...s, isFaculty: false } : s));
+      setFaculties(prev => prev.filter(f => f._id !== student._id));
+    } catch (err) {
+      console.error('[ADMIN] Revoke failed:', err.message);
+      alert('Failed: ' + err.message);
+    }
+    setRevokingFacultyId(null);
+  };
+
+  /*
+   * Start editing a faculty member's batch scope
+   */
+  const startFacultyScopeEdit = (f) => {
+    setFacultyScopeEdit(f._id);
+    setFacultyScopeSelection((f.facultyBatches || []).map(b => typeof b === 'string' ? b : b._id));
+  };
+
+  /*
+   * Toggle a batch in the scope selection
+   */
+  const toggleFacultyScopeBatch = (batchId) => {
+    setFacultyScopeSelection(sel => sel.includes(batchId) ? sel.filter(x => x !== batchId) : [...sel, batchId]);
+  };
+
+  /*
+   * Save a faculty member's batch scope
+   */
+  const saveFacultyScope = async () => {
+    setFacultyScopeSaving(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const token = await window.Clerk?.session?.getToken();
+      const res = await fetch(`${API_BASE}/coaching-centers/${id}/faculties/${facultyScopeEdit}/batches`, {
+        method: 'PUT',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchIds: facultyScopeSelection })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Save failed');
+      console.log('[ADMIN] Faculty batch scope saved:', json.data);
+      setFacultyScopeEdit(null);
+      fetchFacultiesForCenter();
+    } catch (err) {
+      console.error('[ADMIN] Save scope failed:', err.message);
+      alert('Failed: ' + err.message);
+    }
+    setFacultyScopeSaving(false);
   };
 
   /*
@@ -376,6 +496,11 @@ export default function AdminCoachingCenterDetail() {
   if (!currentCenter) return <div className="error-text">Centre not found</div>;
 
   const statusColors = { active: 'var(--success)', trial: 'var(--warning)', suspended: 'var(--error)' };
+
+  /* Roster rows filtered by role — students by default, faculty hidden unless the filter asks for them */
+  const studentOnlyCount = students.filter(s => !s.isFaculty).length;
+  const facultyCount = students.length - studentOnlyCount;
+  const rosterList = roleFilter === 'all' ? students : (roleFilter === 'faculties' ? students.filter(s => s.isFaculty) : students.filter(s => !s.isFaculty));
 
   return (
     <div>
@@ -674,7 +799,8 @@ export default function AdminCoachingCenterDetail() {
 
       {/* ═══ NEEDS ATTENTION ═══ */}
       {(() => {
-        const flagged = students.filter(s => s.needsAttention);
+        /* Students only — faculty (teachers) are not tracked in student progress lists */
+        const flagged = students.filter(s => s.isFaculty !== true && s.needsAttention);
         return (
           <div className="admin-card" style={{ marginTop: 'var(--space-xl)', borderLeft: '6px solid #dc2626' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
@@ -742,11 +868,23 @@ export default function AdminCoachingCenterDetail() {
       {/* Student Roster */}
       <div className="admin-card" style={{ marginTop: 'var(--space-xl)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <Users size={18} />
             <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>
-              Students ({students.length})
+              Students ({rosterList.length})
             </h2>
+            {/* Role filter — switch between students and faculty in this roster */}
+            <select
+              className="input"
+              style={{ fontSize: '0.78rem', padding: '4px 8px', width: 'auto' }}
+              value={roleFilter}
+              onChange={e => setRoleFilter(e.target.value)}
+              title="Show students, faculty (teachers), or everyone in this list"
+            >
+              <option value="students">Students ({studentOnlyCount})</option>
+              <option value="faculties">Teachers / Faculty ({facultyCount})</option>
+              <option value="all">Everyone ({students.length})</option>
+            </select>
           </div>
           {batches.length > 0 && selectedStudents.length > 0 && (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -777,6 +915,10 @@ export default function AdminCoachingCenterDetail() {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
             No students have linked to this centre yet.
           </p>
+        ) : rosterList.length === 0 ? (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
+            {roleFilter === 'faculties' ? 'No teachers (faculty) in this centre yet — promote from the students list.' : 'No students match the current filter.'}
+          </p>
         ) : (
           <div className="table-wrap" style={{ overflowX: 'auto' }}>
             <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
@@ -785,8 +927,8 @@ export default function AdminCoachingCenterDetail() {
                   <th style={{ padding: '8px 12px', fontWeight: 700, width: 36 }}>
                     <input
                       type="checkbox"
-                      checked={selectedStudents.length === students.length && students.length > 0}
-                      onChange={e => setSelectedStudents(e.target.checked ? students.map(s => s._id) : [])}
+                      checked={selectedStudents.length === rosterList.length && rosterList.length > 0}
+                      onChange={e => setSelectedStudents(e.target.checked ? rosterList.map(s => s._id) : [])}
                     />
                   </th>
                   <th style={{ padding: '8px 12px', fontWeight: 700 }}>Name</th>
@@ -799,7 +941,7 @@ export default function AdminCoachingCenterDetail() {
                 </tr>
               </thead>
               <tbody>
-                {students.map(s => {
+                {rosterList.map(s => {
                   const currentBatchId = s.batch?._id || s.batch;
                   const currentBatchName = s.batch?.name || '';
                   return (
@@ -825,6 +967,11 @@ export default function AdminCoachingCenterDetail() {
                           <div>
                             <div style={{ fontWeight: 600 }}>{s.displayName || s.username}</div>
                             {s.displayName && <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>@{s.username}</div>}
+                            {s.isFaculty && (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.6rem', fontWeight: 800, padding: '1px 6px', border: '2px solid #0f766e', background: '#ccfbf1', color: '#0f766e', marginTop: 2, textTransform: 'uppercase' }}>
+                                <Shield size={9} /> Teacher
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -880,6 +1027,27 @@ export default function AdminCoachingCenterDetail() {
                           >
                             View
                           </button>
+                          {s.isFaculty ? (
+                            <button
+                              className="btn btn--sm btn--danger"
+                              onClick={() => handleRevokeFaculty(s)}
+                              disabled={revokingFacultyId === s._id}
+                              title="Revoke faculty status"
+                              style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                            >
+                              <Shield size={11} /> {revokingFacultyId === s._id ? 'Revoking...' : 'Revoke'}
+                            </button>
+                          ) : (!s.role || s.role === 'user') && (
+                            <button
+                              className="btn btn--sm"
+                              onClick={() => handlePromoteStudent(s)}
+                              disabled={promotingUserId === s._id}
+                              title="Promote to faculty"
+                              style={{ fontSize: '0.68rem', padding: '2px 8px', background: '#0f766e', color: '#fff', borderColor: '#0f766e' }}
+                            >
+                              <Shield size={11} /> {promotingUserId === s._id ? 'Promoting...' : 'Promote'}
+                            </button>
+                          )}
                           <button
                             className="btn btn--sm btn--danger"
                             onClick={() => openRemoveConfirm(s._id)}
@@ -895,6 +1063,122 @@ export default function AdminCoachingCenterDetail() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* Teachers (Faculty — Mongo-only role) */}
+      <div className="admin-card" style={{ marginTop: 'var(--space-xl)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Shield size={18} />
+            <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>
+              Teachers ({faculties.length})
+            </h2>
+          </div>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+            Faculty is a platform-level role — promote teachers from the roster above, then assign their batch scope.
+          </span>
+        </div>
+
+        {facultiesLoading ? (
+          <Loader text="Loading teachers..." />
+        ) : faculties.length === 0 ? (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
+            No teachers yet. Use <strong>Promote</strong> on a student row above.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            {faculties.map(f => {
+              const scope = f.facultyBatches || [];
+              return (
+                <div key={f._id} style={{ border: '2px solid var(--black)', padding: 'var(--space-md)', background: 'var(--bg-tertiary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 220 }}>
+                      {f.avatar ? (
+                        <img src={f.avatar} alt="" style={{ width: 40, height: 40, border: '2px solid var(--black)', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: 40, height: 40, border: '2px solid var(--black)', background: '#0f766e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Shield size={18} color="#fff" />
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>
+                          {f.displayName || f.username}
+                          <span style={{ fontSize: '0.55rem', fontWeight: 800, padding: '1px 6px', border: '2px solid #0f766e', background: '#ccfbf1', color: '#0f766e', marginLeft: 6, textTransform: 'uppercase' }}>Teacher</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                          @{f.username}{f.email ? ` · ${f.email}` : ''}
+                          {f.coachingCenterJoinedAt ? ` · joined ${new Date(f.coachingCenterJoinedAt).toLocaleDateString()}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {facultyScopeEdit !== f._id && (
+                        <>
+                          <button className="btn btn--sm" onClick={() => startFacultyScopeEdit(f)} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                            <Layers size={11} /> Batch Scope
+                          </button>
+                          <button className="btn btn--sm btn--danger" onClick={() => handleRevokeFaculty(f)} disabled={revokingFacultyId === f._id} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                            <Shield size={11} /> {revokingFacultyId === f._id ? 'Revoking...' : 'Revoke'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {facultyScopeEdit === f._id ? (
+                    <div style={{ marginTop: 'var(--space-sm)', border: '2px solid var(--black)', padding: 'var(--space-sm)', background: 'var(--bg-surface)' }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Layers size={12} /> Assign batches ({facultyScopeSelection.length} selected)
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {batches.filter(b => b.status === 'active').map(b => {
+                          const active = facultyScopeSelection.includes(b._id);
+                          return (
+                            <button key={b._id} onClick={() => toggleFacultyScopeBatch(b._id)}
+                              style={{
+                                border: '2px solid #000', padding: '5px 10px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                                background: active ? '#0f766e' : 'var(--bg-surface)', color: active ? '#fff' : 'var(--text-primary)'
+                              }}>
+                              {b.name}
+                            </button>
+                          );
+                        })}
+                        {batches.filter(b => b.status === 'active').length === 0 && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>No active batches in this centre.</span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 'var(--space-sm)' }}>
+                        <button className="btn btn--sm" onClick={() => setFacultyScopeEdit(null)}>Cancel</button>
+                        <button className="btn btn--sm btn--primary" onClick={saveFacultyScope} disabled={facultyScopeSaving}>
+                          {facultyScopeSaving ? 'Saving...' : 'Save Scope'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 'var(--space-sm)' }}>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 4 }}>
+                        Batch scope ({scope.length})
+                      </div>
+                      {scope.length === 0 ? (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', border: '2px dashed var(--black)', padding: '4px 8px', display: 'inline-block' }}>
+                          No batches assigned — teacher sees no student data yet.
+                        </span>
+                      ) : (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {scope.map(b => (
+                            <span key={typeof b === 'string' ? b : b._id} style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', border: '2px solid #000', background: 'var(--bg-surface)' }}>
+                              {typeof b === 'object' ? (b.name || 'Unknown batch') : 'Batch'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

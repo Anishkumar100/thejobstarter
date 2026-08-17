@@ -42,6 +42,8 @@ export default function CoordinatorStudentDetail() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
+  /* Faculty promote/revoke (Mongo-only role) */
+  const [facultyBusy, setFacultyBusy] = useState(false);
 
   /* Plan day-by-day breakdown */
   const [planBreakdown, setPlanBreakdown] = useState(null);
@@ -113,6 +115,41 @@ export default function CoordinatorStudentDetail() {
       navigate('/coordinator');
     } catch (err) { alert('Failed: ' + err.message); }
     setRemoving(false);
+  };
+
+  /* ── Promote student to faculty (Mongo-only — never a Clerk role) ── */
+  const handlePromoteFaculty = async () => {
+    if (!window.confirm(`Promote ${student.displayName || student.username} to Faculty?\n\nThey will get access to the Faculty Panel. Their own batch${student.batch ? ' ("' + (student.batch.name || '') + '")' : ''} becomes their default scope — assign more batches from the Manage Faculty page if needed.`)) return;
+    setFacultyBusy(true);
+    try {
+      /* Default scope = the student's own batch (so a promoted teacher immediately manages their own cohort) */
+      const ownBatchId = student.batch?._id || student.batch || null;
+      const res = await apiRequest(`/coordinator/students/${userId}/promote`, {
+        method: 'POST',
+        body: JSON.stringify({ batchId: ownBatchId })
+      });
+      console.log('[COORD] Student promoted to faculty:', res.data?.username);
+      setStudent(prev => ({ ...prev, isFaculty: true, facultyBatches: res.data?.facultyBatches || [] }));
+    } catch (err) {
+      console.error('[COORD] Promote failed:', err.message);
+      alert('Failed: ' + err.message);
+    }
+    setFacultyBusy(false);
+  };
+
+  /* ── Revoke faculty — person becomes a regular student again ── */
+  const handleRevokeFaculty = async () => {
+    if (!window.confirm(`Revoke faculty status from ${student.displayName || student.username}?\n\nThey become a regular student of your center again. Nothing else is touched.`)) return;
+    setFacultyBusy(true);
+    try {
+      const res = await apiRequest(`/coordinator/students/${userId}/revoke-faculty`, { method: 'POST' });
+      console.log('[COORD] Faculty status revoked:', res.data?.username);
+      setStudent(prev => ({ ...prev, isFaculty: false, facultyBatches: [] }));
+    } catch (err) {
+      console.error('[COORD] Revoke failed:', err.message);
+      alert('Failed: ' + err.message);
+    }
+    setFacultyBusy(false);
   };
 
   const getScoreGrade = (score) => {
@@ -892,6 +929,42 @@ export default function CoordinatorStudentDetail() {
               ))}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* ═══ FACULTY STATUS ═══ */}
+      <div style={{ border: '3px solid #0f766e', padding: 'var(--space-md)', background: 'var(--bg-surface)', boxShadow: '4px 4px 0 #0f766e', marginBottom: 'var(--space-lg)' }}>
+        <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f766e', marginBottom: 'var(--space-sm)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Shield size={16} /> Faculty Status
+        </h2>
+        {student.isFaculty ? (
+          <>
+            <p style={{ fontSize: '0.8rem', marginBottom: 'var(--space-sm)' }}>
+              <strong>{student.displayName || student.username}</strong> is a <strong>faculty member</strong> of your center. They see the Faculty Panel with the batch scope set on the{' '}
+              <Link to="/coordinator/faculties" style={{ fontWeight: 700 }}>Manage Faculty</Link> page.
+            </p>
+            {Array.isArray(student.facultyBatches) && student.facultyBatches.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 'var(--space-sm)' }}>
+                {student.facultyBatches.map(b => (
+                  <span key={typeof b === 'string' ? b : b._id} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 8px', border: '2px solid #000', background: 'var(--bg-tertiary)' }}>
+                    {typeof b === 'object' ? (b.name || 'Unknown batch') : 'Batch'}
+                  </span>
+                ))}
+              </div>
+            )}
+            <button onClick={handleRevokeFaculty} disabled={facultyBusy} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '8px 16px', border: '3px solid #dc2626', boxShadow: '3px 3px 0 #dc2626', cursor: 'pointer', background: '#fef2f2', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Shield size={14} /> {facultyBusy ? 'Revoking...' : 'Revoke Faculty'}
+            </button>
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize: '0.8rem', marginBottom: 'var(--space-md)' }}>
+              This student is a <strong>regular student</strong>. Promote them to give access to the Faculty Panel (teaching tools for your center's batches).
+            </p>
+            <button onClick={handlePromoteFaculty} disabled={facultyBusy} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '8px 16px', border: '3px solid #0f766e', boxShadow: '3px 3px 0 #0f766e', cursor: 'pointer', background: '#ccfbf1', color: '#0f766e', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Shield size={14} /> {facultyBusy ? 'Promoting...' : 'Promote to Faculty'}
+            </button>
+          </>
         )}
       </div>
 

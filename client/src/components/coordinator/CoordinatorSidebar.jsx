@@ -23,6 +23,12 @@ const SECTIONS = [
     ]
   },
   {
+    heading: 'Faculty',
+    links: [
+      { to: '/coordinator/faculties', label: 'Manage Faculty', icon: Shield },
+    ]
+  },
+  {
     heading: 'Batches',
     links: [
       { to: '/coordinator/batches', label: 'Manage Batches', icon: Layers },

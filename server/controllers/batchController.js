@@ -139,6 +139,12 @@ export async function deleteBatch(req, res) {
       console.log('[BATCH] Unlinking', linkedStudents, 'students from batch:', req.params.id);
       await User.updateMany({ batch: req.params.id }, { $set: { batch: null } });
     }
+    /*
+     * Also remove this batch from any faculty member's facultyBatches array —
+     * otherwise a deleted batch leaves a dangling ObjectId in their scope,
+     * which breaks center derivation in the faculty middleware.
+     */
+    await User.updateMany({ facultyBatches: req.params.id }, { $pull: { facultyBatches: req.params.id } });
     const batch = await Batch.findByIdAndDelete(req.params.id);
     if (!batch) {
       return res.status(404).json({ error: 'Batch not found' });

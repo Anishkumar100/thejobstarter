@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import { getLocalDateString, getIstNextDayStart } from '../utils/date.js';
 import Loader from '../components/ui/Loader.jsx';
-import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus, BarChart3, TrendingUp, ChevronRight, ExternalLink, Download } from 'lucide-react';
+import { Layers, Users, ArrowLeft, Save, Edit3, X, Trash2, Copy, Search, BookOpen, Calendar, AlertCircle, CheckCircle, FileText, Clock, Plus, BarChart3, TrendingUp, ChevronRight, ExternalLink, Download, Shield } from 'lucide-react';
 
 const CARD = {
   border: '4px solid var(--border-color)',
@@ -182,20 +182,45 @@ export default function CoordinatorBatchDetail() {
   };
 
   
-  /* Derive enrolled vs unassigned student lists */
+  /* Derive enrolled vs unassigned student lists.
+     Faculty members are excluded from BOTH — they are teachers, not students.
+     They are counted separately in the header as teachers. */
   const batchStudentIds = batch
-    ? allStudents.filter(s => (s.batch?._id || s.batch) === batch._id).map(s => s._id)
+    ? allStudents.filter(s => !s.isFaculty && (s.batch?._id || s.batch) === batch._id).map(s => s._id)
     : [];
   const enrolledStudents = allStudents
+    .filter(s => !s.isFaculty)
     .filter(s => batchStudentIds.includes(s._id))
     .filter(s => matchesSearch(s))
     .filter(s => matchesCourse(s))
     .filter(s => matchesDate(s));
   const unassignedStudents = allStudents
+    .filter(s => !s.isFaculty)
     .filter(s => !batchStudentIds.includes(s._id))
     .filter(s => matchesSearch(s))
     .filter(s => matchesCourse(s))
     .filter(s => matchesDate(s));
+
+  /* ── Promote a student in this batch to faculty (same Mongo-only role as the roster page) ── */
+  const handlePromote = async (student) => {
+    if (!window.confirm(`Promote ${student.displayName || student.username} to Faculty?\n\nThey will be removed from the student roster of this batch and get access to the Faculty Panel. This batch becomes their default scope — assign more batches from the Manage Faculty page if needed.`)) return;
+    setBusy(true);
+    try {
+      /* Pass the batch as the default faculty scope — the promoted teacher manages THIS batch immediately */
+      await apiRequest(`/coordinator/students/${student._id}/promote`, {
+        method: 'POST',
+        body: JSON.stringify({ batchId: batch._id })
+      });
+      console.log('[BATCH DETAIL] Student promoted to faculty:', student._id);
+      /* Mark isFaculty locally — the roster filters drop them immediately */
+      setAllStudents(prev => prev.map(s => s._id === student._id ? { ...s, isFaculty: true } : s));
+      setEnrolledSelected([]);
+    } catch (err) {
+      console.error('[BATCH DETAIL] Promote failed:', err.message);
+      alert(err.message || 'Failed to promote student');
+    }
+    setBusy(false);
+  };
 
 
 
@@ -606,6 +631,22 @@ export default function CoordinatorBatchDetail() {
               <Users size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
               {enrolledStudents.length} student{enrolledStudents.length !== 1 ? 's' : ''}
             </span>
+            {(batch.teachers || []).length > 0 && (
+              <span style={{
+                padding: '2px 6px', border: '2px solid #0f766e',
+                background: '#ccfbf1', color: '#0f766e',
+                fontSize: '0.65rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6
+              }}>
+                <Shield size={11} />
+                {(batch.teachers || []).length === 1 ? 'Teacher:' : `${batch.teachers.length} teachers:`}
+                {batch.teachers.map(t => (
+                  <Link key={t._id} to={`/coordinator/faculties/${t._id}`} title="View teacher page"
+                    style={{ color: '#0f766e', fontWeight: 800, textDecoration: 'underline' }}>
+                    {t.displayName || t.username}
+                  </Link>
+                ))}
+              </span>
+            )}
             {batch.expectedStudents && <span>Expected: {batch.expectedStudents}</span>}
             <span style={{
               padding: '2px 6px', border: '2px solid var(--border-color)',
@@ -693,6 +734,51 @@ export default function CoordinatorBatchDetail() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* ═══ FACULTIES ASSIGNED TO THIS BATCH ═══ */}
+      <div style={{ ...CARD, marginBottom: 'var(--space-lg)', borderLeft: '6px solid #0f766e' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
+          <h2 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)' }}>
+            <Shield size={18} style={{ color: '#0f766e' }} /> Faculties Assigned ({batch.teachers?.length || 0})
+          </h2>
+          <Link to="/coordinator/faculties" style={{ fontSize: '0.65rem', fontWeight: 700, padding: '4px 10px', border: '2px solid #0f766e', background: '#ccfbf1', color: '#0f766e', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Shield size={11} /> Manage Faculty
+          </Link>
+        </div>
+        {(batch.teachers || []).length === 0 ? (
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <AlertCircle size={13} /> No faculty assigned to this batch yet — promote a student or assign scope from Manage Faculty.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+            {batch.teachers.map(t => (
+              <Link key={t._id} to={`/coordinator/faculties/${t._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  border: '2px solid #0f766e', padding: '8px 12px',
+                  background: '#f0fdfa', minWidth: 200,
+                  transition: 'transform 0.12s, box-shadow 0.12s'
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 #0f766e'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  {t.avatar ? (
+                    <img src={t.avatar} alt="" style={{ width: 36, height: 36, border: '2px solid #0f766e', objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 36, height: 36, border: '2px solid #0f766e', background: '#0f766e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Shield size={18} color="#fff" />
+                    </div>
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text-primary)' }}>{t.displayName || t.username}</div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>@{t.username}</div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ═══ PLAN SECTION — RICH METRICS ═══ */}
@@ -1795,11 +1881,20 @@ export default function CoordinatorBatchDetail() {
                         })()}
                       </td>
                       <td style={{ padding: '6px 10px' }}>
-                        <button className="btn btn--sm btn--danger"
-                          onClick={() => handleSingleRemove(s)}
-                          style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
-                          <X size={10} /> Remove
-                        </button>
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <button className="btn btn--sm"
+                            onClick={() => handlePromote(s)}
+                            disabled={busy}
+                            title="Promote to Faculty — teacher gets the Faculty Panel, removed from the student roster"
+                            style={{ fontSize: '0.65rem', padding: '2px 6px', borderColor: '#0f766e', color: '#0f766e' }}>
+                            <Shield size={10} /> Promote
+                          </button>
+                          <button className="btn btn--sm btn--danger"
+                            onClick={() => handleSingleRemove(s)}
+                            style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
+                            <X size={10} /> Remove
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

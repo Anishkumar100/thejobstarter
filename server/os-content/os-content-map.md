@@ -1,6 +1,6 @@
 # OS Curriculum Content Map — v1 Launch Scope (thejobstarter)
 
-> **Progress:** Lesson 1 of 20 seeded — 8/6/2026: "Introduction to Operating Systems" (2 subtopics, 1 problem + 6-question quiz, 11 meta entries). Verify with `node os-content/verify_seed.mjs`. Content lives in `server/seeds/seedOsContent.js`.
+> **Progress:** Lessons 1–12 of 20 seeded — 8/11/2026: Introduction to Operating Systems → Memory Management Basics (12 lessons, 24 subtopics, 20 problems, 20 quizzes, 33 meta entries). Verify with `node os-content/verify_seed.mjs <lesson-slug>`. Content lives in `server/seeds/seedOsContent.js`. Lesson docs generated — 8/12/2026: `01-introduction-to-operating-systems.md` → `12-memory-management-basics.md` via `node os-content/generate_docs.mjs`.
 
 This file contains the full v1 build scope for the Operating Systems subject, following the same structure as the DSA, Aptitude, and DBMS content maps (Category → Lesson → Subtopic → Problem).
 

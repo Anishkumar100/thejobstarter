@@ -33,7 +33,7 @@ export async function getCenterRoster(centerId) {
   }
 
   const students = await User.find({ coachingCenter: centerId })
-    .select('displayName username avatar email college year coachingCenterJoinedAt joinDate batch courseOffering')
+    .select('displayName username avatar email college year coachingCenterJoinedAt joinDate batch courseOffering isFaculty')
     .populate('batch', 'name')
     .populate('courseOffering', 'name')
     .sort({ coachingCenterJoinedAt: -1 })
@@ -83,7 +83,7 @@ export async function getBatchRoster(batchId) {
   }
 
   const students = await User.find({ batch: batchId })
-    .select('displayName username avatar email college year coachingCenterJoinedAt joinDate batch courseOffering')
+    .select('displayName username avatar email college year coachingCenterJoinedAt joinDate batch courseOffering isFaculty')
     .populate('batch', 'name')
     .populate('courseOffering', 'name')
     .sort({ coachingCenterJoinedAt: -1 })

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiRequest } from '../api/client.js';
 import Loader from '../components/ui/Loader.jsx';
-import { Users, Search, User as UserIcon, Trash2, Layers, BookOpen, Download } from 'lucide-react';
+import { Users, Search, User as UserIcon, Trash2, Layers, BookOpen, Download, Shield } from 'lucide-react';
 
 const CARD = {
   border: '3px solid #000',
@@ -18,6 +18,8 @@ export default function CoordinatorStudentsList() {
   const [batches, setBatches] = useState([]);
   const [courseOfferings, setCourseOfferings] = useState([]);
   const [courseFilter, setCourseFilter] = useState('');
+  /* Role filter — students by default; faculty hidden unless asked for */
+  const [roleFilter, setRoleFilter] = useState('students'); /* 'students' | 'faculties' | 'all' */
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,6 +51,22 @@ export default function CoordinatorStudentsList() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  /* ── Promote a regular student to faculty (Mongo-only role — never a Clerk role) ── */
+  const handlePromote = async (student) => {
+    if (!window.confirm(`Promote ${student.displayName || student.username} to Faculty?\n\nThey will get access to the Faculty Panel. Assign their batch scope from the Manage Faculty page.`)) return;
+    setBusy(true);
+    try {
+      const res = await apiRequest(`/coordinator/students/${student._id}/promote`, { method: 'POST' });
+      console.log('[COORD] Student promoted to faculty:', res.data?.username);
+      setStudents(prev => prev.map(s => s._id === student._id ? { ...s, isFaculty: true } : s));
+    } catch (err) {
+      console.error('[COORD] Promote failed:', err.message);
+      alert(err.message || 'Failed to promote student');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   /*
    * Filtered + sorted + enriched — single useMemo.
@@ -95,6 +113,12 @@ export default function CoordinatorStudentsList() {
         return sc === courseFilter;
       });
     }
+    /* Role filter — hide faculty from the student list unless the filter asks for them */
+    if (roleFilter === 'students') {
+      list = list.filter(s => !s.isFaculty);
+    } else if (roleFilter === 'faculties') {
+      list = list.filter(s => s.isFaculty);
+    }
     list.sort((a, b) => {
       let va, vb;
       switch (sortKey) {
@@ -109,7 +133,7 @@ export default function CoordinatorStudentsList() {
       return 0;
     });
     return list;
-  }, [students, searchTerm, sortKey, sortDir, courseFilter]);
+  }, [students, searchTerm, sortKey, sortDir, courseFilter, roleFilter]);
 
   const toggleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -242,7 +266,8 @@ export default function CoordinatorStudentsList() {
             <Users size={20} /> All Students
           </h1>
           <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 2 }}>
-            {center?.name ? `${center.name} — ` : ''}{students.length} student{students.length !== 1 ? 's' : ''} enrolled
+            {center?.name ? `${center.name} — ` : ''}
+            {students.filter(s => !s.isFaculty).length} student{students.filter(s => !s.isFaculty).length !== 1 ? 's' : ''} · {students.filter(s => s.isFaculty).length} teacher{students.filter(s => s.isFaculty).length !== 1 ? 's' : ''}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -253,6 +278,18 @@ export default function CoordinatorStudentsList() {
               style={{ padding: '6px 10px 6px 28px', border: '2px solid #000', background: 'var(--bg-surface)', fontSize: '0.8rem', fontFamily: 'inherit', minWidth: 200, outline: 'none' }}
             />
           </div>
+          {/* Role filter — students by default, faculty listed only when asked */}
+          <select
+            className="input"
+            style={{ fontSize: '0.78rem', padding: '4px 8px', width: 170 }}
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value)}
+            title="Show students, teachers (faculty), or everyone"
+          >
+            <option value="students">Students ({students.filter(s => !s.isFaculty).length})</option>
+            <option value="faculties">Teachers / Faculty ({students.filter(s => s.isFaculty).length})</option>
+            <option value="all">Everyone ({students.length})</option>
+          </select>
           <select
             className="input"
             style={{ fontSize: '0.78rem', padding: '4px 8px', width: 180 }}
@@ -352,7 +389,13 @@ export default function CoordinatorStudentsList() {
       <div style={{ ...CARD }}>
         {filteredStudents.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 'var(--space-lg)', border: '2px dashed var(--border-color)' }}>
-            <p style={{ color: 'var(--text-tertiary)' }}>{searchTerm ? 'No students match your search.' : 'No students linked yet.'}</p>
+            <p style={{ color: 'var(--text-tertiary)' }}>
+              {roleFilter === 'faculties'
+                ? 'No teachers (faculty) yet — promote students from this list.'
+                : searchTerm
+                  ? 'No students match your search.'
+                  : 'No students linked yet.'}
+            </p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -529,9 +572,20 @@ export default function CoordinatorStudentsList() {
                       </td>
                       <td style={{ padding: '8px 10px', fontWeight: 700, fontSize: '0.85rem', textAlign: 'center' }}>{student._ov}%</td>
                       <td style={{ padding: '8px 10px' }}>
-                        <Link to={`/coordinator/students/${student._id}`} className="btn btn--sm" style={{ fontSize: '0.6rem', padding: '3px 8px', border: '2px solid #000', whiteSpace: 'nowrap' }}>
-                          <UserIcon size={12} style={{ marginRight: 3, verticalAlign: 'middle' }} /> View
-                        </Link>
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center', whiteSpace: 'nowrap' }}>
+                          <Link to={`/coordinator/students/${student._id}`} className="btn btn--sm" style={{ fontSize: '0.6rem', padding: '3px 8px', border: '2px solid #000' }}>
+                            <UserIcon size={12} style={{ marginRight: 3, verticalAlign: 'middle' }} /> View
+                          </Link>
+                          {student.isFaculty ? (
+                            <span style={{ fontSize: '0.55rem', fontWeight: 800, padding: '3px 6px', border: '2px solid #0f766e', background: '#ccfbf1', color: '#0f766e', display: 'inline-flex', alignItems: 'center', gap: 2 }} title="Faculty member">
+                              <Shield size={10} /> Faculty
+                            </span>
+                          ) : !student.role || student.role === 'user' ? (
+                            <button onClick={() => handlePromote(student)} disabled={busy} className="btn btn--sm" style={{ fontSize: '0.6rem', padding: '3px 8px', border: '2px solid #000', cursor: 'pointer', background: '#0f766e', color: '#fff' }}>
+                              <Shield size={10} style={{ marginRight: 3, verticalAlign: 'middle' }} /> Promote
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );

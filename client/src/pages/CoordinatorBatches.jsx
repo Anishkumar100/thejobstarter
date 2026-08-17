@@ -8,7 +8,7 @@ import Modal from '../components/ui/Modal.jsx';
 import {
   Layers, Plus, Users, Trash2, BookOpen, Search, Calendar, X,
   ChevronRight, GraduationCap, Clock, CheckCircle, AlertCircle,
-  Hash, Edit3, UserPlus, ArrowRight, Sparkles
+  Hash, Edit3, UserPlus, ArrowRight, Sparkles, Shield
 } from 'lucide-react';
 
 const CARD = {
@@ -62,8 +62,10 @@ export default function CoordinatorBatches() {
 
   useEffect(() => { fetchBatches(); }, [fetchBatches]);
 
+  /* Student count per batch — faculty are NOT students, so exclude them */
   const getBatchStudentCount = (batchId) => {
     return allStudents.filter(s => {
+      if (s.isFaculty) return false;
       const bid = s.batch?._id || s.batch;
       return bid === batchId;
     }).length;
@@ -496,6 +498,38 @@ export default function CoordinatorBatches() {
                       <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>
                         student{studentCount !== 1 ? 's' : ''}
                       </span>
+                    </div>
+
+                    {/* Row 4: Teachers assigned to this batch (mentioned separately from students) */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                      padding: '8px 12px', marginTop: 8,
+                      border: '2px solid #0f766e',
+                      background: '#ccfbf1'
+                    }}>
+                      <Shield size={14} style={{ color: '#0f766e', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0f766e' }}>
+                        {(b.teachers || []).length === 0 ? 'No teacher assigned' : `Teacher${(b.teachers || []).length !== 1 ? 's' : ''} assigned`}
+                      </span>
+                      {(b.teachers || []).map(t => (
+                        <Link
+                          key={t._id}
+                          to={`/coordinator/faculties/${t._id}`}
+                          onClick={e => e.stopPropagation()}
+                          title={`View ${t.displayName || t.username}'s teacher page`}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px',
+                            border: '2px solid #0f766e', background: '#fff',
+                            color: '#0f766e', textDecoration: 'none',
+                            transition: 'transform 0.1s ease'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '2px 2px 0 #0f766e'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                        >
+                          {t.displayName || t.username}
+                        </Link>
+                      ))}
                     </div>
                   </div>
 

@@ -18,11 +18,16 @@ const CARD = {
   boxShadow: 'var(--shadow)'
 };
 
-export default function AdminPlanList() {
+export default function AdminPlanList({ apiScope }) {
   const { user: clerkUser } = useUser();
   const navigate = useNavigate();
   const role = clerkUser?.publicMetadata?.role;
   const isAdmin = role === 'admin';
+
+  /* Optional scope override (e.g. apiScope="faculty"). Default keeps admin/coordinator behavior identical. */
+  const planApiBase = apiScope === 'faculty' ? '/faculty/plans' : (isAdmin ? '/plans' : '/coordinator/plans');
+  const plansBasePath = apiScope === 'faculty' ? '/faculty/plans' : (isAdmin ? '/admin/plans' : '/coordinator/plans');
+  const batchesBasePath = apiScope === 'faculty' ? '/faculty' : (isAdmin ? '/admin' : '/coordinator');
 
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +56,7 @@ export default function AdminPlanList() {
         for (let i = 0; i < plans.length; i += batchSize) {
           const slice = plans.slice(i, i + batchSize);
           const promises = slice.map(p =>
-            apiRequest(`${isAdmin ? '/plans' : '/coordinator/plans'}/${p._id}/assignments`).catch(() => ({ data: [] }))
+            apiRequest(`${planApiBase}/${p._id}/assignments`).catch(() => ({ data: [] }))
           );
           const responses = await Promise.all(promises);
           responses.forEach((res, idx) => {
@@ -82,7 +87,7 @@ export default function AdminPlanList() {
   const fetchBatchesForAssign = async () => {
     setBatchesLoading(true);
     try {
-      const res = await apiRequest(isAdmin ? '/batches' : '/coordinator/batches');
+      const res = await apiRequest(apiScope === 'faculty' ? '/faculty/batches' : (isAdmin ? '/batches' : '/coordinator/batches'));
       const allBatches = res.data || [];
       /* For each batch, also fetch student count if available */
       setAvailableBatches(allBatches);
@@ -113,7 +118,7 @@ export default function AdminPlanList() {
     if (!assignModal || !assignBatchId || !assignStartDate) return;
     setAssigning(true);
     try {
-      await apiRequest(`${isAdmin ? '/plans' : '/coordinator'}/batches/${assignBatchId}/assign-plan`, {
+      await apiRequest(`${apiScope === 'faculty' ? '/faculty' : (isAdmin ? '/plans' : '/coordinator')}/batches/${assignBatchId}/assign-plan`, {
         method: 'POST',
         body: JSON.stringify({ planId: assignModal.plan._id, startDate: assignStartDate })
       });
@@ -145,9 +150,6 @@ export default function AdminPlanList() {
       el.style.overflowY = prevY;
     };
   }, []);
-
-  /* Determine API base based on role */
-  const planApiBase = isAdmin ? '/plans' : '/coordinator/plans';
 
   const fetchPlans = useCallback(async () => {
     setLoading(true);
@@ -217,7 +219,7 @@ export default function AdminPlanList() {
 
   return (
     <div style={{ padding: 'var(--space-lg)', maxWidth: 1200, margin: '0 auto' }}>
-      <Helmet><title>Plans — {isAdmin ? 'Admin' : 'Coordinator'} — TheWebytes</title></Helmet>
+      <Helmet><title>Plans — {apiScope === 'faculty' ? 'Faculty' : (isAdmin ? 'Admin' : 'Coordinator')} — TheWebytes</title></Helmet>
 
       {/* ── Header ── */}
       <div style={{
@@ -235,7 +237,7 @@ export default function AdminPlanList() {
             {plans.length} plan{plans.length !== 1 ? 's' : ''} created
           </p>
         </div>
-        <Link to={isAdmin ? '/admin/plans/new' : '/coordinator/plans/new'}
+        <Link to={`${plansBasePath}/new`}
           className="btn"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -337,7 +339,7 @@ export default function AdminPlanList() {
           <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 'var(--space-md)' }}>
             Create a reusable study template to assign to your batches.
           </p>
-          <Link to={isAdmin ? '/admin/plans/new' : '/coordinator/plans/new'}
+          <Link to={`${plansBasePath}/new`}
             className="btn"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}>
             <Plus size={16} /> Create Your First Plan
@@ -411,7 +413,7 @@ export default function AdminPlanList() {
                     {planAssignments[plan._id] && planAssignments[plan._id].length > 0 && (
                       <div style={{ marginTop: 6, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {planAssignments[plan._id].map(a => (
-                          <Link key={a.batchPlanId} to={`/${isAdmin ? 'admin' : 'coordinator'}/batches/${a.batch?._id}`}
+                          <Link key={a.batchPlanId} to={`${batchesBasePath}/batches/${a.batch?._id}`}
                             style={{
                               fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
                               padding: '2px 6px', border: '2px solid var(--border-color)',
@@ -444,7 +446,7 @@ export default function AdminPlanList() {
                     <CheckCircle size={12} />
                     {plan.status === 'published' ? 'Unpublish' : 'Publish'}
                   </button>
-                  <Link to={`${isAdmin ? '/admin' : '/coordinator'}/plans/${plan._id}/edit`}
+                  <Link to={`${plansBasePath}/${plan._id}/edit`}
                     className="btn btn--sm"
                     style={{ fontSize: '0.65rem', padding: '4px 10px' }}>
                     <Edit3 size={12} /> Edit

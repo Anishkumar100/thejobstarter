@@ -68,8 +68,6 @@ Users and processes are separated so one app cannot read another app's memory. T
 
 An OS is a traffic director: it runs processes, doles out RAM, files away bytes, drives devices, and guards security. The **type** of OS is a trade-off between how many users, how fast a response, and how constrained the hardware.
 
----
-
 ## 1.2 System Calls & OS Structure
 
 ### The Door Between the App and the Kernel
@@ -132,10 +130,10 @@ A junior developer is building a tiny shell. For each scenario, identify which f
 
 | Input | Output | Explanation |
 |---|---|---|
-| Scenario A: They want to start a brand-new child process | Process control (fork/exec) | Creating a child process is the process family's classic job — fork duplicates, exec replaces the running image |
-| Scenario B: They want to read the contents of a text file from disk | File management | Reading a file means open() then read() then close() — all file-family calls |
-| Scenario C: The shell must print the current system time | Information maintenance | Asking the OS for the clock time or pid belongs to the information family |
-| Scenario D: Two programs want to exchange data with each other | Communication family | Passing messages between processes is the communication family — pipe, send, recv |
+| Scenario A: They want to start a brand-new child process. | Process control (fork/exec) | Creating a child process is the process family's classic job — fork duplicates, exec replaces the running image. |
+| Scenario B: They want to read the contents of a text file from disk. | File management | Reading a file means open() then read() then close() — all file-family calls. |
+| Scenario C: The shell must print the current system time. | Information maintenance | Asking the OS for the clock time or pid belongs to the information family. |
+| Scenario D: Two programs want to exchange data with each other. | Communication family | Passing messages between processes is the communication family — pipe, send, recv. |
 
 ### Constraints
 

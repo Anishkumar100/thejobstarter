@@ -52,7 +52,7 @@ export default function OsLesson() {
       <section className="dsa-hero">
         <div
           className="dsa-hero__bg"
-          style={currentLesson?.image ? { backgroundImage: `url(${currentLesson.image})` } : {}}
+          style={{ backgroundImage: `url(${currentLesson?.image || '/OS_Lessons.jpeg'})` }}
         />
         <div className="container dsa-hero__content">
           <Link
@@ -104,11 +104,9 @@ export default function OsLesson() {
                 transition={{ duration: 0.3, delay: i * 0.05 }}
               >
                 <Link to={`/os/${lessonSlug}/${subtopic.slug}`} className="dsa-lesson-card">
-                  {subtopic.image && (
-                    <div className="dsa-lesson-card__img">
-                      <img src={subtopic.image} alt={subtopic.title} />
+                  <div className="dsa-lesson-card__img">
+                      <img src={subtopic.image || '/OS_Subtopics.jpeg'} alt={subtopic.title} />
                     </div>
-                  )}
                   <div className="dsa-lesson-card__body">
                     <h3 className="dsa-lesson-card__title">{subtopic.title}</h3>
                     <p className="dsa-lesson-card__desc">{subtopic.description}</p>

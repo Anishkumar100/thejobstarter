@@ -7,6 +7,11 @@ import { ArrowLeft, CheckCircle2, XCircle, ExternalLink, Users, Clock, Trash2, P
 
 const CARD = { border: '3px solid #000', padding: 'var(--space-md)', background: 'var(--bg-surface)', boxShadow: '4px 4px 0 #000' };
 const STATUS_STYLES = {
+  /* Assignment-level statuses */
+  draft: { bg: '#f3f4f6', text: '#4b5563' },
+  active: { bg: '#dbeafe', text: '#1e40af' },
+  completed: { bg: '#dcfce7', text: '#166534' },
+  /* Submission-level statuses */
   submitted: { bg: '#dbeafe', text: '#1e40af' },
   approved: { bg: '#dcfce7', text: '#166534' },
   rejected: { bg: '#fee2e2', text: '#991b1b' }
@@ -203,7 +208,6 @@ export default function FacultyAssignmentDetail() {
               <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
                 <Link to={`/faculty/batches/${assignment.batch?._id}`} style={{ fontWeight: 700 }}>{assignment.batch?.name || 'Unknown batch'}</Link>
                 {' · '}{assignment.startDate ? new Date(assignment.startDate).toLocaleDateString() : '—'} → {assignment.endDate ? new Date(assignment.endDate).toLocaleDateString() : '—'}
-                {assignment.createdBy?.displayName ? ` · by ${assignment.createdBy.displayName}` : ''}
               </div>
               {assignment.instructions && (
                 <div style={{ marginTop: 10, padding: '10px 12px', border: '2px solid #000', background: 'var(--bg-tertiary)', fontSize: '0.82rem', whiteSpace: 'pre-wrap' }}>

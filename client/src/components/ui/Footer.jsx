@@ -178,21 +178,22 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* ═════ BUILT BY — THEWEBYTES ═════ */}
+      {/* ═════ BUILT BY — THERSOFTWAREBASE ═════ */}
       <div className="w-screen ml-[calc(-50vw+50%)] py-20 md:py-28 px-6 md:px-12 lg:px-20 bg-surface-alt transition-all duration-500">
         <div className="max-w-4xl mx-auto text-center">
           <span className="text-[0.5rem] font-bold tracking-[0.3em] uppercase text-text-faint">Built by</span>
 
           <div className="mt-8">
+            {/* TheSoftwareBase banner */}
             <a
-              href="https://thewebytes.com"
-              target="_blank"
+              href="/"
+              target="_self"
               rel="noopener noreferrer"
-              className="thewebytes-banner inline-block border-[3px] border-border-main shadow-[6px_6px_0_var(--shadow-color)] hover:shadow-[12px_12px_0_#3b82f6] dark:hover:shadow-[12px_12px_0_#fb923c] hover:border-[#3b82f6] dark:hover:border-[#fb923c] hover:-translate-x-1.5 hover:-translate-y-1.5 transition-all duration-300"
+              className="thesoftwarebase-banner inline-block border-[3px] border-border-main shadow-[6px_6px_0_var(--shadow-color)] hover:shadow-[12px_12px_0_#3b82f6] dark:hover:shadow-[12px_12px_0_#fb923c] hover:border-[#3b82f6] dark:hover:border-[#fb923c] hover:-translate-x-1.5 hover:-translate-y-1.5 transition-all duration-300"
             >
               <img
-                src="/thewebytes.png"
-                alt="TheWebytes"
+                src="/thesoftwarebase.png"
+                alt="TheSoftwareBase"
                 className="w-full h-auto block dark:invert"
               />
             </a>

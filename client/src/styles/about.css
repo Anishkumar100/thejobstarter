@@ -571,12 +571,45 @@
   font-size: 1rem;
 }
 
-/* TheWebytes */
+/* thesoftwarebase */
 
 .about-webytes__shell {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.18fr);
+  /* Single-column stack — left content on top, ledger below.
+     Flex column removes any grid min-content squeeze risk. */
+  display: flex;
+  flex-direction: column;
   gap: clamp(3rem, 7vw, 7rem);
+}
+
+.about-webytes__intro {
+  /* Container context so the brand heading can size itself to its own
+     column (cqi) instead of the viewport — the ledger column then never
+     gets squeezed by the long "thesoftwarebase." word. */
+  container-type: inline-size;
+}
+
+.about-webytes__intro h2 {
+  font-size: clamp(2.2rem, 11.5cqi, 5.5rem) !important;
+}
+
+.about-webytes__split {
+  /* Copy text on the left, compact logo card on the right.
+     Flex (not grid) so neither side can squeeze the other. */
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(2rem, 5vw, 4.5rem);
+  margin-top: clamp(2rem, 4vw, 3.5rem);
+}
+
+.about-webytes__copy {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.about-webytes__logo-col {
+  flex: 0 1 420px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .about-webytes__intro p {
@@ -677,6 +710,93 @@
   font-size: 1.4rem;
 }
 
+/* thesoftwarebase — hover accents + responsive polish */
+
+.about-ledger-row {
+  position: relative;
+}
+
+.about-ledger-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  background: var(--about-accent);
+  transition: width 160ms ease;
+}
+
+.about-ledger-row:hover::before {
+  width: 6px;
+}
+
+/* ── Mobile (≤640px) ──
+ * Overrides Tailwind's fixed 58px/1fr/auto ledger grid and oversized
+ * heading so the section breathes on small screens.
+ */
+@media (max-width: 640px) {
+  .about-webytes__shell {
+    gap: 2.75rem !important;
+  }
+
+  .about-webytes__intro p {
+    font-size: 0.92rem !important;
+    line-height: 1.75 !important;
+  }
+
+  .about-webytes__logo-inner {
+    min-height: 130px !important;
+    padding: 1rem !important;
+  }
+
+  .about-webytes__logo-inner img {
+    max-height: 70px !important;
+    width: min(200px, 76%) !important;
+  }
+
+  .about-webytes__ledger {
+    margin-top: 0.5rem !important;
+  }
+
+  .about-ledger-row {
+    grid-template-columns: 42px 1fr !important;
+    gap: 0.85rem !important;
+    padding-block: 1.35rem !important;
+  }
+
+  .about-ledger-row__arrow {
+    display: none !important;
+  }
+
+  .about-ledger-row__id {
+    font-size: 1.2rem !important;
+  }
+
+  .about-ledger-row h3 {
+    font-size: 1.02rem !important;
+  }
+
+  .about-ledger-row p {
+    margin-top: 0.6rem !important;
+    font-size: 0.88rem !important;
+    line-height: 1.7 !important;
+  }
+}
+
+/* ── Tiny phones (≤380px) ── */
+@media (max-width: 380px) {
+  .about-webytes__ledger-head {
+    flex-wrap: wrap !important;
+    gap: 0.4rem !important;
+  }
+
+  .about-ledger-row {
+    grid-template-columns: 36px 1fr !important;
+    gap: 0.7rem !important;
+  }
+}
+
 /* Manifesto */
 
 .about-manifesto {
@@ -719,6 +839,13 @@
   font-style: italic;
   letter-spacing: -0.05em;
   line-height: 1.25;
+}
+
+/* Manifesto description — centered to match the heading, with balanced
+   line wrapping so the block looks tidy instead of ragged on both edges */
+.about-manifesto__content p {
+  text-align: center;
+  text-wrap: balance;
 }
 
 .about-manifesto blockquote span {
@@ -840,6 +967,10 @@
 
   .about-hero__terminal {
     max-width: 420px;
+  }
+
+  .about-webytes__split {
+    flex-direction: column;
   }
 
   .about-stats-grid,

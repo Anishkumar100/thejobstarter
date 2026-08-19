@@ -52,7 +52,7 @@ export default function DbmsLesson() {
       <section className="dsa-hero">
         <div
           className="dsa-hero__bg"
-          style={currentLesson?.image ? { backgroundImage: `url(${currentLesson.image})` } : {}}
+          style={{ backgroundImage: `url(${currentLesson?.image || '/DBMS_Lessons.jpeg'})` }}
         />
         <div className="container dsa-hero__content">
           <Link
@@ -104,11 +104,9 @@ export default function DbmsLesson() {
                 transition={{ duration: 0.3, delay: i * 0.05 }}
               >
                 <Link to={`/dbms/${lessonSlug}/${subtopic.slug}`} className="dsa-lesson-card">
-                  {subtopic.image && (
-                    <div className="dsa-lesson-card__img">
-                      <img src={subtopic.image} alt={subtopic.title} />
-                    </div>
-                  )}
+                  <div className="dsa-lesson-card__img">
+                    <img src={subtopic.image || '/DBMS_Subtopics.jpeg'} alt={subtopic.title} />
+                  </div>
                   <div className="dsa-lesson-card__body">
                     <h3 className="dsa-lesson-card__title">{subtopic.title}</h3>
                     <p className="dsa-lesson-card__desc">{subtopic.description}</p>

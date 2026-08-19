@@ -198,7 +198,7 @@ export default function OsList() {
                       </div>
                       <div className="dsa-lesson-card__img">
                         <img
-                          src={lesson.image || `https://picsum.photos/seed/${lesson.slug}/400/200`}
+                          src={lesson.image || '/OS_Lessons.jpeg'}
                           alt={lesson.title}
                         />
                       </div>
@@ -215,7 +215,7 @@ export default function OsList() {
                     <Link to={`/os/${lesson.slug}`} className="dsa-lesson-card">
                       <div className="dsa-lesson-card__img">
                         <img
-                          src={lesson.image || `https://picsum.photos/seed/${lesson.slug}/400/200`}
+                          src={lesson.image || '/OS_Lessons.jpeg'}
                           alt={lesson.title}
                         />
                       </div>

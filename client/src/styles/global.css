@@ -211,12 +211,12 @@ img {
   display: block;
 }
 
-/* TheWebytes banner hover — light = blue, dark = orange */
-.thewebytes-banner:hover {
+/* TheSoftwareBase banner hover — light = blue, dark = orange */
+.thesoftwarebase-banner:hover {
   box-shadow: 12px 12px 0 #3b82f6 !important;
   border-color: #3b82f6 !important;
 }
-[data-theme="dark"] .thewebytes-banner:hover {
+[data-theme="dark"] .thesoftwarebase-banner:hover {
   box-shadow: 12px 12px 0 var(--accent) !important;
   border-color: var(--accent) !important;
 }

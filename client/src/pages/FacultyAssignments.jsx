@@ -164,7 +164,6 @@ export default function FacultyAssignments() {
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 2 }}>
                     <Link to={`/faculty/batches/${a.batch?._id}`} style={{ fontWeight: 700 }}>{a.batch?.name || 'Unknown batch'}</Link>
                     {' · '}{a.startDate ? new Date(a.startDate).toLocaleDateString() : '—'} → {a.endDate ? new Date(a.endDate).toLocaleDateString() : '—'}
-                    {a.createdBy?.displayName ? ` · by ${a.createdBy.displayName}` : ''}
                   </div>
                   {a.instructions && <p style={{ fontSize: '0.75rem', marginTop: 4, color: 'var(--text-tertiary)' }}>{a.instructions.length > 140 ? a.instructions.slice(0, 140) + '\u2026' : a.instructions}</p>}
                 </div>

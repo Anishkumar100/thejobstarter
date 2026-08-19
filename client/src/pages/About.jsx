@@ -10,9 +10,9 @@ const EASE = [0.16, 1, 0.3, 1];
 /* ── Default about page data (fallback when API is unavailable) ── */
 const DEFAULT_ABOUT = {
   hero: {
-    subtitle: 'THEJOBSTARTER / FIELD NOTE 001',
+    subtitle: 'THESOFTWAREBASE / FIELD NOTE 001',
     title: 'STOP\nPREPARING\nTO PREPARE.',
-    description: 'TheJobStarter is a focused operating system for placement preparation. Learn the foundations. Train under pressure. Build visible proof that you can solve difficult problems.',
+    description: 'thesoftwarebase is a focused operating system for placement preparation. Learn the foundations. Train under pressure. Build visible proof that you can solve difficult problems.',
   },
   principles: [
     { id: '01', label: 'Focus Over Noise', title: 'LEARN WHAT\nACTUALLY MATTERS.', body: 'Every section is built around the concepts that repeatedly shape technical interviews: problem solving, database thinking, operating-system fundamentals, and clear communication.', accent: '#e11d48', route: '/dsa', action: 'ENTER DSA' },
@@ -226,10 +226,10 @@ export default function About() {
   return (
     <main className="about-page !overflow-x-clip">
       <Helmet>
-        <title>About — TheJobStarter</title>
+        <title>About — thesoftwarebase</title>
         <meta
           name="description"
-          content="TheJobStarter is a placement-preparation platform for DSA, DBMS, Operating Systems, and technical community learning."
+          content="thesoftwarebase is a placement-preparation platform for DSA, DBMS, Operating Systems, and technical community learning."
         />
       </Helmet>
 
@@ -261,7 +261,7 @@ export default function About() {
           aria-hidden="true"
           className="absolute left-3 top-1/2 hidden -translate-y-1/2 rotate-180 font-mono text-[0.46rem] font-black tracking-[0.24em] text-[var(--about-inverse-faint)] [writing-mode:vertical-rl] xl:block"
         >
-          THEJOBSTARTER // PLACEMENT FIELD MANUAL // 001
+          THESOFTWAREBASE // PLACEMENT FIELD MANUAL // 001
         </div>
 
         <div
@@ -384,7 +384,7 @@ export default function About() {
           MARQUEE / INDUSTRIAL STRIP
       ═══════════════════════════════════════════════════════ */}
       <section
-        aria-label="TheJobStarter learning areas"
+        aria-label="thesoftwarebase learning areas"
         className="overflow-hidden border-b-[3px] border-[var(--about-border)] bg-[var(--about-accent)] py-3 text-[var(--about-accent-ink)]"
       >
         <motion.div
@@ -595,7 +595,7 @@ export default function About() {
                     style={{ background: principle.accent }}
                   />
                   <span className="font-mono text-[0.5rem] font-black tracking-[0.14em] text-[var(--about-faint)]">
-                    THEJOBSTARTER METHOD
+                    THESOFTWAREBASE METHOD
                   </span>
                 </div>
 
@@ -626,13 +626,13 @@ export default function About() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════
-          THEWEBYTES / LOGO + LEDGER
+          thesoftwarebase / LOGO + LEDGER
       ═══════════════════════════════════════════════════════ */}
       <section className="about-webytes !relative !overflow-hidden !py-24 md:!py-32">
         <GridPattern size="68px" className="opacity-40" />
         <CornerMarks />
 
-        <div className="about-shell about-webytes__shell !relative !z-10 !grid-cols-1 lg:!grid-cols-[0.95fr_1.05fr]">
+        <div className="about-shell about-webytes__shell !relative !z-10 !flex !flex-col !gap-12 lg:!gap-16">
           <motion.div
             initial={{ opacity: 0, x: -28 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -642,72 +642,78 @@ export default function About() {
           >
             <SectionLabel>The People / 004</SectionLabel>
 
-            <h2 className="!mt-7 !text-[clamp(3.4rem,6vw,6rem)] !leading-[0.77] !tracking-[0.02em]">
+            <h2 className="!mt-7 !leading-[0.77] !tracking-[0.02em]">
               BUILT BY
               <br />
-              <span>THEWEBYTES.</span>
+              <span>thesoftwarebase.</span>
             </h2>
 
-            <p className="!mt-8 !text-[1rem] !leading-[1.85]">
-              A team of builders who believe practical learning should feel
-              sharp, capable, and worth coming back to every day.
-            </p>
+            <div className="about-webytes__split">
+              <div className="about-webytes__copy">
+                <p className="!mt-0 !text-[1rem] !leading-[1.85]">
+                  A team of builders who believe practical learning should feel
+                  sharp, capable, and worth coming back to every day.
+                </p>
 
-            {/* Real logo image — no TW text fallback */}
-            <div className="relative mt-10 overflow-hidden border-[3px] border-[var(--about-border)] bg-[var(--about-surface)] p-3 shadow-[12px_12px_0_var(--about-shadow)]">
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 opacity-20"
-                style={{
-                  backgroundImage:
-                    'repeating-linear-gradient(-45deg, transparent 0 10px, var(--about-border) 10px 11px)',
-                }}
-              />
+                <div className="mt-6 flex flex-wrap gap-2 font-mono text-[0.5rem] font-black tracking-[0.12em]">
+                  {['BUILDERS', 'ENGINEERS', 'PROBLEM SOLVERS'].map((item) => (
+                    <span
+                      key={item}
+                      className="border-[2px] border-[var(--about-border)] px-3 py-2 text-[var(--about-muted)]"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
-              <div className="relative z-10 flex min-h-[220px] items-center justify-center border-[3px] border-[var(--about-border)] bg-[var(--about-surface-alt)] p-7">
-                <span className="absolute left-3 top-3 font-mono text-[0.48rem] font-black tracking-[0.14em] text-[var(--about-faint)]">
-                  BUILT BY / THEWEBYTES
-                </span>
-
-                <a
-                  href="https://thewebytes.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  <img
-                    src="/thewebytes.png?v=2"
-                    alt="TheWebytes"
-                    className="block h-auto max-h-[135px] w-[min(320px,85%)] object-contain contrast-125"
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none';
-                      console.error(
-                        'TheWebytes logo missing: add public/thewebytes.png'
-                      );
+              {/* Real logo image — no T.S.B text fallback */}
+              <div className="about-webytes__logo-col">
+                <div className="about-webytes__logo-card relative overflow-hidden border-[3px] border-[var(--about-border)] bg-[var(--about-surface)] p-3 shadow-[12px_12px_0_var(--about-shadow)]">
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 opacity-20"
+                    style={{
+                      backgroundImage:
+                        'repeating-linear-gradient(-45deg, transparent 0 10px, var(--about-border) 10px 11px)',
                     }}
                   />
-                </a>
 
-                <span className="absolute bottom-3 right-3 font-mono text-[0.48rem] font-black tracking-[0.14em] text-[var(--about-accent)]">
-                  T.W / BUILDERS UNIT
-                </span>
+                  <div className="about-webytes__logo-inner relative z-10 flex min-h-[150px] items-center justify-center border-[3px] border-[var(--about-border)] bg-[var(--about-surface-alt)] p-5">
+                    <span className="absolute left-3 top-3 font-mono text-[0.48rem] font-black tracking-[0.14em] text-[var(--about-faint)]">
+                      BUILT BY / thesoftwarebase
+                    </span>
+
+                    <a
+                      href="https://thesoftwarebase.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <img
+                        src="/thesoftwarebase.png?v=2"
+                        alt="thesoftwarebase"
+                        className="block h-auto max-h-[88px] w-[min(240px,78%)] object-contain contrast-125"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                          console.error(
+                            'thesoftwarebase logo missing: add public/thesoftwarebase.png'
+                          );
+                        }}
+                      />
+                    </a>
+
+                    <span className="absolute bottom-3 right-3 font-mono text-[0.48rem] font-black tracking-[0.14em] text-[var(--about-accent)]">
+                      T.S.B / BUILDERS UNIT
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <div className="mt-7 flex flex-wrap gap-2 font-mono text-[0.5rem] font-black tracking-[0.12em]">
-              {['BUILDERS', 'ENGINEERS', 'PROBLEM SOLVERS'].map((item) => (
-                <span
-                  key={item}
-                  className="border-[2px] border-[var(--about-border)] px-3 py-2 text-[var(--about-muted)]"
-                >
-                  {item}
-                </span>
-              ))}
             </div>
           </motion.div>
 
-          <div className="about-webytes__ledger !mt-3 lg:!mt-0">
-            <div className="flex items-center justify-between border-b-[3px] border-[var(--about-border)] pb-4 font-mono text-[0.54rem] font-black tracking-[0.15em] text-[var(--about-faint)]">
+          <div className="about-webytes__ledger">
+            <div className="about-webytes__ledger-head flex items-center justify-between border-b-[3px] border-[var(--about-border)] pb-4 font-mono text-[0.54rem] font-black tracking-[0.15em] text-[var(--about-faint)]">
               <span>OPERATING PRINCIPLES</span>
               <span className="text-[var(--about-accent)]">04 ENTRIES</span>
             </div>
@@ -796,7 +802,7 @@ export default function About() {
 
           <div className="about-manifesto__author !mt-10">
             <i className="!w-16" />
-            <strong>THEWEBYTES</strong>
+            <strong>thesoftwarebase</strong>
             <span>BUILD WITH INTENT</span>
           </div>
         </motion.div>
@@ -874,8 +880,8 @@ export default function About() {
 
       <footer className="about-footer !border-t-[4px]">
         <div className="about-shell about-footer__inner !py-1">
-          <span>THEJOBSTARTER / PREP WITH PURPOSE</span>
-          <span>THEWEBYTES — {new Date().getFullYear()}</span>
+          <span>THESOFTWAREBASE / PREP WITH PURPOSE</span>
+          <span>thesoftwarebase — {new Date().getFullYear()}</span>
         </div>
       </footer>
     </main>
